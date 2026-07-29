@@ -3,7 +3,10 @@
 FROM node:26-alpine AS web
 
 WORKDIR /web
-RUN corepack enable
+# Node 26 no longer ships corepack, so it is installed explicitly. Going through corepack
+# rather than `npm i -g pnpm@x` keeps the pnpm version coming from the `packageManager` field
+# in web/package.json, which is the same source CI uses.
+RUN npm install -g corepack@latest && corepack enable
 COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY web/ ./
@@ -24,19 +27,22 @@ ENV UV_COMPILE_BYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 
 # Dependencies resolve from the lockfile in their own layer so application edits do not
-# invalidate the install.
-COPY pyproject.toml uv.lock ./
+# invalidate the install. README.md comes too: pyproject declares it as the project readme,
+# so the build backend needs it present to produce metadata.
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-install-project --extra server
 
 COPY src/ ./src/
 COPY --from=web /web/dist ./web/dist
 RUN uv sync --frozen --no-editable --extra server
 
-# git needs an identity for the fallback path; real commits override both with the acting
-# user's name and email.
-RUN git config --system user.name "money" \
-    && git config --system user.email "money@yarden-zamir.com" \
-    && git config --system --add safe.directory '*'
+# The frontend is served from here. It must be explicit: the package is installed
+# non-editable, so nothing in site-packages is relative to this directory.
+ENV WEB_DIST=/app/web/dist
+
+# No git identity is configured here on purpose. The store runs git with GIT_CONFIG_NOSYSTEM
+# and GIT_CONFIG_GLOBAL unset, so anything written to /etc/gitconfig would be ignored, and
+# every commit passes its author and committer explicitly instead.
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 \
     CMD curl -fsS --unix-socket "${KITSHN_DEFAULT_SOCKET}" http://localhost/healthz || exit 1

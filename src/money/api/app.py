@@ -6,6 +6,7 @@ the session cookie work without CORS configuration or a cookie-domain rule.
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -21,7 +22,23 @@ from money.api.routes import auth_routes, budgets, entries, me, rules
 from money.store.store import DataError
 
 API_PREFIX = "/api/v1"
-WEB_DIST = Path(__file__).resolve().parents[3] / "web" / "dist"
+
+
+def web_dist() -> Path:
+    """Where the built frontend lives.
+
+    In the image the package is installed non-editable, so this file sits in site-packages
+    and nothing useful is relative to it — `WEB_DIST` is set explicitly there. The fallback
+    is the repo layout, which is what a local checkout wants.
+
+    Read straight from the environment rather than through `Settings`: the app is constructed
+    at import time, and `Settings` validates that the deployment secrets are present. Routing
+    a static path through it would make merely importing this module require them.
+    """
+    configured = os.environ.get("WEB_DIST")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[3] / "web" / "dist"
 
 
 @asynccontextmanager
@@ -87,17 +104,18 @@ def _mount_web(app: FastAPI) -> None:
 
     Absent in development, where Vite serves the frontend and proxies the API.
     """
-    if not WEB_DIST.is_dir():
+    dist = web_dist()
+    if not dist.is_dir():
         return
 
-    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> FileResponse:
-        candidate = WEB_DIST / full_path
+        candidate = dist / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)
-        return FileResponse(WEB_DIST / "index.html")
+        return FileResponse(dist / "index.html")
 
 
 app = create_app()

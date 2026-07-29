@@ -1,0 +1,16 @@
+# Keep the build context small and, more importantly, keep host artifacts out of the image:
+# `COPY web/ ./` would otherwise drop a macOS node_modules on top of the one installed in
+# the Linux builder.
+.git
+.bare
+_shared
+.venv
+var
+node_modules
+web/node_modules
+web/dist
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.env

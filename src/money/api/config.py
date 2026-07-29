@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("./var")
 
     base_url: str = "http://localhost:8000"
+
     dev_mode: bool = Field(default=False, description="Bypass GitHub auth with a fake user")
 
     @property
