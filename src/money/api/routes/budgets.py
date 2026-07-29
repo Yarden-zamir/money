@@ -31,6 +31,7 @@ from money.api.schemas import (
     BudgetConnect,
     BudgetSummary,
     EntryResponse,
+    MonthClose,
     MonthResponse,
     SettleRequest,
 )
@@ -269,6 +270,55 @@ def assign_to_bucket(
     return get_month(context=context, month=month, person=who)
 
 
+@router.get(
+    "/budgets/{budget}/months/{month}/close",
+    operation_id="getMonthClose",
+    response_model=MonthClose,
+    summary="Is this month closed",
+)
+def get_month_close(
+    context: Annotated[BudgetContext, Depends(budget_context)],
+    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
+) -> MonthClose:
+    return MonthClose(month=month, closed=month in context.store.closed_months())
+
+
+@router.post(
+    "/budgets/{budget}/months/{month}/close",
+    operation_id="closeMonth",
+    response_model=MonthClose,
+    summary="Tag this month as closed",
+    openapi_extra={"x-cli": {"command": "month close", "args": ["month"]}},
+)
+def close_month(
+    context: Annotated[BudgetContext, Depends(writable)],
+    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
+) -> MonthClose:
+    """Records a git tag naming the commit the month ended on.
+
+    A tag rather than a field: it can be checked out to see the month exactly as it stood,
+    and it touches no file that a later edit would rewrite. Closing does not lock anything —
+    it is a bookmark, not a permission.
+    """
+    sha = context.store.close_month(month, context.actor)
+    return MonthClose(month=month, closed=True, commit=sha)
+
+
+@router.delete(
+    "/budgets/{budget}/months/{month}/close",
+    operation_id="reopenMonth",
+    response_model=MonthClose,
+    summary="Remove the close tag",
+    openapi_extra={"x-cli": {"command": "month reopen", "args": ["month"]}},
+)
+def reopen_month(
+    context: Annotated[BudgetContext, Depends(writable)],
+    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
+) -> MonthClose:
+    context.store.reopen_month(month, context.actor)
+    return MonthClose(month=month, closed=False)
+
+
 @router.put(
     "/budgets/{budget}/buckets/{bucket_id}",
     operation_id="putBucket",
@@ -328,14 +378,28 @@ def settle(
     body: SettleRequest,
     context: Annotated[BudgetContext, Depends(writable)],
 ) -> EntryResponse:
-    """A settlement moves both net positions and touches no envelope."""
+    """A settlement moves both net positions and touches no envelope.
+
+    `payer` defaults to the calling user but may name the other party. The person who is
+    *owed* is usually the one holding the phone when the money arrives, and if their partner
+    does not use the app nobody could otherwise record it. The caller must be one of the two
+    parties, so this records payments you were involved in, not other people's.
+    """
     budget = context.store.budget()
-    payer = person_for(context, context.actor.login)
+    me = person_for(context, context.actor.login)
+    payer = body.payer or me
+
+    known = {member.person for member in budget.members}
+    for person in (payer, body.to):
+        if person not in known:
+            raise not_found(f"person {person!r}")
 
     if body.to == payer:
         raise ApiError("self_settlement", "you cannot settle up with yourself")
-    if not any(m.person == body.to for m in budget.members):
-        raise not_found(f"person {body.to!r}")
+    if me not in (payer, body.to):
+        raise ApiError(
+            "not_a_party", "you can only record a settlement you were part of", status=403
+        )
 
     entry = Entry(
         id=new_id(),

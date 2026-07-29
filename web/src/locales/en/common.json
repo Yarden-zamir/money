@@ -34,7 +34,11 @@
     "today": "Today",
     "fillToTarget": "Fill to target",
     "group": "Group",
-    "target": "Monthly target"
+    "target": "Monthly target",
+    "close": "Close month",
+    "reopen": "Reopen",
+    "closed": "Closed",
+    "archive": "Archive"
   },
   "entries": {
     "title": "Entries",
@@ -74,7 +78,16 @@
     "splitEven": "Split evenly",
     "useRules": "Use rules",
     "allBuckets": "All buckets",
-    "shared": "Shared"
+    "shared": "Shared",
+    "edit": "Edit",
+    "editHint": "Amount and split are edited by deleting and re-adding, so an entry can never be left unbalanced.",
+    "notePlaceholder": "Why this entry looks the way it does…",
+    "noHistory": "No history yet.",
+    "tabs": {
+      "split": "Split",
+      "note": "Note",
+      "history": "History"
+    }
   },
   "balances": {
     "title": "Balances",
@@ -85,7 +98,9 @@
     "youAreOwed": "You are owed",
     "youOwe": "You owe",
     "settleNow": "Settle",
-    "settling": "Recording…"
+    "settling": "Recording…",
+    "iPaid": "Record that you paid {{person}}?",
+    "theyPaid": "Record that {{person}} paid you?"
   },
   "settings": {
     "title": "Settings",

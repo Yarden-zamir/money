@@ -17,7 +17,7 @@ import pytest
 from money.domain.models import Bucket, Entry
 from money.store import yamlio
 from money.store.gitrepo import GitRepo
-from money.store.store import Actor, BudgetStore, new_id
+from money.store.store import Actor, BudgetStore, DataError, new_id
 
 D = Decimal
 ACTOR = Actor(
@@ -208,6 +208,80 @@ class TestBranches:
 
         prod.repo.ensure_clone(ACTOR.token)
         assert len(prod.entries_for_month("2026-07")) == 1
+
+
+class TestNotes:
+    def test_a_note_is_a_markdown_file_beside_the_ledger(self, store: BudgetStore) -> None:
+        entry = coffee()
+        store.add_entry(entry, ACTOR)
+        store.put_note(entry.id, "Split unevenly because Dana had the cake too.", ACTOR)
+
+        assert store.note(entry.id) == "Split unevenly because Dana had the cake too.\n"
+        assert f"notes/{entry.id}.md" in store.repo.list_files("notes/")
+
+    def test_an_empty_note_removes_the_file(self, store: BudgetStore) -> None:
+        entry = coffee()
+        store.add_entry(entry, ACTOR)
+        store.put_note(entry.id, "temporary", ACTOR)
+        store.put_note(entry.id, "", ACTOR)
+
+        assert store.note(entry.id) is None
+
+    def test_a_note_change_is_findable_by_entry(self, store: BudgetStore) -> None:
+        entry = coffee()
+        store.add_entry(entry, ACTOR)
+        store.put_note(entry.id, "context", ACTOR)
+
+        subjects = [commit.subject for commit in store.history(entry.id)]
+        assert any(subject.startswith("note:") for subject in subjects)
+
+
+class TestMonthClose:
+    def test_closing_tags_the_current_commit(self, store: BudgetStore) -> None:
+        store.add_entry(coffee(), ACTOR)
+        sha = store.close_month("2026-07", ACTOR)
+
+        assert store.closed_months() == ["2026-07"]
+        assert sha == store.repo.head_sha()
+
+    def test_reopening_removes_the_tag(self, store: BudgetStore) -> None:
+        store.add_entry(coffee(), ACTOR)
+        store.close_month("2026-07", ACTOR)
+        store.reopen_month("2026-07", ACTOR)
+
+        assert store.closed_months() == []
+
+    def test_closing_does_not_lock_the_month(self, store: BudgetStore) -> None:
+        """A close is a bookmark, not a permission — the tag names a commit and nothing more."""
+        store.add_entry(coffee(), ACTOR)
+        store.close_month("2026-07", ACTOR)
+
+        later = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FE").model_copy(update={"date": date(2026, 7, 28)})
+        store.add_entry(later, ACTOR)
+        assert len(store.entries_for_month("2026-07")) == 2
+
+
+class TestSchemaVersion:
+    def test_the_marker_is_written_on_first_change(self, store: BudgetStore) -> None:
+        assert store.repo.read(".money/schema-version") is None
+        store.add_entry(coffee(), ACTOR)
+        assert store.repo.read(".money/schema-version") == "1\n"
+
+    def test_data_from_a_newer_app_is_refused(self, store: BudgetStore) -> None:
+        """Reading it might look fine while dropping fields this version cannot see, and the
+        next write would then delete them."""
+        # Pushed, not just committed: every write refreshes the clone from origin first, so
+        # a local-only commit would be reset away before the check ever ran.
+        store.repo.write(".money/schema-version", "99\n")
+        store.repo.commit(
+            message="chore: pretend a newer app wrote this",
+            author_name="Other",
+            author_email="other@example.com",
+            paths=[".money/schema-version"],
+        )
+        store.repo.push(ACTOR.token)
+        with pytest.raises(DataError, match="schema version 99"):
+            store.add_entry(coffee(), ACTOR)
 
 
 class TestBuckets:

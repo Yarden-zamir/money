@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getMe, getMonth, listApiKeys, listBuckets, listBudgets, listEntries, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putMembers, putRules, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, listApiKeys, listBuckets, listBudgets, listEntries, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putEntryNote, putMembers, putRules, reopenMonth, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -313,6 +313,64 @@ export const assignToBucketMutation = (options?: Partial<Options<AssignToBucketD
 };
 
 /**
+ * Remove the close tag
+ */
+export const reopenMonthMutation = (options?: Partial<Options<ReopenMonthData>>): UseMutationOptions<ReopenMonthResponse, ReopenMonthError, Options<ReopenMonthData>> => {
+    const mutationOptions: UseMutationOptions<ReopenMonthResponse, ReopenMonthError, Options<ReopenMonthData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await reopenMonth({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getMonthCloseQueryKey = (options: Options<GetMonthCloseData>) => createQueryKey('getMonthClose', options);
+
+/**
+ * Is this month closed
+ */
+export const getMonthCloseOptions = (options: Options<GetMonthCloseData>) => queryOptions<GetMonthCloseResponse, GetMonthCloseError, GetMonthCloseResponse, ReturnType<typeof getMonthCloseQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMonthClose({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMonthCloseQueryKey(options)
+});
+
+/**
+ * Tag this month as closed
+ *
+ * Records a git tag naming the commit the month ended on.
+ *
+ * A tag rather than a field: it can be checked out to see the month exactly as it stood,
+ * and it touches no file that a later edit would rewrite. Closing does not lock anything —
+ * it is a bookmark, not a permission.
+ */
+export const closeMonthMutation = (options?: Partial<Options<CloseMonthData>>): UseMutationOptions<CloseMonthResponse, CloseMonthError, Options<CloseMonthData>> => {
+    const mutationOptions: UseMutationOptions<CloseMonthResponse, CloseMonthError, Options<CloseMonthData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await closeMonth({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
  * Create or update one of your buckets
  */
 export const putBucketMutation = (options?: Partial<Options<PutBucketData>>): UseMutationOptions<PutBucketResponse, PutBucketError, Options<PutBucketData>> => {
@@ -369,6 +427,11 @@ export const getBalancesOptions = (options: Options<GetBalancesData>) => queryOp
  * Record a payment between two people
  *
  * A settlement moves both net positions and touches no envelope.
+ *
+ * `payer` defaults to the calling user but may name the other party. The person who is
+ * *owed* is usually the one holding the phone when the money arrives, and if their partner
+ * does not use the app nobody could otherwise record it. The caller must be one of the two
+ * parties, so this records payments you were involved in, not other people's.
  */
 export const settleUpMutation = (options?: Partial<Options<SettleUpData>>): UseMutationOptions<SettleUpResponse, SettleUpError, Options<SettleUpData>> => {
     const mutationOptions: UseMutationOptions<SettleUpResponse, SettleUpError, Options<SettleUpData>> = {
@@ -488,6 +551,43 @@ export const getEntryHistoryOptions = (options: Options<GetEntryHistoryData>) =>
     },
     queryKey: getEntryHistoryQueryKey(options)
 });
+
+export const getEntryNoteQueryKey = (options: Options<GetEntryNoteData>) => createQueryKey('getEntryNote', options);
+
+/**
+ * Long-form note for an entry
+ */
+export const getEntryNoteOptions = (options: Options<GetEntryNoteData>) => queryOptions<GetEntryNoteResponse, GetEntryNoteError, GetEntryNoteResponse, ReturnType<typeof getEntryNoteQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getEntryNote({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getEntryNoteQueryKey(options)
+});
+
+/**
+ * Write the long-form note for an entry
+ *
+ * Markdown in `notes/<entry-id>.md`, so a paragraph of context diffs line by line.
+ */
+export const putEntryNoteMutation = (options?: Partial<Options<PutEntryNoteData>>): UseMutationOptions<PutEntryNoteResponse, PutEntryNoteError, Options<PutEntryNoteData>> => {
+    const mutationOptions: UseMutationOptions<PutEntryNoteResponse, PutEntryNoteError, Options<PutEntryNoteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putEntryNote({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * Show how an entry would be split, without saving it

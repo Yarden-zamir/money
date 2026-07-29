@@ -617,6 +617,24 @@ export type Member = {
 };
 
 /**
+ * MonthClose
+ */
+export type MonthClose = {
+    /**
+     * Month
+     */
+    month: string;
+    /**
+     * Closed
+     */
+    closed: boolean;
+    /**
+     * Commit
+     */
+    commit?: string | null;
+};
+
+/**
  * MonthResponse
  */
 export type MonthResponse = {
@@ -648,6 +666,32 @@ export type MonthResponse = {
      * Buckets
      */
     buckets: Array<BucketState>;
+};
+
+/**
+ * NoteBody
+ */
+export type NoteBody = {
+    /**
+     * Text
+     *
+     * Markdown. Empty removes the note.
+     */
+    text: string;
+};
+
+/**
+ * NoteResponse
+ */
+export type NoteResponse = {
+    /**
+     * Entry Id
+     */
+    entry_id: string;
+    /**
+     * Text
+     */
+    text: string;
 };
 
 /**
@@ -710,6 +754,12 @@ export type SettleRequest = {
      * Amount
      */
     amount: number | string;
+    /**
+     * Payer
+     *
+     * Person id who handed over the money. Defaults to the calling user.
+     */
+    payer?: string | null;
     /**
      * Date
      */
@@ -1324,6 +1374,126 @@ export type AssignToBucketResponses = {
 
 export type AssignToBucketResponse = AssignToBucketResponses[keyof AssignToBucketResponses];
 
+export type ReopenMonthData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Month
+         */
+        month: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/months/{month}/close';
+};
+
+export type ReopenMonthErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReopenMonthError = ReopenMonthErrors[keyof ReopenMonthErrors];
+
+export type ReopenMonthResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthClose;
+};
+
+export type ReopenMonthResponse = ReopenMonthResponses[keyof ReopenMonthResponses];
+
+export type GetMonthCloseData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Month
+         */
+        month: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/months/{month}/close';
+};
+
+export type GetMonthCloseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMonthCloseError = GetMonthCloseErrors[keyof GetMonthCloseErrors];
+
+export type GetMonthCloseResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthClose;
+};
+
+export type GetMonthCloseResponse = GetMonthCloseResponses[keyof GetMonthCloseResponses];
+
+export type CloseMonthData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Month
+         */
+        month: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/months/{month}/close';
+};
+
+export type CloseMonthErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CloseMonthError = CloseMonthErrors[keyof CloseMonthErrors];
+
+export type CloseMonthResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthClose;
+};
+
+export type CloseMonthResponse = CloseMonthResponses[keyof CloseMonthResponses];
+
 export type PutBucketData = {
     body: BucketInput;
     headers?: {
@@ -1735,6 +1905,86 @@ export type GetEntryHistoryResponses = {
 };
 
 export type GetEntryHistoryResponse = GetEntryHistoryResponses[keyof GetEntryHistoryResponses];
+
+export type GetEntryNoteData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/note';
+};
+
+export type GetEntryNoteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetEntryNoteError = GetEntryNoteErrors[keyof GetEntryNoteErrors];
+
+export type GetEntryNoteResponses = {
+    /**
+     * Successful Response
+     */
+    200: NoteResponse;
+};
+
+export type GetEntryNoteResponse = GetEntryNoteResponses[keyof GetEntryNoteResponses];
+
+export type PutEntryNoteData = {
+    body: NoteBody;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/note';
+};
+
+export type PutEntryNoteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutEntryNoteError = PutEntryNoteErrors[keyof PutEntryNoteErrors];
+
+export type PutEntryNoteResponses = {
+    /**
+     * Successful Response
+     */
+    200: NoteResponse;
+};
+
+export type PutEntryNoteResponse = PutEntryNoteResponses[keyof PutEntryNoteResponses];
 
 export type PreviewSplitData = {
     body: EntryCreate;

@@ -89,7 +89,7 @@ def test_fixed_width_fields_opt_out_of_full_width() -> None:
     # Matches a whole self-closing <Input .../> or <Select .../> element, across lines.
     element = re.compile(r"<(?:Input|Select)\b[^>]*?/>", re.DOTALL)
     # A width utility at the start of a class or after a space, so min-w-/max-w- do not match.
-    fixed_width = re.compile(r'(?<![-\w])w-(?:\d|\[)')
+    fixed_width = re.compile(r"(?<![-\w])w-(?:\d|\[)")
 
     offenders: list[str] = []
     for path in app_sources():
@@ -115,7 +115,7 @@ def test_no_styles_reference_removed_theme_tokens() -> None:
     used: set[str] = set()
     for path in app_sources():
         for match in re.findall(
-            r'(?:bg|text|border|ring|divide|from|to)-([a-z][a-z-]*)', path.read_text("utf-8")
+            r"(?:bg|text|border|ring|divide|from|to)-([a-z][a-z-]*)", path.read_text("utf-8")
         ):
             used.add(match)
 

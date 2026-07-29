@@ -56,6 +56,14 @@ def assignments_path(person: str, month: str) -> str:
     return f"people/{person}/assignments/{month}.yaml"
 
 
+def note_path(entry_id: str) -> str:
+    return f"notes/{entry_id}.md"
+
+
+def close_tag(month: str) -> str:
+    return f"close/{month}"
+
+
 class BudgetStore:
     def __init__(self, repo: GitRepo) -> None:
         self.repo = repo
@@ -107,6 +115,43 @@ class BudgetStore:
                 if entry.id == entry_id:
                     return entry, month
         return None
+
+    def note(self, entry_id: str) -> str | None:
+        """The long-form note for an entry, if one was written.
+
+        Markdown in its own file rather than a field on the entry: a paragraph of context
+        belongs somewhere a diff can show line by line, and somewhere a person can read
+        without picking it out of YAML.
+        """
+        return self.repo.read(note_path(entry_id))
+
+    def closed_months(self) -> list[str]:
+        """Months that have been closed, newest first."""
+        return sorted(
+            (tag.removeprefix("close/") for tag in self.repo.tags("close/")), reverse=True
+        )
+
+    def schema_version(self) -> int:
+        raw = self.repo.read(".money/schema-version")
+        if raw is None:
+            return SCHEMA_VERSION  # a repo predating the marker is treated as current
+        try:
+            return int(raw.strip())
+        except ValueError as exc:
+            raise DataError(f".money/schema-version is not a number: {raw!r}") from exc
+
+    def check_schema(self) -> None:
+        """Refuse to touch data written by a newer version of the app.
+
+        Reading it might appear to work while silently dropping fields this version does not
+        know about, and the first write would then delete them.
+        """
+        found = self.schema_version()
+        if found > SCHEMA_VERSION:
+            raise DataError(
+                f"this budget uses schema version {found}, but this app understands "
+                f"{SCHEMA_VERSION}. Upgrade the app before writing to it."
+            )
 
     def history(self, entry_id: str, limit: int = 50) -> list[Commit]:
         """Commits that touched one entry, found by its `Entry-Id` trailer."""
@@ -198,6 +243,42 @@ class BudgetStore:
             trailers={"Person": person, "Month": month},
         )
 
+    def put_note(self, entry_id: str, text: str, actor: Actor) -> str:
+        def mutate() -> list[str]:
+            if text.strip():
+                self.repo.write(note_path(entry_id), text.rstrip() + "\n")
+            else:
+                self.repo.delete(note_path(entry_id))  # an empty note is absence, not a file
+            return [note_path(entry_id)]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"note: {'update' if text.strip() else 'remove'} {entry_id}",
+            trailers={"Entry-Id": entry_id},
+        )
+
+    def close_month(self, month: str, actor: Actor) -> str:
+        """Tag the current state of a month.
+
+        A tag, not a flag in a file: it names a commit, so the month can be checked out
+        exactly as it stood, and it does not change any file that later edits would touch.
+        """
+        with write_lock(self.repo):
+            self.repo.ensure_clone(actor.token)
+            sha = self.repo.head_sha()
+            self.repo.tag(
+                close_tag(month),
+                f"close {month}\n\nActor: {actor.login}\n",
+                actor.token,
+            )
+            return sha
+
+    def reopen_month(self, month: str, actor: Actor) -> None:
+        with write_lock(self.repo):
+            self.repo.ensure_clone(actor.token)
+            self.repo.delete_tag(close_tag(month), actor.token)
+
     def put_members(self, budget: Budget, actor: Actor) -> str:
         def mutate() -> list[str]:
             self.repo.write(
@@ -257,7 +338,14 @@ class BudgetStore:
 
         with write_lock(self.repo):
             self.repo.ensure_clone(actor.token)
+            self.check_schema()
             paths = mutate()
+
+            # Stamp the marker on the first write, so a repo created by hand gains one and a
+            # future version has something to compare against.
+            if self.repo.read(".money/schema-version") is None:
+                self.repo.write(".money/schema-version", f"{SCHEMA_VERSION}\n")
+                paths = [*paths, ".money/schema-version"]
             sha = self.repo.commit(
                 message=message,
                 author_name=actor.name,

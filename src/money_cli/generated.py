@@ -30,6 +30,10 @@ key_app = typer.Typer(no_args_is_help=True, help="key commands")
 
 member_app = typer.Typer(no_args_is_help=True, help="member commands")
 
+month_app = typer.Typer(no_args_is_help=True, help="month commands")
+
+note_app = typer.Typer(no_args_is_help=True, help="note commands")
+
 rule_app = typer.Typer(no_args_is_help=True, help="rule commands")
 
 
@@ -98,13 +102,14 @@ def month(
 def settle(
     to: Annotated[str, typer.Argument(help='Person id being paid')],
     amount: Annotated[str, typer.Argument(help='')],
+    payer: Annotated[str | None, typer.Option("--payer", help='Person id who handed over the money. Defaults to the calling user.')] = None,
     date: Annotated[str | None, typer.Option("--date", help='')] = None,
     note: Annotated[str | None, typer.Option("--note", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"to": to, "amount": amount, "date": date, "note": note}
+    body = {"to": to, "amount": amount, "payer": payer, "date": date, "note": note}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -456,6 +461,83 @@ def member_set(
     )
 
 
+@month_app.command("close", help='Tag this month as closed')
+def month_close(
+    month: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/months/{month}/close",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@month_app.command("reopen", help='Remove the close tag')
+def month_reopen(
+    month: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "DELETE",
+            f"/budgets/{resolve_budget(budget)}/months/{month}/close",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@note_app.command("set", help='Write the long-form note for an entry')
+def note_set(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    text: Annotated[str, typer.Argument(help='Markdown. Empty removes the note.')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"text": text}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "PUT",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/note",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@note_app.command("show", help='Long-form note for an entry')
+def note_show(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/note",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @rule_app.command("list", help='Default split rules, in match order')
 def rule_list(
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
@@ -503,4 +585,6 @@ def register(app: typer.Typer) -> None:
     app.add_typer(entry_app, name="entry")
     app.add_typer(key_app, name="key")
     app.add_typer(member_app, name="member")
+    app.add_typer(month_app, name="month")
+    app.add_typer(note_app, name="note")
     app.add_typer(rule_app, name="rule")

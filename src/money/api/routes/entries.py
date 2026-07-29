@@ -20,6 +20,8 @@ from money.api.schemas import (
     EntryResponse,
     EntryUpdate,
     HistoryList,
+    NoteBody,
+    NoteResponse,
     ShareInput,
     SplitPreview,
 )
@@ -227,6 +229,41 @@ def entry_history(
             for c in commits
         ]
     )
+
+
+@router.get(
+    "/{entry_id}/note",
+    operation_id="getEntryNote",
+    response_model=NoteResponse,
+    summary="Long-form note for an entry",
+    openapi_extra={"x-cli": {"command": "note show", "args": ["entry_id"]}},
+)
+def get_note(
+    entry_id: str, context: Annotated[BudgetContext, Depends(budget_context)]
+) -> NoteResponse:
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+    return NoteResponse(entry_id=entry_id, text=context.store.note(entry_id) or "")
+
+
+@router.put(
+    "/{entry_id}/note",
+    operation_id="putEntryNote",
+    response_model=NoteResponse,
+    summary="Write the long-form note for an entry",
+    openapi_extra={"x-cli": {"command": "note set", "args": ["entry_id", "text"]}},
+)
+def put_note(
+    entry_id: str,
+    body: NoteBody,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> NoteResponse:
+    """Markdown in `notes/<entry-id>.md`, so a paragraph of context diffs line by line."""
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+
+    context.store.put_note(entry_id, body.text, context.actor)
+    return NoteResponse(entry_id=entry_id, text=body.text)
 
 
 @router.post(

@@ -34,7 +34,11 @@
     "today": "החודש",
     "fillToTarget": "השלמה ליעד",
     "group": "קבוצה",
-    "target": "יעד חודשי"
+    "target": "יעד חודשי",
+    "close": "סגירת חודש",
+    "reopen": "פתיחה מחדש",
+    "closed": "סגור",
+    "archive": "העברה לארכיון"
   },
   "entries": {
     "title": "תנועות",
@@ -74,7 +78,16 @@
     "splitEven": "חלוקה שווה",
     "useRules": "לפי הכללים",
     "allBuckets": "כל הקטגוריות",
-    "shared": "משותף"
+    "shared": "משותף",
+    "edit": "עריכה",
+    "editHint": "סכום וחלוקה נערכים על ידי מחיקה והוספה מחדש, כדי שתנועה לא תישאר לא מאוזנת.",
+    "notePlaceholder": "למה התנועה נראית כך…",
+    "noHistory": "אין עדיין היסטוריה.",
+    "tabs": {
+      "split": "חלוקה",
+      "note": "הערה",
+      "history": "היסטוריה"
+    }
   },
   "balances": {
     "title": "מאזן",
@@ -85,7 +98,9 @@
     "youAreOwed": "חייבים לך",
     "youOwe": "אתה חייב",
     "settleNow": "סגירה",
-    "settling": "רושם…"
+    "settling": "רושם…",
+    "iPaid": "לרשום ששילמת ל{{person}}?",
+    "theyPaid": "לרשום ש{{person}} שילם/ה לך?"
   },
   "settings": {
     "title": "הגדרות",

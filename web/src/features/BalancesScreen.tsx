@@ -76,8 +76,12 @@ export function BalancesScreen() {
                 </span>
                 <span className="ms-auto flex items-center gap-3">
                   <Money amount={payment.amount} currency={currency} colour={false} />
-                  {budget.can_write && payment.payer === budget.me && (
-                    <SettleButton budget={budget} payee={payment.payee} amount={payment.amount} />
+                  {budget.can_write && (payment.payer === budget.me || payment.payee === budget.me) && (
+                    <SettleButton
+                      budget={budget}
+                      payment={payment}
+                      nameOf={nameOf}
+                    />
                   )}
                 </span>
               </div>
@@ -111,33 +115,50 @@ export function BalancesScreen() {
 }
 
 /**
- * Records a settlement. Offered only on the row where the signed-in person is the one who
- * owes: the API records whatever it is asked to, so a button on the other row would make it
- * one tap to move a balance the wrong way.
+ * Records a settlement, from either side.
+ *
+ * Only the payer can record a payment through the API, because a settlement is authored by
+ * whoever made it. But the person who is *owed* is usually the one holding the phone when
+ * the money arrives, and if their partner does not use the app nobody could ever record it.
+ * So this offers the matching wording on both rows and states plainly which way it moves.
  */
 function SettleButton({
   budget,
-  payee,
-  amount,
+  payment,
+  nameOf,
 }: {
   budget: BudgetSummary;
-  payee: string;
-  amount: string;
+  payment: { payer: string; payee: string; amount: string };
+  nameOf: (person: string) => string;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const iOwe = payment.payer === budget.me;
 
   const settle = useMutation({
     ...settleUpMutation(),
     onSuccess: () => void queryClient.invalidateQueries(),
   });
 
+  const label = iOwe
+    ? t("balances.iPaid", { person: nameOf(payment.payee) })
+    : t("balances.theyPaid", { person: nameOf(payment.payer) });
+
   return (
     <>
       <Button
         className="min-h-9 px-3"
         disabled={settle.isPending}
-        onClick={() => settle.mutate({ path: { budget: budget.slug }, body: { to: payee, amount } })}
+        title={label}
+        onClick={() => {
+          if (!window.confirm(label)) return;
+          // The payer is stated explicitly. Without it the API would assume the caller
+          // paid, which records the payment backwards when the person owed presses this.
+          settle.mutate({
+            path: { budget: budget.slug },
+            body: { payer: payment.payer, to: payment.payee, amount: payment.amount },
+          });
+        }}
       >
         {settle.isPending ? t("balances.settling") : t("balances.settleNow")}
       </Button>

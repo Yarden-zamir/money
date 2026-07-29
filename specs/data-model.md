@@ -15,7 +15,7 @@ rules.yaml                         # default split rules
 people/<person>/buckets.yaml       # that person's envelopes
 people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
-notes/<entry-id>.md                # long-form notes, optional
+notes/<entry-id>.md                # long-form note for one entry, optional
 README.md                          # generated; explains this layout to a human
 .money/schema-version              # integer, currently 1
 ```
@@ -130,6 +130,22 @@ groceries: 1200.00
 
 Assignment files are a flat map so a person can edit them by hand without touching the app.
 
+## Notes
+
+An entry's `note` field is a one-liner. Anything longer lives in `notes/<entry-id>.md` as
+markdown: a paragraph explaining why a split is uneven belongs somewhere a diff shows line by
+line, and somewhere a person can read without picking it out of YAML. Writing an empty note
+deletes the file rather than leaving an empty one.
+
+## Schema Version
+
+`.money/schema-version` holds an integer, currently `1`. It is written on the first change the
+app makes to a repo, so a repo created by hand gains one.
+
+The app refuses to write to a repo whose version is **higher** than it understands. Reading
+such a repo might appear to work while silently dropping fields the older code cannot see, and
+the next write would then delete them.
+
 ## Rules
 
 Rules supply default splits and buckets when an entry is created. First match wins, which is
@@ -174,7 +190,10 @@ Rounding sends the remaining agorot to the largest share, so splits always sum e
 
 - Entry history is `git log` scoped to the ledger file, filtered by `Entry-Id`. The API
   exposes it directly, so "what changed and who changed it" needs no audit table.
-- Closing a month is a tag, `close/2026-07`, so any month can be checked out as it stood.
+- Closing a month is an annotated tag, `close/2026-07`, naming the commit the month ended on,
+  so it can be checked out exactly as it stood. It is a bookmark, not a lock: later edits to
+  a closed month are still allowed, because refusing them would mean the app deciding a
+  correction is illegitimate.
 - Writes take a per-repo lock, commit, then push. A rejected push is retried after
   `pull --rebase`. Ledger entries are kept sorted by `(date, id)` so two people appending on
   the same day produce a clean rebase instead of a conflict.

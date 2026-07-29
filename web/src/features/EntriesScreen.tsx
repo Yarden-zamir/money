@@ -13,6 +13,7 @@ import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatDate, formatMonth, shiftMonth } from "@/lib/format";
 import { AddEntry } from "./AddEntry";
+import { EntryDetail } from "./EntryDetail";
 import { useBudget } from "./useBudget";
 
 const RECENT_MONTHS = 12;
@@ -175,43 +176,17 @@ function EntryRow({
         </div>
       </button>
 
-      {/* Details and the destructive action stay behind a tap: a delete button on every row
-          is both visual noise and easy to hit by accident on a phone. */}
       {open && (
-        <div className="sheet-in space-y-2 border-t border-line bg-surface/60 px-3 py-3 text-xs sm:px-4">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {entry.shares.map((share, index) => (
-              <span key={index}>
-                {share.person}{" "}
-                <Money amount={share.amount} currency={entry.currency} colour={false} />
-                {share.bucket && ` · ${bucketNames.get(share.bucket) ?? share.bucket}`}
-              </span>
-            ))}
-          </div>
-          <div className="text-ink-muted">
-            {t("entries.paidBy")}{" "}
-            {Object.entries(entry.paid_by)
-              .map(([person]) => person)
-              .join(", ")}
-            {entry.rule && ` · ${t("entries.splitBy", { rule: entry.rule })}`}
-          </div>
-          {entry.note && <div className="text-ink-muted">{entry.note}</div>}
-
-          {budget.can_write && (
-            <Button
-              variant="danger"
-              className="min-h-9 px-2"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(t("entries.confirmDelete"))) {
-                  remove.mutate({ path: { budget: budget.slug, entry_id: entry.id } });
-                }
-              }}
-            >
-              {t("entries.delete")}
-            </Button>
-          )}
-        </div>
+        <EntryDetail
+          entry={entry}
+          budget={budget}
+          bucketNames={bucketNames}
+          onDeleted={() => {
+            if (window.confirm(t("entries.confirmDelete"))) {
+              remove.mutate({ path: { budget: budget.slug, entry_id: entry.id } });
+            }
+          }}
+        />
       )}
     </div>
   );

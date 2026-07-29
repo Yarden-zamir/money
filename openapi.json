@@ -857,6 +857,267 @@
         }
       }
     },
+    "/api/v1/budgets/{budget}/months/{month}/close": {
+      "get": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Is this month closed",
+        "operationId": "getMonthClose",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthClose"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Tag this month as closed",
+        "description": "Records a git tag naming the commit the month ended on.\n\nA tag rather than a field: it can be checked out to see the month exactly as it stood,\nand it touches no file that a later edit would rewrite. Closing does not lock anything \u2014\nit is a bookmark, not a permission.",
+        "operationId": "closeMonth",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthClose"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "month close",
+          "args": [
+            "month"
+          ]
+        }
+      },
+      "delete": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Remove the close tag",
+        "operationId": "reopenMonth",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthClose"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "month reopen",
+          "args": [
+            "month"
+          ]
+        }
+      }
+    },
     "/api/v1/budgets/{budget}/buckets/{bucket_id}": {
       "put": {
         "tags": [
@@ -1141,7 +1402,7 @@
           "budgets"
         ],
         "summary": "Record a payment between two people",
-        "description": "A settlement moves both net positions and touches no envelope.",
+        "description": "A settlement moves both net positions and touches no envelope.\n\n`payer` defaults to the calling user but may name the other party. The person who is\n*owed* is usually the one holding the phone when the money arrives, and if their partner\ndoes not use the app nobody could otherwise record it. The caller must be one of the two\nparties, so this records payments you were involved in, not other people's.",
         "operationId": "settleUp",
         "parameters": [
           {
@@ -1850,6 +2111,194 @@
           "command": "entry history",
           "args": [
             "entry_id"
+          ]
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/entries/{entry_id}/note": {
+      "get": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Long-form note for an entry",
+        "operationId": "getEntryNote",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "note show",
+          "args": [
+            "entry_id"
+          ]
+        }
+      },
+      "put": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Write the long-form note for an entry",
+        "description": "Markdown in `notes/<entry-id>.md`, so a paragraph of context diffs line by line.",
+        "operationId": "putEntryNote",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "note set",
+          "args": [
+            "entry_id",
+            "text"
           ]
         }
       }
@@ -3551,6 +4000,36 @@
         ],
         "title": "Member"
       },
+      "MonthClose": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Month"
+          },
+          "closed": {
+            "type": "boolean",
+            "title": "Closed"
+          },
+          "commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "closed"
+        ],
+        "title": "MonthClose"
+      },
       "MonthResponse": {
         "properties": {
           "person": {
@@ -3600,6 +4079,40 @@
           "buckets"
         ],
         "title": "MonthResponse"
+      },
+      "NoteBody": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Text",
+            "description": "Markdown. Empty removes the note."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "NoteBody"
+      },
+      "NoteResponse": {
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_id",
+          "text"
+        ],
+        "title": "NoteResponse"
       },
       "Rule-Input": {
         "properties": {
@@ -3709,6 +4222,18 @@
               }
             ],
             "title": "Amount"
+          },
+          "payer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payer",
+            "description": "Person id who handed over the money. Defaults to the calling user."
           },
           "date": {
             "anyOf": [

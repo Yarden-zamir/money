@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -144,6 +144,27 @@ export const assignToBucket = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
+ * Remove the close tag
+ */
+export const reopenMonth = <ThrowOnError extends boolean = false>(options: Options<ReopenMonthData, ThrowOnError>): RequestResult<ReopenMonthResponses, ReopenMonthErrors, ThrowOnError> => (options.client ?? client).delete<ReopenMonthResponses, ReopenMonthErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/months/{month}/close', ...options });
+
+/**
+ * Is this month closed
+ */
+export const getMonthClose = <ThrowOnError extends boolean = false>(options: Options<GetMonthCloseData, ThrowOnError>): RequestResult<GetMonthCloseResponses, GetMonthCloseErrors, ThrowOnError> => (options.client ?? client).get<GetMonthCloseResponses, GetMonthCloseErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/months/{month}/close', ...options });
+
+/**
+ * Tag this month as closed
+ *
+ * Records a git tag naming the commit the month ended on.
+ *
+ * A tag rather than a field: it can be checked out to see the month exactly as it stood,
+ * and it touches no file that a later edit would rewrite. Closing does not lock anything —
+ * it is a bookmark, not a permission.
+ */
+export const closeMonth = <ThrowOnError extends boolean = false>(options: Options<CloseMonthData, ThrowOnError>): RequestResult<CloseMonthResponses, CloseMonthErrors, ThrowOnError> => (options.client ?? client).post<CloseMonthResponses, CloseMonthErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/months/{month}/close', ...options });
+
+/**
  * Create or update one of your buckets
  */
 export const putBucket = <ThrowOnError extends boolean = false>(options: Options<PutBucketData, ThrowOnError>): RequestResult<PutBucketResponses, PutBucketErrors, ThrowOnError> => (options.client ?? client).put<PutBucketResponses, PutBucketErrors, ThrowOnError>({
@@ -169,6 +190,11 @@ export const getBalances = <ThrowOnError extends boolean = false>(options: Optio
  * Record a payment between two people
  *
  * A settlement moves both net positions and touches no envelope.
+ *
+ * `payer` defaults to the calling user but may name the other party. The person who is
+ * *owed* is usually the one holding the phone when the money arrives, and if their partner
+ * does not use the app nobody could otherwise record it. The caller must be one of the two
+ * parties, so this records payments you were involved in, not other people's.
  */
 export const settleUp = <ThrowOnError extends boolean = false>(options: Options<SettleUpData, ThrowOnError>): RequestResult<SettleUpResponses, SettleUpErrors, ThrowOnError> => (options.client ?? client).post<SettleUpResponses, SettleUpErrors, ThrowOnError>({
     url: '/api/v1/budgets/{budget}/settle',
@@ -222,6 +248,25 @@ export const updateEntry = <ThrowOnError extends boolean = false>(options: Optio
  * Commits that touched this entry
  */
 export const getEntryHistory = <ThrowOnError extends boolean = false>(options: Options<GetEntryHistoryData, ThrowOnError>): RequestResult<GetEntryHistoryResponses, GetEntryHistoryErrors, ThrowOnError> => (options.client ?? client).get<GetEntryHistoryResponses, GetEntryHistoryErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/history', ...options });
+
+/**
+ * Long-form note for an entry
+ */
+export const getEntryNote = <ThrowOnError extends boolean = false>(options: Options<GetEntryNoteData, ThrowOnError>): RequestResult<GetEntryNoteResponses, GetEntryNoteErrors, ThrowOnError> => (options.client ?? client).get<GetEntryNoteResponses, GetEntryNoteErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/note', ...options });
+
+/**
+ * Write the long-form note for an entry
+ *
+ * Markdown in `notes/<entry-id>.md`, so a paragraph of context diffs line by line.
+ */
+export const putEntryNote = <ThrowOnError extends boolean = false>(options: Options<PutEntryNoteData, ThrowOnError>): RequestResult<PutEntryNoteResponses, PutEntryNoteErrors, ThrowOnError> => (options.client ?? client).put<PutEntryNoteResponses, PutEntryNoteErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/note',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Show how an entry would be split, without saving it

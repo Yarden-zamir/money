@@ -4,8 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   assignToBucketMutation,
+  closeMonthMutation,
+  getMonthCloseOptions,
   getMonthOptions,
+  listBucketsOptions,
   putBucketMutation,
+  reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketState } from "@/api/types.gen";
 import { Button, Card, Field, FormError, Input } from "@/components/Form";
@@ -19,6 +23,7 @@ export function MonthScreen() {
   const { budget, isPending: budgetPending } = useBudget();
   const [month, setMonth] = useState(currentMonth);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
 
   const query = useQuery({
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
@@ -56,11 +61,14 @@ export function MonthScreen() {
           </Step>
         </div>
 
-        {month !== currentMonth() && (
-          <Button variant="ghost" onClick={() => setMonth(currentMonth())}>
-            {t("month.today")}
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {month !== currentMonth() && (
+            <Button variant="ghost" onClick={() => setMonth(currentMonth())}>
+              {t("month.today")}
+            </Button>
+          )}
+          {budget.can_write && <CloseMonth budget={budget.slug} month={month} />}
+        </div>
       </div>
 
       {/* Ready to assign is the number that drives every decision on this screen, so it is
@@ -101,11 +109,16 @@ export function MonthScreen() {
                   budget={budget.slug}
                   month={month}
                   canWrite={budget.can_write}
+                  onEdit={() => setEditing(bucket.bucket)}
                 />
               ))}
             </Card>
           </div>
         ))
+      )}
+
+      {editing && (
+        <EditBucket budget={budget.slug} bucketId={editing} onDone={() => setEditing(null)} />
       )}
 
       {budget.can_write &&
@@ -126,12 +139,14 @@ function BucketRow({
   budget,
   month,
   canWrite,
+  onEdit,
 }: {
   bucket: BucketState;
   currency: string;
   budget: string;
   month: string;
   canWrite: boolean;
+  onEdit: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -158,7 +173,14 @@ function BucketRow({
     <div className="p-3 sm:px-4">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{bucket.name}</div>
+          <button
+            type="button"
+            className="truncate text-start text-sm font-medium hover:text-brand"
+            onClick={onEdit}
+            disabled={!canWrite}
+          >
+            {bucket.name}
+          </button>
           {/* "spent / target" is a fraction: its two halves have a fixed reading order. Each
               amount is individually isolated, so without an LTR run around the pair the
               sequence itself flips in Hebrew and the target appears to come first. */}
@@ -344,5 +366,134 @@ function Step({
     >
       {children}
     </button>
+  );
+}
+
+
+/** Rename a bucket, change its group or target, or archive it. */
+function EditBucket({
+  budget,
+  bucketId,
+  onDone,
+}: {
+  budget: string;
+  bucketId: string;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const buckets = useQuery(listBucketsOptions({ path: { budget } }));
+  const existing = (buckets.data ?? []).find((item) => item.id === bucketId);
+
+  const [name, setName] = useState("");
+  const [group, setGroup] = useState("");
+  const [target, setTarget] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  if (existing && !loaded) {
+    setName(existing.name);
+    setGroup(existing.group ?? "");
+    setTarget(existing.target?.amount != null ? String(existing.target.amount) : "");
+    setLoaded(true);
+  }
+
+  const save = useMutation({
+    ...putBucketMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+      onDone();
+    },
+  });
+
+  const submit = (archived: boolean) =>
+    save.mutate({
+      path: { budget, bucket_id: bucketId },
+      body: {
+        id: bucketId,
+        name: name.trim() || bucketId,
+        group: group.trim() || null,
+        target: target ? { kind: "monthly", amount: Number(target).toFixed(2) } : null,
+        archived,
+      },
+    });
+
+  return (
+    <Card className="sheet-in p-4">
+      <form
+        className="grid gap-3 sm:grid-cols-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit(existing?.archived ?? false);
+        }}
+      >
+        <Field label={t("month.bucketName")}>
+          <Input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
+        </Field>
+        <Field label={t("month.group")}>
+          <Input value={group} onChange={(event) => setGroup(event.target.value)} />
+        </Field>
+        <Field label={t("month.target")}>
+          <Input
+            className="numeric ltr-field"
+            inputMode="decimal"
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+            placeholder="0.00"
+          />
+        </Field>
+
+        <div className="flex flex-wrap gap-2 sm:col-span-3">
+          <Button type="submit" disabled={save.isPending}>
+            {t("common.save")}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onDone}>
+            {t("common.cancel")}
+          </Button>
+          {/* Archive, not delete: entries already reference this bucket and their history
+              must keep resolving to a name. */}
+          <Button
+            type="button"
+            variant="danger"
+            className="ms-auto"
+            disabled={save.isPending}
+            onClick={() => submit(true)}
+          >
+            {t("month.archive")}
+          </Button>
+        </div>
+      </form>
+      <FormError error={save.error} />
+    </Card>
+  );
+}
+
+/**
+ * Closing a month tags the commit it ended on, so it can be checked out exactly as it stood.
+ * It is a bookmark, not a lock — later edits to that month are still allowed.
+ */
+function CloseMonth({ budget, month }: { budget: string; month: string }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const state = useQuery(getMonthCloseOptions({ path: { budget, month } }));
+
+  const invalidate = () => void queryClient.invalidateQueries();
+  const close = useMutation({ ...closeMonthMutation(), onSuccess: invalidate });
+  const reopen = useMutation({ ...reopenMonthMutation(), onSuccess: invalidate });
+
+  if (state.isPending || state.isError) return null;
+  const closed = state.data.closed;
+
+  return (
+    <Button
+      variant="ghost"
+      disabled={close.isPending || reopen.isPending}
+      onClick={() =>
+        closed
+          ? reopen.mutate({ path: { budget, month } })
+          : close.mutate({ path: { budget, month } })
+      }
+    >
+      {closed ? t("month.reopen") : t("month.close")}
+    </Button>
   );
 }

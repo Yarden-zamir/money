@@ -107,8 +107,29 @@ class SettleRequest(BaseModel):
 
     to: str = Field(description="Person id being paid")
     amount: Decimal = Field(gt=0)
+    payer: str | None = Field(
+        default=None,
+        description="Person id who handed over the money. Defaults to the calling user.",
+    )
     date: DateType | None = None
     note: str | None = None
+
+
+class NoteBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(max_length=20000, description="Markdown. Empty removes the note.")
+
+
+class NoteResponse(BaseModel):
+    entry_id: str
+    text: str
+
+
+class MonthClose(BaseModel):
+    month: Month
+    closed: bool
+    commit: str | None = None
 
 
 class BudgetSummary(BaseModel):

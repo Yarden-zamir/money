@@ -213,6 +213,40 @@ class TestBalancesAndSettling:
             "dana": "-50.00",
         }
 
+    def test_the_person_who_is_owed_can_record_the_payment(self, client: TestClient) -> None:
+        """Dana may not use the app; Yarden still has to be able to record that she paid.
+
+        The recorded entry must have Dana as the payer, not the caller — recording it the
+        other way would move the balance further in the wrong direction.
+        """
+        post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+
+        response = client.post(
+            "/api/v1/budgets/joint/settle",
+            json={"payer": "dana", "to": "yarden", "amount": "25.00", "date": "2026-07-20"},
+        )
+        assert response.status_code == 200
+        assert response.json()["entry"]["paid_by"] == {"dana": "-25.00"}
+
+        sheet = client.get("/api/v1/budgets/joint/balances").json()
+        assert all(b["net"] == "0.00" for b in sheet["balances"])
+
+    def test_you_cannot_record_a_settlement_between_other_people(self, client: TestClient) -> None:
+        client.put(
+            "/api/v1/budgets/joint/members",
+            json=[
+                {"person": "yarden", "name": "Yarden", "github": "dev"},
+                {"person": "dana", "name": "Dana", "github": "dana-example"},
+                {"person": "noa", "name": "Noa", "github": None},
+            ],
+        )
+        response = client.post(
+            "/api/v1/budgets/joint/settle",
+            json={"payer": "dana", "to": "noa", "amount": "25.00"},
+        )
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "not_a_party"
+
     def test_you_cannot_settle_with_yourself(self, client: TestClient) -> None:
         response = client.post(
             "/api/v1/budgets/joint/settle", json={"to": "yarden", "amount": "25.00"}

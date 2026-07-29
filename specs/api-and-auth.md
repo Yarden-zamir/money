@@ -74,11 +74,16 @@ GET    /budgets/{budget}/entries/{id}
 PATCH  /budgets/{budget}/entries/{id}
 DELETE /budgets/{budget}/entries/{id}
 GET    /budgets/{budget}/entries/{id}/history   commits touching this entry
+GET    /budgets/{budget}/entries/{id}/note      long-form markdown note
+PUT    /budgets/{budget}/entries/{id}/note      write it; empty text removes the file
 
 GET    /budgets/{budget}/buckets                buckets for a person
 PUT    /budgets/{budget}/buckets/{bucket}
 GET    /budgets/{budget}/months/{month}         full envelope view: assigned, activity, available
 PUT    /budgets/{budget}/months/{month}/assign  assign money to a bucket
+GET    /budgets/{budget}/months/{month}/close   is this month closed
+POST   /budgets/{budget}/months/{month}/close   tag the commit the month ended on
+DELETE /budgets/{budget}/months/{month}/close   remove the tag
 
 GET    /budgets/{budget}/balances            net positions and the suggested settle-up
 POST   /budgets/{budget}/settle              record a settlement between two people
@@ -106,6 +111,10 @@ GET    /readyz                               liveness plus data-repo reachabilit
 
 `POST /entries` returns the created entry **and** the commit sha that recorded it, so a client
 can link straight to the diff.
+
+A settlement names its `payer`, defaulting to the caller. The person who is *owed* is usually
+the one holding the phone when the money arrives, and if their partner does not use the app
+nobody could otherwise record it. The caller must be one of the two parties.
 
 ## Errors
 
