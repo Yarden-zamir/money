@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -8,9 +7,10 @@ import {
   getMonthOptions,
   putBucketMutation,
 } from "@/api/@tanstack/react-query.gen";
-import { Button, Input } from "@/components/Form";
+import type { BucketState } from "@/api/types.gen";
+import { Button, Card, Field, FormError, Input } from "@/components/Form";
 import { Money } from "@/components/Money";
-import { Empty, ErrorState, Loading } from "@/components/States";
+import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
 import { useBudget } from "./useBudget";
 
@@ -18,6 +18,7 @@ export function MonthScreen() {
   const { t, i18n } = useTranslation();
   const { budget, isPending: budgetPending } = useBudget();
   const [month, setMonth] = useState(currentMonth);
+  const [creating, setCreating] = useState(false);
 
   const query = useQuery({
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
@@ -28,187 +29,304 @@ export function MonthScreen() {
   if (query.isError || !budget) return <ErrorState onRetry={() => void query.refetch()} />;
 
   const view = query.data;
+  const ready = Number(view.ready_to_assign);
+
+  // Buckets are grouped the way a person thinks about them — essentials, lifestyle, goals —
+  // rather than as one long list. Ungrouped buckets fall into a single trailing section.
+  const groups = new Map<string, BucketState[]>();
+  for (const bucket of view.buckets) {
+    const key = bucket.group ?? "";
+    groups.set(key, [...(groups.get(key) ?? []), bucket]);
+  }
 
   return (
-    <section>
-      <header className="mb-6 flex flex-wrap items-center gap-4">
+    <section className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
-          {/* U+2039/U+203A are Bidi-Mirrored: the text engine already flips them in RTL, so
-              they must NOT also get .icon-directional or they would flip back. Flex order
-              puts "previous" at the inline start in both directions. */}
-          <MonthStep label={t("month.previous")} onClick={() => setMonth(shiftMonth(month, -1))}>
+          {/* ‹ and › are Bidi-Mirrored: the text engine flips them in RTL, so they must not
+              also get .icon-directional. Flex order puts "previous" at the inline start. */}
+          <Step label={t("month.previous")} onClick={() => setMonth(shiftMonth(month, -1))}>
             ‹
-          </MonthStep>
-          <span className="min-w-44 text-center text-lg font-semibold">
+          </Step>
+          <h1 className="min-w-36 text-center text-base font-semibold sm:min-w-44 sm:text-lg">
             {formatMonth(month, i18n.language)}
-          </span>
-          <MonthStep label={t("month.next")} onClick={() => setMonth(shiftMonth(month, 1))}>
+          </h1>
+          <Step label={t("month.next")} onClick={() => setMonth(shiftMonth(month, 1))}>
             ›
-          </MonthStep>
+          </Step>
         </div>
 
-        <div className="ms-auto rounded-lg bg-surface-raised px-4 py-2 ring-1 ring-line">
-          <div className="text-xs text-ink-muted">{t("month.readyToAssign")}</div>
-          <Money amount={view.ready_to_assign} currency={view.currency} className="text-xl" />
-        </div>
-      </header>
+        {month !== currentMonth() && (
+          <Button variant="ghost" onClick={() => setMonth(currentMonth())}>
+            {t("month.today")}
+          </Button>
+        )}
+      </div>
 
-      {budget.can_write && <NewBucket budget={budget.slug} />}
+      {/* Ready to assign is the number that drives every decision on this screen, so it is
+          the only thing given hero treatment. */}
+      <Card
+        className={`p-4 ${
+          ready < 0
+            ? "border-negative/40 bg-negative/5"
+            : ready > 0
+              ? "border-brand/40 bg-brand-soft/60"
+              : ""
+        }`}
+      >
+        <div className="text-xs font-medium text-ink-muted">{t("month.readyToAssign")}</div>
+        <Money
+          amount={view.ready_to_assign}
+          currency={view.currency}
+          className="text-2xl font-semibold sm:text-3xl"
+        />
+      </Card>
 
       {view.buckets.length === 0 ? (
-        <Empty message={t("month.empty")} />
+        <Card className="p-6 text-center text-ink-muted">{t("month.empty")}</Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg ring-1 ring-line">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-raised text-ink-muted">
-              <tr>
-                <th className="p-3 text-start font-medium">{t("month.bucket")}</th>
-                <th className="p-3 text-end font-medium">{t("month.assigned")}</th>
-                <th className="p-3 text-end font-medium">{t("month.activity")}</th>
-                <th className="p-3 text-end font-medium">{t("month.available")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.buckets.map((bucket) => (
-                <tr key={bucket.bucket} className="border-t border-line">
-                  <td className="p-3">
-                    {bucket.name}
-                    {bucket.group && (
-                      <span className="ms-2 text-xs text-ink-muted">{bucket.group}</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-end">
-                    {budget.can_write ? (
-                      <AssignCell
-                        budget={budget.slug}
-                        month={month}
-                        bucket={bucket.bucket}
-                        assigned={bucket.assigned}
-                      />
-                    ) : (
-                      <Money amount={bucket.assigned} currency={view.currency} colour={false} />
-                    )}
-                  </td>
-                  <td className="p-3 text-end">
-                    <Money amount={bucket.activity} currency={view.currency} />
-                  </td>
-                  <td className="p-3 text-end font-medium">
-                    <Money amount={bucket.available} currency={view.currency} />
-                  </td>
-                </tr>
+        [...groups.entries()].map(([group, buckets]) => (
+          <div key={group}>
+            {group && (
+              <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
+                {group}
+              </h2>
+            )}
+            <Card className="divide-y divide-line overflow-hidden">
+              {buckets.map((bucket) => (
+                <BucketRow
+                  key={bucket.bucket}
+                  bucket={bucket}
+                  currency={view.currency}
+                  budget={budget.slug}
+                  month={month}
+                  canWrite={budget.can_write}
+                />
               ))}
-            </tbody>
-          </table>
-        </div>
+            </Card>
+          </div>
+        ))
       )}
+
+      {budget.can_write &&
+        (creating ? (
+          <NewBucket budget={budget.slug} onDone={() => setCreating(false)} />
+        ) : (
+          <Button variant="quiet" className="w-full" onClick={() => setCreating(true)}>
+            + {t("month.newBucket")}
+          </Button>
+        ))}
     </section>
   );
 }
 
-/** Assigning is the most repeated action in envelope budgeting, so it is edited in place. */
-function AssignCell({
+function BucketRow({
+  bucket,
+  currency,
   budget,
   month,
-  bucket,
-  assigned,
+  canWrite,
 }: {
+  bucket: BucketState;
+  currency: string;
   budget: string;
   month: string;
-  bucket: string;
-  assigned: string;
+  canWrite: boolean;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<string | null>(null);
 
   const assign = useMutation({
     ...assignToBucketMutation(),
-    onSuccess: () => {
-      void queryClient.invalidateQueries();
-      setDraft(null);
-    },
+    onSuccess: () => void queryClient.invalidateQueries(),
   });
+
+  const available = Number(bucket.available);
+  const target = bucket.target === null ? null : Number(bucket.target);
+  const assigned = Number(bucket.assigned);
+
+  // Progress runs against the target when there is one, otherwise against what was assigned.
+  // Either way the question is "how much of this envelope is gone".
+  const basis = target ?? assigned;
+  const spent = Math.abs(Number(bucket.activity));
+  const percent = basis > 0 ? Math.min(100, Math.round((spent / basis) * 100)) : 0;
+  const tone = available < 0 ? "bg-negative" : percent >= 90 ? "bg-warning" : "bg-positive";
+
+  const shortfall = target !== null && assigned < target;
+
+  return (
+    <div className="p-3 sm:px-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{bucket.name}</div>
+          {/* "spent / target" is a fraction: its two halves have a fixed reading order. Each
+              amount is individually isolated, so without an LTR run around the pair the
+              sequence itself flips in Hebrew and the target appears to come first. */}
+          <div dir="ltr" className="numeric mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
+            <Money amount={bucket.activity} currency={currency} colour={false} />
+            {target !== null && (
+              <>
+                <span aria-hidden>/</span>
+                <Money amount={bucket.target ?? "0"} currency={currency} colour={false} />
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="text-end">
+          <div className="text-[11px] text-ink-muted">{t("month.available")}</div>
+          <Money amount={bucket.available} currency={currency} className="text-sm font-semibold" />
+        </div>
+
+        {canWrite && (
+          <AssignField
+            assigned={bucket.assigned}
+            pending={assign.isPending}
+            onAssign={(amount) =>
+              assign.mutate({ path: { budget, month }, body: { bucket: bucket.bucket, amount } })
+            }
+          />
+        )}
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+          <div className={`h-full rounded-full ${tone}`} style={{ width: `${percent}%` }} />
+        </div>
+        {canWrite && shortfall && (
+          <button
+            type="button"
+            className="shrink-0 text-[11px] text-brand hover:underline"
+            onClick={() =>
+              assign.mutate({
+                path: { budget, month },
+                body: { bucket: bucket.bucket, amount: (target ?? 0).toFixed(2) },
+              })
+            }
+          >
+            {t("month.fillToTarget")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Editing assigned amounts is the most repeated action here, so it happens in place. */
+function AssignField({
+  assigned,
+  pending,
+  onAssign,
+}: {
+  assigned: string;
+  pending: boolean;
+  onAssign: (amount: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<string | null>(null);
 
   const commit = () => {
     if (draft === null) return;
-    if (draft.trim() === "" || Number(draft) === Number(assigned)) {
-      setDraft(null);
-      return;
-    }
-    assign.mutate({
-      path: { budget, month },
-      body: { bucket, amount: Number(draft).toFixed(2) },
-    });
+    const next = draft.trim();
+    if (next !== "" && Number(next) !== Number(assigned)) onAssign(Number(next).toFixed(2));
+    setDraft(null);
   };
 
   return (
     <Input
-      className="numeric w-24 text-end"
+      fullWidth={false}
+      aria-label={t("month.assign")}
+      className="numeric ltr-field w-24 shrink-0 text-end"
       inputMode="decimal"
-      value={draft ?? assigned}
-      onFocus={() => setDraft(assigned)}
+      value={draft ?? Number(assigned).toFixed(2)}
+      disabled={pending}
+      onFocus={(event) => {
+        setDraft(Number(assigned).toFixed(2));
+        event.currentTarget.select();
+      }}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key === "Enter") event.currentTarget.blur();
         if (event.key === "Escape") setDraft(null);
       }}
-      disabled={assign.isPending}
     />
   );
 }
 
-function NewBucket({ budget }: { budget: string }) {
+function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
-  const [id, setId] = useState("");
+  const [group, setGroup] = useState("");
+  const [target, setTarget] = useState("");
 
   const create = useMutation({
     ...putBucketMutation(),
     onSuccess: () => {
       void queryClient.invalidateQueries();
-      setName("");
-      setId("");
+      onDone();
     },
   });
 
-  // A readable id is derived from the name, but stays editable: it is what the CLI and the
-  // YAML files use, so it should not be a slugified surprise.
-  const suggested = id || name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 39);
+  // The id is derived rather than asked for. It is what the YAML and CLI use, but nobody
+  // naming a bucket "Eating out" also wants to invent "eating-out".
+  const id = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 39);
 
   return (
-    <form
-      className="mb-4 flex flex-wrap items-end gap-2"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!name.trim() || !suggested) return;
-        create.mutate({
-          path: { budget, bucket_id: suggested },
-          body: { id: suggested, name: name.trim() },
-        });
-      }}
-    >
-      <Input
-        className="w-48"
-        placeholder={t("month.bucketName")}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-      />
-      <Input
-        className="w-40"
-        dir="ltr"
-        placeholder={t("month.bucketId")}
-        value={suggested}
-        onChange={(event) => setId(event.target.value)}
-      />
-      <Button type="submit" disabled={!name.trim() || create.isPending}>
-        {t("month.create")}
-      </Button>
-    </form>
+    <Card className="sheet-in p-4">
+      <form
+        className="grid gap-3 sm:grid-cols-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!id) return;
+          create.mutate({
+            path: { budget, bucket_id: id },
+            body: {
+              id,
+              name: name.trim(),
+              group: group.trim() || null,
+              target: target ? { kind: "monthly", amount: Number(target).toFixed(2) } : null,
+            },
+          });
+        }}
+      >
+        <Field label={t("month.bucketName")}>
+          <Input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
+        </Field>
+        <Field label={t("month.group")}>
+          <Input value={group} onChange={(event) => setGroup(event.target.value)} />
+        </Field>
+        <Field label={t("month.target")}>
+          <Input
+            className="numeric ltr-field"
+            inputMode="decimal"
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+            placeholder="0.00"
+          />
+        </Field>
+
+        <div className="flex gap-2 sm:col-span-3">
+          <Button type="submit" disabled={!id || create.isPending}>
+            {t("month.create")}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onDone}>
+            {t("common.cancel")}
+          </Button>
+        </div>
+      </form>
+      <FormError error={create.error} />
+    </Card>
   );
 }
 
-function MonthStep({
+function Step({
   label,
   onClick,
   children,
@@ -222,7 +340,7 @@ function MonthStep({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="rounded-md px-2 py-1 text-lg text-ink-muted hover:bg-surface-raised"
+      className="flex size-9 items-center justify-center rounded-lg text-lg text-ink-muted hover:bg-card"
     >
       {children}
     </button>

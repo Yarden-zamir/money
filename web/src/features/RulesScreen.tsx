@@ -60,7 +60,7 @@ export function RulesScreen() {
 
       <ol className="space-y-3">
         {rows.map((rule, index) => (
-          <li key={index} className="rounded-lg bg-surface-raised p-3 ring-1 ring-line">
+          <li key={index} className="rounded-card border border-line bg-card p-3">
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label={t("rules.id")}>
                 <Input
@@ -95,7 +95,8 @@ export function RulesScreen() {
                 <label key={member.person} className="text-xs">
                   <span className="me-1">{member.name}</span>
                   <Input
-                    className="numeric inline-block w-20"
+                    fullWidth={false}
+                    className="numeric ltr-field w-20"
                     inputMode="decimal"
                     value={String(rule.split?.[member.person] ?? "")}
                     onChange={(event) => {

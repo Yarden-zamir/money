@@ -32,7 +32,7 @@ export function ConnectBudget({ onConnected }: { onConnected?: () => void }) {
 
   return (
     <form
-      className="rounded-lg bg-surface-raised p-4 ring-1 ring-line"
+      className="rounded-card border border-line bg-card p-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (ready) connect.mutate({ body: { slug: slug.trim(), repo: repo.trim() } });

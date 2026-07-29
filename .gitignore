@@ -11,3 +11,4 @@ dist/
 # generate from, and committing it makes API changes visible in a pull request diff.
 web/dist/
 var/
+web/shots/

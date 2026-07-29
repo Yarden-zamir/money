@@ -30,7 +30,11 @@
     "newBucket": "New bucket",
     "bucketName": "Bucket name",
     "create": "Create",
-    "bucketId": "Short id"
+    "bucketId": "Short id",
+    "today": "Today",
+    "fillToTarget": "Fill to target",
+    "group": "Group",
+    "target": "Monthly target"
   },
   "entries": {
     "title": "Entries",
@@ -68,7 +72,9 @@
     "addShare": "Add share",
     "customSplit": "Custom split",
     "splitEven": "Split evenly",
-    "useRules": "Use rules"
+    "useRules": "Use rules",
+    "allBuckets": "All buckets",
+    "shared": "Shared"
   },
   "balances": {
     "title": "Balances",

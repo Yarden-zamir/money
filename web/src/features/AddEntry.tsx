@@ -103,7 +103,7 @@ export function AddEntry({ budget, onDone }: { budget: BudgetSummary; onDone: ()
 
   return (
     <form
-      className="mb-4 rounded-lg bg-surface-raised p-4 ring-1 ring-line"
+      className="sheet-in mb-4 rounded-card border border-line bg-card p-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (ready) create.mutate({ path: { budget: budget.slug }, body: body() });

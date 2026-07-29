@@ -67,10 +67,62 @@ def test_amounts_render_through_one_component() -> None:
 
 
 def test_the_formatter_isolates_amounts() -> None:
-    """The isolate characters are invisible; a well-meaning cleanup could delete them."""
+    """The isolate characters are invisible; a well-meaning cleanup could delete them.
+
+    It must be FIRST STRONG ISOLATE, not LEFT-TO-RIGHT ISOLATE. Intl already emits the
+    directional marks each locale needs, and forcing LTR fought them — that is what made the
+    shekel symbol land on a different side depending on the sign.
+    """
     source = (WEB_SRC / "lib" / "format.ts").read_text(encoding="utf-8")
-    assert "⁦" in source, "missing LEFT-TO-RIGHT ISOLATE in formatMoney"
-    assert "⁩" in source, "missing POP DIRECTIONAL ISOLATE in formatMoney"
+    assert "\u2068" in source, "missing FIRST STRONG ISOLATE in formatMoney"
+    assert "\u2069" in source, "missing POP DIRECTIONAL ISOLATE in formatMoney"
+    assert "\u2066" not in source, "LEFT-TO-RIGHT ISOLATE overrides the locale's own marks"
+
+
+def test_fixed_width_fields_opt_out_of_full_width() -> None:
+    """`Input`/`Select` add `w-full` unless told not to.
+
+    A caller passing `w-24` alongside it is fighting a utility of equal specificity, so which
+    one wins depends on stylesheet order — that is how the assign field silently became full
+    width. A fixed width must come with `fullWidth={false}`.
+    """
+    # Matches a whole self-closing <Input .../> or <Select .../> element, across lines.
+    element = re.compile(r"<(?:Input|Select)\b[^>]*?/>", re.DOTALL)
+    # A width utility at the start of a class or after a space, so min-w-/max-w- do not match.
+    fixed_width = re.compile(r'(?<![-\w])w-(?:\d|\[)')
+
+    offenders: list[str] = []
+    for path in app_sources():
+        for block in element.findall(path.read_text(encoding="utf-8")):
+            classes = re.findall(r'className="([^"]*)"', block)
+            if not any(fixed_width.search(value) for value in classes):
+                continue
+            if "fullWidth={false}" not in block:
+                offenders.append(f"{path.name}: {' '.join(classes)[:60]}")
+
+    assert not offenders, f"fixed-width field without fullWidth={{false}}: {offenders}"
+
+
+def test_no_styles_reference_removed_theme_tokens() -> None:
+    """A class naming a colour the theme no longer defines renders as nothing at all.
+
+    Tailwind simply does not emit the rule, so the element loses its background silently
+    rather than failing the build.
+    """
+    theme = (WEB_SRC / "index.css").read_text(encoding="utf-8")
+    defined = set(re.findall(r"--color-([a-z-]+):", theme))
+
+    used: set[str] = set()
+    for path in app_sources():
+        for match in re.findall(
+            r'(?:bg|text|border|ring|divide|from|to)-([a-z][a-z-]*)', path.read_text("utf-8")
+        ):
+            used.add(match)
+
+    # Only colour-ish names are checked; layout utilities share the same prefixes.
+    suspects = {name for name in used if name.split("/")[0] in {"surface-raised", "ink-soft"}}
+    assert not suspects, f"styles reference removed theme tokens: {sorted(suspects)}"
+    assert "card" in defined and "surface" in defined
 
 
 def test_both_locales_define_the_same_keys() -> None:

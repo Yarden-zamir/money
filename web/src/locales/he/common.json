@@ -30,7 +30,11 @@
     "newBucket": "קטגוריה חדשה",
     "bucketName": "שם הקטגוריה",
     "create": "יצירה",
-    "bucketId": "מזהה קצר"
+    "bucketId": "מזהה קצר",
+    "today": "החודש",
+    "fillToTarget": "השלמה ליעד",
+    "group": "קבוצה",
+    "target": "יעד חודשי"
   },
   "entries": {
     "title": "תנועות",
@@ -68,7 +72,9 @@
     "addShare": "הוספת חלק",
     "customSplit": "חלוקה מותאמת",
     "splitEven": "חלוקה שווה",
-    "useRules": "לפי הכללים"
+    "useRules": "לפי הכללים",
+    "allBuckets": "כל הקטגוריות",
+    "shared": "משותף"
   },
   "balances": {
     "title": "מאזן",

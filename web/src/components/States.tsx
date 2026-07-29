@@ -14,7 +14,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-2 rounded-md border border-line px-3 py-1 text-sm hover:bg-surface-raised"
+          className="mt-2 min-h-11 rounded-xl border border-line bg-card px-4 text-sm hover:bg-surface"
         >
           {t("common.retry")}
         </button>

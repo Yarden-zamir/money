@@ -17,9 +17,14 @@ The rules that keep it working:
   `formatMoney` are still there — they are invisible characters a cleanup could easily drop.
 - `dir` is set on `<html>` from the active language, and the whole tree inherits it. No
   component sets `dir` on itself.
-- **Numbers and money stay LTR inside RTL text.** Amounts render in an isolating span so a
-  minus sign or currency symbol cannot be reordered by the bidi algorithm — the failure mode
-  is a number that displays as `50.00-` and looks like a different value.
+- **Amounts are isolated, not forced LTR.** `formatMoney` wraps its output in a FIRST STRONG
+  ISOLATE (U+2068), never a LEFT-TO-RIGHT ISOLATE. `Intl` already emits the marks each locale
+  needs — `he-IL` wraps the amount in RLM and puts ₪ after it — and forcing LTR fought those
+  marks, which is why the shekel sign landed on a different side depending on the sign of the
+  number. FSI isolates the run from its surroundings and lets its content pick direction.
+- **A sequence of amounts needs its own isolate.** Isolating each amount individually is not
+  enough: `spent / target` still flips as a *sequence* in Hebrew, so the target appeared
+  first. Anything read as a fraction or range goes in one `dir="ltr"` run.
 - Formatting goes through `Intl.NumberFormat` and `Intl.DateTimeFormat` with the active
   locale. No manual string concatenation of currency symbols.
 - Icons that encode direction (back, forward, trend arrows) flip via the `.icon-directional`
@@ -46,6 +51,27 @@ Everything is on its latest release except one, which is held back deliberately:
 packages published very recently. The Dockerfile copies that file into the build stage:
 without it the image installs under different rules than a developer does, and fails on
 packages that pass locally.
+
+## Looking At It
+
+`node tools/shoot.mjs [dir]` renders every screen at desktop and phone width, in both
+languages, against stubbed API responses. Running the real backend would need GitHub auth and
+a live data repo, neither of which says anything about layout.
+
+Every RTL bug fixed so far was invisible in code review and obvious in a screenshot: bucket
+names colliding with their group, a currency symbol switching sides, a fraction reading
+backwards, the header overflowing a phone. Take a screenshot before claiming an RTL fix.
+
+## Mobile
+
+Phones get a bottom tab bar; the top bar's inline nav is hidden below `sm`. The previous
+single top bar overflowed at 390px and clipped both the tabs and the language picker.
+
+Adding an expense is a floating action fixed above the tab bar, because that is what people
+open the app to do. Destructive actions are never on a row — delete lives inside a row's
+expanded panel, so it cannot be hit while scrolling.
+
+Controls are at least 44px tall (`.control`, `Button`).
 
 ## Structure
 

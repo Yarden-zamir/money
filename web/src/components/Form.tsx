@@ -1,67 +1,87 @@
 import type { ReactNode } from "react";
 
 /**
- * Small form primitives.
+ * Form primitives.
  *
- * They exist so every input in the app gets the same logical padding and border, and so no
- * screen hand-rolls a label that then sits on the wrong side in Hebrew.
+ * Width is *not* baked into the base style. It used to be, which meant a caller passing
+ * `w-24` was fighting a `w-full` of equal specificity and the winner depended on stylesheet
+ * order — the assign field ended up full-width. Callers now opt into a width, and `Field`
+ * supplies the common full-width case.
  */
-
-const FIELD =
-  "w-full rounded-md border border-line bg-surface px-3 py-1.5 text-sm " +
-  "focus:border-brand focus:outline-none";
 
 export function Field({
   label,
   hint,
   children,
+  className = "",
 }: {
-  label: string;
+  label?: string;
   hint?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs text-ink-muted">{label}</span>
+    <label className={`block ${className}`}>
+      {label && <span className="mb-1.5 block text-xs font-medium text-ink-muted">{label}</span>}
       {children}
       {hint && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
     </label>
   );
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  const { className = "", ...rest } = props;
-  return <input {...rest} className={`${FIELD} ${className}`} />;
+export function Input({
+  className = "",
+  fullWidth = true,
+  ...rest
+}: React.InputHTMLAttributes<HTMLInputElement> & { fullWidth?: boolean }) {
+  return <input {...rest} className={`control ${fullWidth ? "w-full" : ""} ${className}`} />;
 }
 
-export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  const { className = "", ...rest } = props;
-  return <select {...rest} className={`${FIELD} ${className}`} />;
+export function Select({
+  className = "",
+  fullWidth = true,
+  ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { fullWidth?: boolean }) {
+  return <select {...rest} className={`control ${fullWidth ? "w-full" : ""} ${className}`} />;
 }
+
+const VARIANTS = {
+  primary: "bg-brand text-white hover:opacity-90",
+  quiet: "border border-line bg-card text-ink hover:bg-surface",
+  ghost: "text-ink-muted hover:bg-surface hover:text-ink",
+  danger: "text-negative hover:bg-negative/10",
+} as const;
 
 export function Button({
   variant = "primary",
   className = "",
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "quiet" }) {
-  const style =
-    variant === "primary"
-      ? "bg-brand text-white"
-      : "border border-line text-ink hover:bg-surface-raised";
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof VARIANTS }) {
   return (
     <button
       {...rest}
-      className={`rounded-md px-3 py-1.5 text-sm disabled:opacity-50 ${style} ${className}`}
+      className={
+        "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm " +
+        `font-medium transition disabled:opacity-40 ${VARIANTS[variant]} ${className}`
+      }
     />
   );
 }
 
-/** Renders an API error in the shape the backend always returns. */
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-card border border-line bg-card ${className}`}>{children}</div>
+  );
+}
+
+/** Renders an API error in the envelope the backend always returns. */
 export function FormError({ error }: { error: unknown }) {
   if (!error) return null;
 
   const body = (error as { error?: { message?: string } } | undefined)?.error;
   const message = body?.message ?? (error instanceof Error ? error.message : String(error));
 
-  return <p className="mt-2 text-sm text-negative">{message}</p>;
+  return (
+    <p className="mt-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative">{message}</p>
+  );
 }

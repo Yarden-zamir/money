@@ -85,7 +85,8 @@ export function SplitEditor({
               ))}
             </Select>
             <Input
-              className="numeric w-28"
+              fullWidth={false}
+              className="numeric ltr-field w-full sm:w-28"
               inputMode="decimal"
               value={row.amount}
               onChange={(event) =>
@@ -142,7 +143,8 @@ export function SplitEditor({
               ))}
             </Select>
             <Input
-              className="numeric w-24"
+              fullWidth={false}
+              className="numeric ltr-field w-full sm:w-24"
               inputMode="decimal"
               value={row.amount}
               onChange={(event) =>

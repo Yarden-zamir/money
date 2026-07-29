@@ -7,9 +7,14 @@
  * display, and every total shown comes from the API.
  */
 
-// Unicode isolates. Without them the bidi algorithm can move a minus sign or currency symbol
-// to the wrong end of a number sitting inside Hebrew text, so "-50.00" reads as "50.00-".
-const LRI = "⁦";
+// First Strong Isolate, not Left-to-Right Isolate.
+//
+// Intl already embeds the directional marks its locale needs — he-IL wraps the amount in RLM
+// and puts ₪ after it. Forcing LTR fought those marks, which is why the currency symbol
+// landed inconsistently: "357.70₪" on one row and "-1,642.30 ₪" on the next. FSI isolates the
+// run from the surrounding text while letting its own content decide direction, so an amount
+// reads correctly inside a Hebrew sentence and still cannot reorder the words around it.
+const FSI = "⁨";
 const PDI = "⁩";
 
 export function formatMoney(amount: string, currency: string, locale: string): string {
@@ -22,7 +27,7 @@ export function formatMoney(amount: string, currency: string, locale: string): s
     minimumFractionDigits: 2,
   }).format(value);
 
-  return `${LRI}${formatted}${PDI}`;
+  return `${FSI}${formatted}${PDI}`;
 }
 
 export function formatDate(iso: string, locale: string): string {

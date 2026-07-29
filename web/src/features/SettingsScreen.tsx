@@ -29,7 +29,7 @@ export function SettingsScreen() {
         <div className="mb-3">
           <ConnectBudget />
         </div>
-        <ul className="divide-y divide-line rounded-lg ring-1 ring-line">
+        <ul className="divide-y divide-line rounded-card border border-line bg-card">
           {budgets.map((candidate) => (
             <li key={candidate.slug} className="flex flex-wrap items-baseline gap-3 p-3">
               <button
@@ -93,20 +93,23 @@ function Members({ budget }: { budget: BudgetSummary }) {
         {rows.map((member, index) => (
           <div key={index} className="flex flex-wrap gap-2">
             <Input
-              className="w-32"
+              fullWidth={false}
+              className="ltr-field w-full sm:w-32"
               dir="ltr"
               placeholder={t("members.person")}
               value={member.person}
               onChange={(event) => update(index, { person: event.target.value })}
             />
             <Input
-              className="w-40"
+              fullWidth={false}
+              className="w-full sm:w-40"
               placeholder={t("members.name")}
               value={member.name}
               onChange={(event) => update(index, { name: event.target.value })}
             />
             <Input
-              className="w-48"
+              fullWidth={false}
+              className="ltr-field w-full sm:w-48"
               dir="ltr"
               placeholder={t("members.github")}
               value={member.github ?? ""}
@@ -224,7 +227,7 @@ function ApiKeys() {
       {keys.data.length === 0 ? (
         <p className="text-ink-muted">{t("settings.noKeys")}</p>
       ) : (
-        <ul className="divide-y divide-line rounded-lg ring-1 ring-line">
+        <ul className="divide-y divide-line rounded-card border border-line bg-card">
           {keys.data.map((key) => (
             <li key={key.id} className="flex flex-wrap items-baseline gap-3 p-3">
               <span className="font-medium">{key.name}</span>
