@@ -9,10 +9,14 @@ These are the yardstick for UI changes: a change that makes any of these longer 
 
 *I just paid for groceries. Both of us share it. I have one hand and ten seconds.*
 
-**Entries → `+ Add entry` → amount, payee → Save.** Four taps and two fields.
+**`+` → amount, payee → Save.** Three taps and two fields, from wherever you already were.
 
-- The add button is a floating action on phones, fixed at the inline end above the tab bar,
-  so it is reachable without moving the phone.
+- The add button is global, not part of the entries screen. Logging an expense should never
+  depend on being on the right tab first, so it is a floating action fixed at the inline end,
+  clear of the mobile tab bar, and it opens a dialog rather than an inline form.
+- The amount field takes focus on open, so typing starts immediately.
+- `n` opens it from the keyboard, but never while a field is focused — otherwise it would
+  fire in the middle of typing a payee.
 - The amount field takes a magnitude. The kind decides the sign, because typing a leading
   minus for every purchase is a paper cut and forgetting it is silent.
 - The split comes from the rules. Nothing about who owes whom has to be entered.

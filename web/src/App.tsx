@@ -11,6 +11,7 @@ import { useBudget } from "@/features/useBudget";
 import { BalancesScreen } from "@/features/BalancesScreen";
 import { EntriesScreen } from "@/features/EntriesScreen";
 import { MonthScreen } from "@/features/MonthScreen";
+import { QuickAdd } from "@/features/QuickAdd";
 import { RulesScreen } from "@/features/RulesScreen";
 import { SettingsScreen } from "@/features/SettingsScreen";
 
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <QuickAdd />
       </BudgetGate>
     </Layout>
   );

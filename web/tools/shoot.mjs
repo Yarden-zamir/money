@@ -183,6 +183,12 @@ for (const [device, viewport] of VIEWPORTS) {
         fullPage: true,
       });
     }
+
+    // The quick-add dialog is reachable from every screen, so it gets its own shot.
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: /add entry|הוספת תנועה/i }).first().click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-quickadd.png`) });
     await context.close();
   }
 }

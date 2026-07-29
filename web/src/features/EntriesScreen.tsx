@@ -8,11 +8,10 @@ import {
   listEntriesOptions,
 } from "@/api/@tanstack/react-query.gen";
 import type { BudgetSummary, Entry } from "@/api/types.gen";
-import { Button, Card, Select } from "@/components/Form";
+import { Card, Select } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatDate, formatMonth, shiftMonth } from "@/lib/format";
-import { AddEntry } from "./AddEntry";
 import { EntryDetail } from "./EntryDetail";
 import { useBudget } from "./useBudget";
 
@@ -23,7 +22,6 @@ export function EntriesScreen() {
   const { budget, isPending: budgetPending } = useBudget();
   const [month, setMonth] = useState<string>(currentMonth);
   const [bucket, setBucket] = useState("");
-  const [adding, setAdding] = useState(false);
 
   const entries = useQuery({
     ...listEntriesOptions({
@@ -91,8 +89,6 @@ export function EntriesScreen() {
         </div>
       </div>
 
-      {adding && <AddEntry budget={budget} onDone={() => setAdding(false)} />}
-
       {entries.data.entries.length === 0 ? (
         <Card className="p-6 text-center text-ink-muted">{t("entries.empty")}</Card>
       ) : (
@@ -103,16 +99,6 @@ export function EntriesScreen() {
         </Card>
       )}
 
-      {/* A floating action on phones: adding an expense is the thing people open this for,
-          and it should never be more than one thumb-reachable tap away. */}
-      {budget.can_write && !adding && (
-        <Button
-          className="fixed end-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 shadow-lg sm:static sm:w-full sm:shadow-none"
-          onClick={() => setAdding(true)}
-        >
-          + {t("entries.add")}
-        </Button>
-      )}
     </section>
   );
 }

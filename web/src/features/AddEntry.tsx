@@ -24,7 +24,16 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function AddEntry({ budget, onDone }: { budget: BudgetSummary; onDone: () => void }) {
+export function AddEntry({
+  budget,
+  onDone,
+  bare = false,
+}: {
+  budget: BudgetSummary;
+  onDone: () => void;
+  /** Drop the card chrome when the form is already inside a dialog. */
+  bare?: boolean;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -103,7 +112,7 @@ export function AddEntry({ budget, onDone }: { budget: BudgetSummary; onDone: ()
 
   return (
     <form
-      className="sheet-in mb-4 rounded-card border border-line bg-card p-4"
+      className={bare ? "" : "sheet-in mb-4 rounded-card border border-line bg-card p-4"}
       onSubmit={(event) => {
         event.preventDefault();
         if (ready) create.mutate({ path: { budget: budget.slug }, body: body() });
@@ -122,11 +131,12 @@ export function AddEntry({ budget, onDone }: { budget: BudgetSummary; onDone: ()
 
         <Field label={t("entries.amount")} hint={t("entries.amountHint")}>
           <Input
-            className="numeric"
+            className="numeric ltr-field"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             placeholder="50.00"
+            autoFocus
           />
         </Field>
 
