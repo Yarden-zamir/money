@@ -155,6 +155,166 @@ def repo_access(token: str, repo: str) -> RepoAccess:
     )
 
 
+@dataclass(frozen=True)
+class RepoSummary:
+    full_name: str
+    private: bool
+    can_write: bool
+    description: str | None
+    pushed_at: str | None
+
+
+@dataclass(frozen=True)
+class UserSummary:
+    login: str
+    name: str | None
+    avatar_url: str | None
+
+
+@dataclass(frozen=True)
+class Collaborator:
+    login: str
+    name: str | None
+    avatar_url: str | None
+    permission: str
+    invited: bool
+
+
+def list_repos(token: str, limit: int = 100) -> list[RepoSummary]:
+    """Repos the token's owner can see, most recently pushed first."""
+    repos: list[RepoSummary] = []
+    with _client(token) as client:
+        for page in (1, 2):
+            response = client.get(
+                f"{API}/user/repos",
+                params={
+                    "per_page": 50,
+                    "page": page,
+                    "sort": "pushed",
+                    "affiliation": "owner,collaborator,organization_member",
+                },
+            )
+            if response.status_code != 200:
+                raise GitHubError(f"could not list repos: {response.text}")
+            batch = response.json()
+            repos += [
+                RepoSummary(
+                    full_name=item["full_name"],
+                    private=item["private"],
+                    can_write=bool((item.get("permissions") or {}).get("push")),
+                    description=item.get("description"),
+                    pushed_at=item.get("pushed_at"),
+                )
+                for item in batch
+            ]
+            if len(batch) < 50:
+                break
+    return repos[:limit]
+
+
+def has_file(token: str, repo: str, path: str) -> bool:
+    """Whether a path exists in a repo's default branch."""
+    with _client(token) as client:
+        response = client.get(f"{API}/repos/{repo}/contents/{path}")
+    return response.status_code == 200
+
+
+def search_users(token: str, query: str, limit: int = 8) -> list[UserSummary]:
+    """Search GitHub accounts by login or name.
+
+    Used to autocomplete who to invite, so a typo in a username becomes a visible "no such
+    user" instead of an invitation that silently goes nowhere.
+    """
+    if not query.strip():
+        return []
+    with _client(token) as client:
+        response = client.get(
+            f"{API}/search/users", params={"q": f"{query} type:user", "per_page": limit}
+        )
+        if response.status_code != 200:
+            raise GitHubError(f"user search failed: {response.text}")
+        found = response.json().get("items", [])
+
+        # The search result carries no display name, so fill it in for the few shown.
+        summaries: list[UserSummary] = []
+        for item in found[:limit]:
+            detail = client.get(f"{API}/users/{item['login']}")
+            name = detail.json().get("name") if detail.status_code == 200 else None
+            summaries.append(
+                UserSummary(login=item["login"], name=name, avatar_url=item.get("avatar_url"))
+            )
+    return summaries
+
+
+def list_collaborators(token: str, repo: str) -> list[Collaborator]:
+    """Current collaborators plus anyone with an invitation still pending.
+
+    Pending invitations matter: without them an invited person simply does not appear, and
+    it looks like the invite failed.
+    """
+    people: list[Collaborator] = []
+    with _client(token) as client:
+        current = client.get(f"{API}/repos/{repo}/collaborators", params={"per_page": 100})
+        if current.status_code != 200:
+            raise GitHubError(f"could not list collaborators: {current.text}")
+        for item in current.json():
+            permissions = item.get("permissions") or {}
+            people.append(
+                Collaborator(
+                    login=item["login"],
+                    name=item.get("name"),
+                    avatar_url=item.get("avatar_url"),
+                    permission="admin"
+                    if permissions.get("admin")
+                    else "write"
+                    if permissions.get("push")
+                    else "read",
+                    invited=False,
+                )
+            )
+
+        pending = client.get(f"{API}/repos/{repo}/invitations", params={"per_page": 100})
+        if pending.status_code == 200:
+            for item in pending.json():
+                invitee = item.get("invitee") or {}
+                people.append(
+                    Collaborator(
+                        login=invitee.get("login", "?"),
+                        name=invitee.get("name"),
+                        avatar_url=invitee.get("avatar_url"),
+                        permission=item.get("permissions", "write"),
+                        invited=True,
+                    )
+                )
+    return people
+
+
+def invite_collaborator(token: str, repo: str, login: str, permission: str = "push") -> bool:
+    """Invite someone to the data repo. True if a new invitation was created.
+
+    GitHub answers 201 with an invitation for someone new and 204 when they already have
+    access, so the caller can tell "invited" from "already a member".
+    """
+    with _client(token) as client:
+        response = client.put(
+            f"{API}/repos/{repo}/collaborators/{login}", json={"permission": permission}
+        )
+    if response.status_code == 201:
+        return True
+    if response.status_code == 204:
+        return False
+    if response.status_code == 404:
+        raise GitHubError(f"no GitHub user named {login!r}, or you cannot administer {repo}")
+    raise GitHubError(f"could not invite {login}: {response.text}")
+
+
+def remove_collaborator(token: str, repo: str, login: str) -> None:
+    with _client(token) as client:
+        response = client.delete(f"{API}/repos/{repo}/collaborators/{login}")
+    if response.status_code not in (204, 404):
+        raise GitHubError(f"could not remove {login}: {response.text}")
+
+
 class AccessCache:
     """Caches repo access briefly.
 

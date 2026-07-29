@@ -51,6 +51,37 @@ async def handle_api_error(_: Request, exc: Exception) -> JSONResponse:
     )
 
 
+def _describe_location(location: tuple | list) -> str:
+    """Turn pydantic's ("body", "shares", 0, "amount") into "shares.0.amount"."""
+    parts = [str(part) for part in location if part not in ("body", "query", "path")]
+    return ".".join(parts) or "request"
+
+
+async def handle_request_validation_error(_: Request, exc: Exception) -> JSONResponse:
+    """FastAPI rejects a malformed request body before any route runs.
+
+    Its default response is `{"detail": [...]}`, which is not the envelope every other error
+    uses — clients that parse `error.message` got an object and rendered "[object Object]".
+    This maps it onto the same shape, naming the fields that failed.
+    """
+    raw = getattr(exc, "errors", lambda: [])()
+    fields = {
+        _describe_location(item.get("loc", ())): item.get("msg", "is invalid") for item in raw
+    }
+    summary = "; ".join(f"{name}: {message}" for name, message in fields.items())
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "code": "invalid_request",
+                "message": summary or "the request body is not valid",
+                "details": {"fields": fields},
+            }
+        },
+    )
+
+
 async def handle_validation_error(_: Request, exc: Exception) -> JSONResponse:
     """Pydantic errors from the domain reach here.
 

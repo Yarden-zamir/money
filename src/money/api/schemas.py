@@ -150,6 +150,43 @@ class BudgetConnect(BaseModel):
     repo: str = Field(pattern=r"^[\w.-]+/[\w.-]+$", description="owner/repo on GitHub")
 
 
+class RepoOption(BaseModel):
+    full_name: str
+    private: bool
+    description: str | None
+    is_budget: bool = Field(description="Has a budget.yaml, so it is ready to connect")
+    connected: bool = Field(description="Already connected as a budget here")
+
+
+class UserOption(BaseModel):
+    login: str
+    name: str | None
+    avatar_url: str | None
+
+
+class CollaboratorResponse(BaseModel):
+    login: str
+    name: str | None
+    avatar_url: str | None
+    permission: str
+    invited: bool = Field(description="Invitation sent but not yet accepted")
+    is_member: bool = Field(description="Already listed in the budget's members")
+
+
+class InviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    login: str = Field(min_length=1, max_length=64, description="GitHub login")
+    name: str | None = Field(default=None, description="Display name; defaults to the login")
+    person: str | None = Field(default=None, description="Person id; derived from the login")
+
+
+class InviteResponse(BaseModel):
+    login: str
+    invited: bool = Field(description="False when they already had repo access")
+    person: str
+
+
 class SplitPreview(BaseModel):
     rule: str | None
     shares: list[ShareInput]

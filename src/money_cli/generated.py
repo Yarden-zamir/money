@@ -423,6 +423,30 @@ def key_list(
     )
 
 
+@member_app.command("invite", help="Invite someone to the budget's data repo")
+def member_invite(
+    login: Annotated[str, typer.Argument(help='GitHub login')],
+    name: Annotated[str | None, typer.Option("--name", help='Display name; defaults to the login')] = None,
+    person: Annotated[str | None, typer.Option("--person", help='Person id; derived from the login')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"login": login, "name": name, "person": person}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/invite",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @member_app.command("list", help='Who is in this budget')
 def member_list(
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,

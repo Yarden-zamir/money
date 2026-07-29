@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -331,3 +331,48 @@ export const createApiKey = <ThrowOnError extends boolean = false>(options: Opti
  * Revoke an API key
  */
 export const deleteApiKey = <ThrowOnError extends boolean = false>(options: Options<DeleteApiKeyData, ThrowOnError>): RequestResult<DeleteApiKeyResponses, DeleteApiKeyErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiKeyResponses, DeleteApiKeyErrors, ThrowOnError>({ url: '/api/v1/me/keys/{key_id}', ...options });
+
+/**
+ * Repos you could connect as a budget
+ *
+ * Lists the caller's repos, flagging which already look like a budget.
+ *
+ * "Looks like a budget" means it has a `budget.yaml`. That is checked for the most recently
+ * pushed repos only — one API call each — and everything else is still listed, just without
+ * the flag. Guessing wrong is cheap: connecting a repo without one fails with a clear error.
+ */
+export const listGithubRepos = <ThrowOnError extends boolean = false>(options?: Options<ListGithubReposData, ThrowOnError>): RequestResult<ListGithubReposResponses, ListGithubReposErrors, ThrowOnError> => (options?.client ?? client).get<ListGithubReposResponses, ListGithubReposErrors, ThrowOnError>({ url: '/api/v1/github/repos', ...options });
+
+/**
+ * Find a GitHub user to invite
+ */
+export const searchGithubUsers = <ThrowOnError extends boolean = false>(options: Options<SearchGithubUsersData, ThrowOnError>): RequestResult<SearchGithubUsersResponses, SearchGithubUsersErrors, ThrowOnError> => (options.client ?? client).get<SearchGithubUsersResponses, SearchGithubUsersErrors, ThrowOnError>({ url: '/api/v1/github/users', ...options });
+
+/**
+ * Who has access to the data repo
+ *
+ * Repo access is the real permission model, so this shows it directly.
+ *
+ * Pending invitations are included: without them someone just invited does not appear at
+ * all, and it looks as though the invitation failed.
+ */
+export const listCollaborators = <ThrowOnError extends boolean = false>(options: Options<ListCollaboratorsData, ThrowOnError>): RequestResult<ListCollaboratorsResponses, ListCollaboratorsErrors, ThrowOnError> => (options.client ?? client).get<ListCollaboratorsResponses, ListCollaboratorsErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/collaborators', ...options });
+
+/**
+ * Invite someone to the budget's data repo
+ *
+ * Sends a real GitHub invitation, and adds them to the budget's member list.
+ *
+ * Both halves are needed and they are not the same thing: the invitation is what lets them
+ * sign in at all, and membership is what lets them hold a share of an entry. Doing only the
+ * first was the old behaviour, and it left people able to log in to a budget that could not
+ * reference them.
+ */
+export const inviteCollaborator = <ThrowOnError extends boolean = false>(options: Options<InviteCollaboratorData, ThrowOnError>): RequestResult<InviteCollaboratorResponses, InviteCollaboratorErrors, ThrowOnError> => (options.client ?? client).post<InviteCollaboratorResponses, InviteCollaboratorErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/invite',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

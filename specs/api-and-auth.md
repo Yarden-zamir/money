@@ -90,6 +90,11 @@ POST   /budgets/{budget}/settle              record a settlement between two peo
 
 GET    /budgets/{budget}/members             who can hold a share
 PUT    /budgets/{budget}/members             replace the member list
+GET    /budgets/{budget}/collaborators       repo access, including pending invitations
+POST   /budgets/{budget}/invite              invite to the data repo AND add as a member
+
+GET    /github/repos                         repos you could connect, flagged for budget.yaml
+GET    /github/users?q=                      autocomplete a GitHub login before inviting
 
 GET    /budgets/{budget}/rules
 PUT    /budgets/{budget}/rules
@@ -116,6 +121,17 @@ A settlement names its `payer`, defaulting to the caller. The person who is *owe
 the one holding the phone when the money arrives, and if their partner does not use the app
 nobody could otherwise record it. The caller must be one of the two parties.
 
+## Inviting
+
+Adding a row to `members` never granted anyone access — repo access is the real permission —
+so the two had to be done in different places and it was easy to do only one. `POST /invite`
+does both: it sends a real GitHub collaborator invitation and adds the person to the member
+list, deriving a person id from their login. It reports whether an invitation was actually
+created, because GitHub answers 204 when the person already had access.
+
+Both `/github` routes proxy GitHub with the **caller's own token**, so they can only ever
+surface what that person can already see. Neither uses a shared credential.
+
 ## Errors
 
 One shape everywhere, so clients parse errors once:
@@ -124,6 +140,10 @@ One shape everywhere, so clients parse errors once:
 {"error": {"code": "shares_do_not_sum", "message": "shares sum to -40.00, entry amount is -50.00",
            "details": {"expected": "-50.00", "actual": "-40.00"}}}
 ```
+
+FastAPI rejects a malformed body before any route runs, and its own response shape is
+`{"detail": [...]}`, not this envelope. That is remapped explicitly — a client reading
+`error.message` used to receive an object and render the literal text "[object Object]".
 
 Validation that money adds up runs on write **and** on read. A hand-edited ledger file that
 does not balance surfaces as a loud error naming the file and entry, never as a silently

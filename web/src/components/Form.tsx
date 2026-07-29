@@ -100,14 +100,62 @@ export function FormActions({
   );
 }
 
-/** Renders an API error in the envelope the backend always returns. */
-export function FormError({ error }: { error: unknown }) {
+/**
+ * Turns whatever the API or the network produced into one readable sentence.
+ *
+ * The envelope is the normal case, but not the only one: a proxy can return HTML, the
+ * network can fail before any body exists, and a stray shape used to fall through to
+ * `String(error)` and render the literal text "[object Object]". Nothing here may ever put
+ * an object where a sentence belongs.
+ */
+export function describeError(error: unknown): string | null {
   if (!error) return null;
 
-  const body = (error as { error?: { message?: string } } | undefined)?.error;
-  const message = body?.message ?? (error instanceof Error ? error.message : String(error));
+  if (typeof error === "string") return error;
+
+  if (typeof error === "object") {
+    const shape = error as {
+      error?: { message?: unknown; code?: unknown };
+      detail?: unknown;
+      message?: unknown;
+    };
+
+    if (typeof shape.error?.message === "string") return shape.error.message;
+
+    // FastAPI's own validation shape, in case one slips past the server-side handler.
+    if (Array.isArray(shape.detail)) {
+      const parts = shape.detail
+        .map((item) => {
+          const entry = item as { loc?: unknown[]; msg?: unknown };
+          const field = Array.isArray(entry.loc)
+            ? entry.loc.filter((part) => part !== "body").join(".")
+            : "";
+          return field ? `${field}: ${String(entry.msg)}` : String(entry.msg);
+        })
+        .filter(Boolean);
+      if (parts.length) return parts.join("; ");
+    }
+    if (typeof shape.detail === "string") return shape.detail;
+    if (typeof shape.message === "string") return shape.message;
+  }
+
+  if (error instanceof Error) return error.message;
+
+  // Last resort: show the shape rather than "[object Object]", which tells nobody anything.
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+}
+
+export function FormError({ error }: { error: unknown }) {
+  const message = describeError(error);
+  if (!message) return null;
 
   return (
-    <p className="mt-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative">{message}</p>
+    <p role="alert" className="mt-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative">
+      {message}
+    </p>
   );
 }

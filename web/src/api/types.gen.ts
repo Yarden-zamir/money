@@ -281,6 +281,40 @@ export type BudgetSummary = {
 };
 
 /**
+ * CollaboratorResponse
+ */
+export type CollaboratorResponse = {
+    /**
+     * Login
+     */
+    login: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Avatar Url
+     */
+    avatar_url: string | null;
+    /**
+     * Permission
+     */
+    permission: string;
+    /**
+     * Invited
+     *
+     * Invitation sent but not yet accepted
+     */
+    invited: boolean;
+    /**
+     * Is Member
+     *
+     * Already listed in the budget's members
+     */
+    is_member: boolean;
+};
+
+/**
  * CommitRef
  */
 export type CommitRef = {
@@ -551,6 +585,50 @@ export type HistoryList = {
 };
 
 /**
+ * InviteRequest
+ */
+export type InviteRequest = {
+    /**
+     * Login
+     *
+     * GitHub login
+     */
+    login: string;
+    /**
+     * Name
+     *
+     * Display name; defaults to the login
+     */
+    name?: string | null;
+    /**
+     * Person
+     *
+     * Person id; derived from the login
+     */
+    person?: string | null;
+};
+
+/**
+ * InviteResponse
+ */
+export type InviteResponse = {
+    /**
+     * Login
+     */
+    login: string;
+    /**
+     * Invited
+     *
+     * False when they already had repo access
+     */
+    invited: boolean;
+    /**
+     * Person
+     */
+    person: string;
+};
+
+/**
  * Match
  *
  * An empty match matches everything, which is how a catch-all default is written.
@@ -692,6 +770,36 @@ export type NoteResponse = {
      * Text
      */
     text: string;
+};
+
+/**
+ * RepoOption
+ */
+export type RepoOption = {
+    /**
+     * Full Name
+     */
+    full_name: string;
+    /**
+     * Private
+     */
+    private: boolean;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Is Budget
+     *
+     * Has a budget.yaml, so it is ready to connect
+     */
+    is_budget: boolean;
+    /**
+     * Connected
+     *
+     * Already connected as a budget here
+     */
+    connected: boolean;
 };
 
 /**
@@ -897,6 +1005,24 @@ export type TargetOutput = {
      * Due
      */
     due?: string | null;
+};
+
+/**
+ * UserOption
+ */
+export type UserOption = {
+    /**
+     * Login
+     */
+    login: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Avatar Url
+     */
+    avatar_url: string | null;
 };
 
 /**
@@ -2231,3 +2357,148 @@ export type DeleteApiKeyResponses = {
 };
 
 export type DeleteApiKeyResponse = DeleteApiKeyResponses[keyof DeleteApiKeyResponses];
+
+export type ListGithubReposData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/github/repos';
+};
+
+export type ListGithubReposErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListGithubReposError = ListGithubReposErrors[keyof ListGithubReposErrors];
+
+export type ListGithubReposResponses = {
+    /**
+     * Response Listgithubrepos
+     *
+     * Successful Response
+     */
+    200: Array<RepoOption>;
+};
+
+export type ListGithubReposResponse = ListGithubReposResponses[keyof ListGithubReposResponses];
+
+export type SearchGithubUsersData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query: {
+        /**
+         * Q
+         */
+        q: string;
+    };
+    url: '/api/v1/github/users';
+};
+
+export type SearchGithubUsersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchGithubUsersError = SearchGithubUsersErrors[keyof SearchGithubUsersErrors];
+
+export type SearchGithubUsersResponses = {
+    /**
+     * Response Searchgithubusers
+     *
+     * Successful Response
+     */
+    200: Array<UserOption>;
+};
+
+export type SearchGithubUsersResponse = SearchGithubUsersResponses[keyof SearchGithubUsersResponses];
+
+export type ListCollaboratorsData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/collaborators';
+};
+
+export type ListCollaboratorsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListCollaboratorsError = ListCollaboratorsErrors[keyof ListCollaboratorsErrors];
+
+export type ListCollaboratorsResponses = {
+    /**
+     * Response Listcollaborators
+     *
+     * Successful Response
+     */
+    200: Array<CollaboratorResponse>;
+};
+
+export type ListCollaboratorsResponse = ListCollaboratorsResponses[keyof ListCollaboratorsResponses];
+
+export type InviteCollaboratorData = {
+    body: InviteRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/invite';
+};
+
+export type InviteCollaboratorErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InviteCollaboratorError = InviteCollaboratorErrors[keyof InviteCollaboratorErrors];
+
+export type InviteCollaboratorResponses = {
+    /**
+     * Successful Response
+     */
+    200: InviteResponse;
+};
+
+export type InviteCollaboratorResponse = InviteCollaboratorResponses[keyof InviteCollaboratorResponses];

@@ -138,7 +138,14 @@
     "slugHint": "משמש בכתובות ובשורת הפקודה, למשל joint",
     "none": "עדיין לא חובר תקציב",
     "noneHelp": "חברו את המאגר הפרטי שמכיל את נתוני התקציב כדי להתחיל.",
-    "connecting": "מתחבר…"
+    "connecting": "מתחבר…",
+    "chooseRepo": "בחירת מאגר",
+    "noRepos": "אין מאגרים שיש לך הרשאת כתיבה אליהם.",
+    "hasBudgetFile": "budget.yaml",
+    "alreadyConnected": "מחובר",
+    "private": "פרטי",
+    "enterManually": "הזנה ידנית",
+    "chooseFromList": "בחירה מהרשימה"
   },
   "members": {
     "title": "אנשים",
@@ -148,7 +155,15 @@
     "add": "הוספת אדם",
     "save": "שמירת אנשים",
     "hint": "הרשאה למאגר קובעת מי יכול להתחבר; כאן נקבע מי יכול לשאת בחלק.",
-    "githubHint": "לא חובה"
+    "githubHint": "לא חובה",
+    "invite": "הזמנת אדם",
+    "sendInvite": "הזמנה",
+    "inviting": "מזמין…",
+    "githubPlaceholder": "שם משתמש ב־GitHub",
+    "noUsers": "לא נמצא משתמש מתאים.",
+    "access": "הרשאות למאגר",
+    "pending": "הזמנה ממתינה",
+    "notAMember": "לא חבר בתקציב"
   },
   "rules": {
     "title": "כללי חלוקה",

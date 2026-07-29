@@ -2863,6 +2863,326 @@
           ]
         }
       }
+    },
+    "/api/v1/github/repos": {
+      "get": {
+        "tags": [
+          "github"
+        ],
+        "summary": "Repos you could connect as a budget",
+        "description": "Lists the caller's repos, flagging which already look like a budget.\n\n\"Looks like a budget\" means it has a `budget.yaml`. That is checked for the most recently\npushed repos only \u2014 one API call each \u2014 and everything else is still listed, just without\nthe flag. Guessing wrong is cheap: connecting a repo without one fails with a clear error.",
+        "operationId": "listGithubRepos",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepoOption"
+                  },
+                  "title": "Response Listgithubrepos"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/github/users": {
+      "get": {
+        "tags": [
+          "github"
+        ],
+        "summary": "Find a GitHub user to invite",
+        "operationId": "searchGithubUsers",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserOption"
+                  },
+                  "title": "Response Searchgithubusers"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/collaborators": {
+      "get": {
+        "tags": [
+          "github"
+        ],
+        "summary": "Who has access to the data repo",
+        "description": "Repo access is the real permission model, so this shows it directly.\n\nPending invitations are included: without them someone just invited does not appear at\nall, and it looks as though the invitation failed.",
+        "operationId": "listCollaborators",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollaboratorResponse"
+                  },
+                  "title": "Response Listcollaborators"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/invite": {
+      "post": {
+        "tags": [
+          "github"
+        ],
+        "summary": "Invite someone to the budget's data repo",
+        "description": "Sends a real GitHub invitation, and adds them to the budget's member list.\n\nBoth halves are needed and they are not the same thing: the invitation is what lets them\nsign in at all, and membership is what lets them hold a share of an entry. Doing only the\nfirst was the old behaviour, and it left people able to log in to a budget that could not\nreference them.",
+        "operationId": "inviteCollaborator",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "member invite",
+          "args": [
+            "login"
+          ]
+        }
+      }
     }
   },
   "components": {
@@ -3344,6 +3664,60 @@
           "can_write"
         ],
         "title": "BudgetSummary"
+      },
+      "CollaboratorResponse": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "permission": {
+            "type": "string",
+            "title": "Permission"
+          },
+          "invited": {
+            "type": "boolean",
+            "title": "Invited",
+            "description": "Invitation sent but not yet accepted"
+          },
+          "is_member": {
+            "type": "boolean",
+            "title": "Is Member",
+            "description": "Already listed in the budget's members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "name",
+          "avatar_url",
+          "permission",
+          "invited",
+          "is_member"
+        ],
+        "title": "CollaboratorResponse"
       },
       "CommitRef": {
         "properties": {
@@ -3858,6 +4232,71 @@
         ],
         "title": "HistoryList"
       },
+      "InviteRequest": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Login",
+            "description": "GitHub login"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name; defaults to the login"
+          },
+          "person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person",
+            "description": "Person id; derived from the login"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "login"
+        ],
+        "title": "InviteRequest"
+      },
+      "InviteResponse": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "invited": {
+            "type": "boolean",
+            "title": "Invited",
+            "description": "False when they already had repo access"
+          },
+          "person": {
+            "type": "string",
+            "title": "Person"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "invited",
+          "person"
+        ],
+        "title": "InviteResponse"
+      },
       "Match-Input": {
         "properties": {
           "payee_contains": {
@@ -4113,6 +4552,48 @@
           "text"
         ],
         "title": "NoteResponse"
+      },
+      "RepoOption": {
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "private": {
+            "type": "boolean",
+            "title": "Private"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "is_budget": {
+            "type": "boolean",
+            "title": "Is Budget",
+            "description": "Has a budget.yaml, so it is ready to connect"
+          },
+          "connected": {
+            "type": "boolean",
+            "title": "Connected",
+            "description": "Already connected as a budget here"
+          }
+        },
+        "type": "object",
+        "required": [
+          "full_name",
+          "private",
+          "description",
+          "is_budget",
+          "connected"
+        ],
+        "title": "RepoOption"
       },
       "Rule-Input": {
         "properties": {
@@ -4503,6 +4984,43 @@
           "kind"
         ],
         "title": "Target"
+      },
+      "UserOption": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "name",
+          "avatar_url"
+        ],
+        "title": "UserOption"
       },
       "UserResponse": {
         "properties": {

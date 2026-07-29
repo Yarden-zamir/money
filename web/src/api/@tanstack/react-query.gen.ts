@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, listApiKeys, listBuckets, listBudgets, listEntries, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putEntryNote, putMembers, putRules, reopenMonth, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listEntries, listGithubRepos, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putEntryNote, putMembers, putRules, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -709,6 +709,95 @@ export const deleteApiKeyMutation = (options?: Partial<Options<DeleteApiKeyData>
     const mutationOptions: UseMutationOptions<DeleteApiKeyResponse, DeleteApiKeyError, Options<DeleteApiKeyData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await deleteApiKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listGithubReposQueryKey = (options?: Options<ListGithubReposData>) => createQueryKey('listGithubRepos', options);
+
+/**
+ * Repos you could connect as a budget
+ *
+ * Lists the caller's repos, flagging which already look like a budget.
+ *
+ * "Looks like a budget" means it has a `budget.yaml`. That is checked for the most recently
+ * pushed repos only — one API call each — and everything else is still listed, just without
+ * the flag. Guessing wrong is cheap: connecting a repo without one fails with a clear error.
+ */
+export const listGithubReposOptions = (options?: Options<ListGithubReposData>) => queryOptions<ListGithubReposResponse, ListGithubReposError, ListGithubReposResponse, ReturnType<typeof listGithubReposQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listGithubRepos({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listGithubReposQueryKey(options)
+});
+
+export const searchGithubUsersQueryKey = (options: Options<SearchGithubUsersData>) => createQueryKey('searchGithubUsers', options);
+
+/**
+ * Find a GitHub user to invite
+ */
+export const searchGithubUsersOptions = (options: Options<SearchGithubUsersData>) => queryOptions<SearchGithubUsersResponse, SearchGithubUsersError, SearchGithubUsersResponse, ReturnType<typeof searchGithubUsersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await searchGithubUsers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: searchGithubUsersQueryKey(options)
+});
+
+export const listCollaboratorsQueryKey = (options: Options<ListCollaboratorsData>) => createQueryKey('listCollaborators', options);
+
+/**
+ * Who has access to the data repo
+ *
+ * Repo access is the real permission model, so this shows it directly.
+ *
+ * Pending invitations are included: without them someone just invited does not appear at
+ * all, and it looks as though the invitation failed.
+ */
+export const listCollaboratorsOptions = (options: Options<ListCollaboratorsData>) => queryOptions<ListCollaboratorsResponse, ListCollaboratorsError, ListCollaboratorsResponse, ReturnType<typeof listCollaboratorsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listCollaborators({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCollaboratorsQueryKey(options)
+});
+
+/**
+ * Invite someone to the budget's data repo
+ *
+ * Sends a real GitHub invitation, and adds them to the budget's member list.
+ *
+ * Both halves are needed and they are not the same thing: the invitation is what lets them
+ * sign in at all, and membership is what lets them hold a share of an entry. Doing only the
+ * first was the old behaviour, and it left people able to log in to a budget that could not
+ * reference them.
+ */
+export const inviteCollaboratorMutation = (options?: Partial<Options<InviteCollaboratorData>>): UseMutationOptions<InviteCollaboratorResponse, InviteCollaboratorError, Options<InviteCollaboratorData>> => {
+    const mutationOptions: UseMutationOptions<InviteCollaboratorResponse, InviteCollaboratorError, Options<InviteCollaboratorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await inviteCollaborator({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

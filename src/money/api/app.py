@@ -11,14 +11,20 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from money.api import db
 from money.api.config import settings
-from money.api.errors import ApiError, handle_api_error, handle_validation_error
-from money.api.routes import auth_routes, budgets, entries, me, rules
+from money.api.errors import (
+    ApiError,
+    handle_api_error,
+    handle_request_validation_error,
+    handle_validation_error,
+)
+from money.api.routes import auth_routes, budgets, entries, github_routes, me, rules
 from money.store.store import DataError
 
 API_PREFIX = "/api/v1"
@@ -60,10 +66,21 @@ def create_app() -> FastAPI:
     )
 
     app.add_exception_handler(ApiError, handle_api_error)
+    # Registered explicitly: FastAPI installs its own handler for this one, and its default
+    # response shape is not the envelope the rest of the API uses.
+    app.add_exception_handler(RequestValidationError, handle_request_validation_error)
     app.add_exception_handler(ValidationError, handle_validation_error)
     app.add_exception_handler(DataError, _handle_data_error)
 
-    for router in (auth_routes.router, budgets.router, entries.router, rules.router, me.router):
+    for router in (
+        auth_routes.router,
+        budgets.router,
+        entries.router,
+        rules.router,
+        me.router,
+        github_routes.router,
+        github_routes.collaborators,
+    ):
         app.include_router(router, prefix=API_PREFIX)
 
     _add_health(app)

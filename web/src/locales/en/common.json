@@ -138,7 +138,14 @@
     "slugHint": "Used in URLs and the CLI, e.g. joint",
     "none": "No budget connected yet",
     "noneHelp": "Connect the private GitHub repo that holds your budget data to get started.",
-    "connecting": "Connecting…"
+    "connecting": "Connecting…",
+    "chooseRepo": "Choose a repo",
+    "noRepos": "No repos you can push to.",
+    "hasBudgetFile": "budget.yaml",
+    "alreadyConnected": "connected",
+    "private": "private",
+    "enterManually": "Enter manually",
+    "chooseFromList": "Choose from list"
   },
   "members": {
     "title": "People",
@@ -148,7 +155,15 @@
     "add": "Add person",
     "save": "Save people",
     "hint": "Repo access decides who can sign in; this decides who can hold a share.",
-    "githubHint": "optional"
+    "githubHint": "optional",
+    "invite": "Invite someone",
+    "sendInvite": "Invite",
+    "inviting": "Inviting…",
+    "githubPlaceholder": "GitHub username",
+    "noUsers": "No matching GitHub user.",
+    "access": "Repo access",
+    "pending": "invite pending",
+    "notAMember": "not a member"
   },
   "rules": {
     "title": "Split rules",

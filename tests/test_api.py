@@ -332,6 +332,45 @@ class TestErrorShape:
         assert set(body) == {"error"}
         assert set(body["error"]) == {"code", "message", "details"}
 
+    def test_a_malformed_body_uses_the_envelope_too(self, client: TestClient) -> None:
+        """FastAPI rejects these before any route runs, and its default shape is `detail`.
+
+        A client reading `error.message` got an object back and rendered "[object Object]".
+        """
+        response = client.post("/api/v1/budgets", json={"slug": "BAD SLUG!", "repo": "nope"})
+        assert response.status_code == 422
+
+        error = response.json()["error"]
+        assert error["code"] == "invalid_request"
+        assert isinstance(error["message"], str) and error["message"]
+        assert "slug" in error["details"]["fields"]
+        assert "repo" in error["details"]["fields"]
+
+    def test_an_unparseable_body_still_reads_as_a_sentence(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/v1/budgets/joint/entries",
+            content=b"not json",
+            headers={"content-type": "application/json"},
+        )
+        assert response.status_code == 422
+        assert isinstance(response.json()["error"]["message"], str)
+
+
+class TestPersonIdDerivation:
+    """An invite derives a person id from a GitHub login without colliding."""
+
+    def test_a_login_becomes_a_slug(self) -> None:
+        from money.api.routes.github_routes import _person_id_from
+
+        assert _person_id_from("Yarden-zamir", set()) == "yarden-zamir"
+        assert _person_id_from("dana.example", set()) == "dana-example"
+
+    def test_a_taken_id_gets_a_suffix(self) -> None:
+        from money.api.routes.github_routes import _person_id_from
+
+        assert _person_id_from("dana", {"dana"}) == "dana-2"
+        assert _person_id_from("dana", {"dana", "dana-2"}) == "dana-3"
+
 
 class TestHealth:
     def test_liveness_does_not_touch_the_data_repo(self, client: TestClient) -> None:

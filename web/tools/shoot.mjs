@@ -107,7 +107,21 @@ const rules = [
   { id: "split-5050", when: { payee_contains: null, tag: null, paid_by: null, min_amount: null }, split: { yarden: "0.5", dana: "0.5" }, bucket: {} },
 ];
 
+const repos = [
+  { full_name: "Yarden-zamir/budget-joint", private: true, description: "Household budget data", is_budget: true, connected: true },
+  { full_name: "Yarden-zamir/budget-travel", private: true, description: null, is_budget: true, connected: false },
+  { full_name: "Yarden-zamir/dotfiles", private: false, description: "configs", is_budget: false, connected: false },
+];
+
+const collaborators = [
+  { login: "Yarden-zamir", name: "Yarden", avatar_url: null, permission: "admin", invited: false, is_member: true },
+  { login: "dana-example", name: "Dana", avatar_url: null, permission: "write", invited: true, is_member: true },
+];
+
 const ROUTES = [
+  [/\/github\/repos/, () => repos],
+  [/\/github\/users/, () => []],
+  [/\/budgets\/joint\/collaborators/, () => collaborators],
   [/\/api\/v1\/me\/keys$/, () => []],
   [/\/api\/v1\/me$/, () => me],
   [/\/api\/v1\/auth\/config$/, () => ({ login_url: "/api/v1/auth/github/start" })],

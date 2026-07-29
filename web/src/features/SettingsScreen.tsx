@@ -14,6 +14,7 @@ import type { BudgetSummary, Member } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input } from "@/components/Form";
 import { ErrorState, Loading } from "@/components/States";
 import { ConnectBudget } from "./ConnectBudget";
+import { InvitePerson } from "./InvitePerson";
 import { useBudget } from "./useBudget";
 
 export function SettingsScreen() {
@@ -186,6 +187,11 @@ function Members({ budget }: { budget: BudgetSummary }) {
       )}
 
       <FormError error={save.error} />
+
+      {/* Invitations belong with the people they concern, not in a section of their own. */}
+      <div className="mt-6">
+        <InvitePerson budget={budget} />
+      </div>
     </div>
   );
 }
