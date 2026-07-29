@@ -20,6 +20,30 @@ does not yield usable tokens. Each key carries a name, optional expiry, and scop
 a code, the user approves in a browser, and the CLI exchanges it for an API key it stores in
 `~/.config/money/hosts.yaml`. No secret is ever pasted into a terminal.
 
+### Signing In To A PR Preview
+
+A GitHub OAuth app has exactly one callback URL, so a preview at `pr.42.money.yarden-zamir.com`
+cannot run its own flow. Production runs it and hands the result back:
+
+```
+pr-42  GET /auth/config           -> login_url points at production, carrying return_host
+prod   GET /auth/github/start?return_host=pr.42.money.yarden-zamir.com
+prod   GET /auth/github/callback  -> mints a handoff ticket instead of a session
+pr-42  GET /auth/handoff?ticket=  -> validates, creates the user, sets its own cookie
+```
+
+The ticket carries the user's GitHub token, so it is deliberately hostile to reuse: signed
+with the shared `SESSION_SECRET`, valid for 60 seconds, single-use via a nonce the preview
+records, and pinned to one hostname that the preview re-checks against its own. The token
+inside is encrypted with `TOKEN_ENCRYPTION_KEY` rather than carried in the clear.
+
+`return_host` is checked against `pr.<digits>.<production host>`, built from parts rather
+than pattern-matched. It decides where a ticket is delivered, so a generous check here would
+be an open redirect that leaks a credential. `tests/test_preview_auth.py` pins that down.
+
+🔴 The ticket travels in a URL and therefore reaches browser history. The 60 second window is
+the mitigation; widening it invalidates the trade.
+
 ## Authorization
 
 Access to a budget is GitHub repo access to the repo backing it. The app does not maintain
@@ -65,7 +89,16 @@ POST   /budgets/{budget}/rules/preview       what would this entry split into? n
 
 GET    /me
 GET    /me/keys      POST /me/keys      DELETE /me/keys/{id}
-GET    /healthz
+
+GET    /auth/config                          where sign-in starts for this deployment
+GET    /auth/github/start                    begin the browser flow, optional return_host
+GET    /auth/github/callback                 OAuth callback; production only
+GET    /auth/handoff                         accept a preview sign-in ticket; previews only
+POST   /auth/device/start   POST /auth/device/poll     CLI sign-in
+POST   /auth/logout
+
+GET    /healthz                              liveness; does not touch the data repo
+GET    /readyz                               liveness plus data-repo reachability
 ```
 
 `POST /entries` returns the created entry **and** the commit sha that recorded it, so a client

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { assignToBucket, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getBalances, getBudget, getEntry, getEntryHistory, getMe, getMonth, listApiKeys, listBuckets, listBudgets, listEntries, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putRules, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
-import type { AssignToBucketData, AssignToBucketError, AssignToBucketResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutRulesData, PutRulesError, PutRulesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getMe, getMonth, listApiKeys, listBuckets, listBudgets, listEntries, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putRules, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutRulesData, PutRulesError, PutRulesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -39,12 +39,36 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
     return [params];
 };
 
+export const getAuthConfigQueryKey = (options?: Options<GetAuthConfigData>) => createQueryKey('getAuthConfig', options);
+
+/**
+ * Get Auth Config
+ *
+ * Where this deployment's sign-in starts.
+ *
+ * Computed server-side because only the server knows whether it is production or a preview;
+ * the browser guessing its own prod origin from the hostname would be one more thing to
+ * keep correct.
+ */
+export const getAuthConfigOptions = (options?: Options<GetAuthConfigData>) => queryOptions<GetAuthConfigResponse, DefaultError, GetAuthConfigResponse, ReturnType<typeof getAuthConfigQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAuthConfig({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAuthConfigQueryKey(options)
+});
+
 export const startGithubLoginQueryKey = (options?: Options<StartGithubLoginData>) => createQueryKey('startGithubLogin', options);
 
 /**
  * Begin browser sign-in
  */
-export const startGithubLoginOptions = (options?: Options<StartGithubLoginData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof startGithubLoginQueryKey>>({
+export const startGithubLoginOptions = (options?: Options<StartGithubLoginData>) => queryOptions<unknown, StartGithubLoginError, unknown, ReturnType<typeof startGithubLoginQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await startGithubLogin({
             ...options,
@@ -73,6 +97,29 @@ export const finishGithubLoginOptions = (options: Options<FinishGithubLoginData>
         return data;
     },
     queryKey: finishGithubLoginQueryKey(options)
+});
+
+export const acceptHandoffQueryKey = (options: Options<AcceptHandoffData>) => createQueryKey('acceptHandoff', options);
+
+/**
+ * Accept a preview sign-in ticket
+ *
+ * Complete a sign-in that production started on this preview's behalf.
+ *
+ * The ticket is checked against *this* deployment's own hostname, so a ticket minted for
+ * `pr-42` is useless at `pr-43` even though both trust the same signing key.
+ */
+export const acceptHandoffOptions = (options: Options<AcceptHandoffData>) => queryOptions<unknown, AcceptHandoffError, unknown, ReturnType<typeof acceptHandoffQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await acceptHandoff({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: acceptHandoffQueryKey(options)
 });
 
 /**

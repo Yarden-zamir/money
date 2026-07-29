@@ -6,6 +6,28 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/auth/config": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get Auth Config",
+        "description": "Where this deployment's sign-in starts.\n\nComputed server-side because only the server knows whether it is production or a preview;\nthe browser guessing its own prod origin from the hostname would be one more thing to\nkeep correct.",
+        "operationId": "getAuthConfig",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/github/start": {
       "get": {
         "tags": [
@@ -13,12 +35,40 @@
         ],
         "summary": "Begin browser sign-in",
         "operationId": "startGithubLogin",
+        "parameters": [
+          {
+            "name": "return_host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return Host"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -49,6 +99,47 @@
             "schema": {
               "type": "string",
               "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/handoff": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Accept a preview sign-in ticket",
+        "description": "Complete a sign-in that production started on this preview's behalf.\n\nThe ticket is checked against *this* deployment's own hostname, so a ticket minted for\n`pr-42` is useless at `pr-43` even though both trust the same signing key.",
+        "operationId": "acceptHandoff",
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticket"
             }
           }
         ],
@@ -2330,6 +2421,19 @@
           "amount"
         ],
         "title": "AssignRequest"
+      },
+      "AuthConfig": {
+        "properties": {
+          "login_url": {
+            "type": "string",
+            "title": "Login Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login_url"
+        ],
+        "title": "AuthConfig"
       },
       "Balance": {
         "properties": {

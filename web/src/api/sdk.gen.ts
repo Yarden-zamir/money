@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutRulesData, PutRulesErrors, PutRulesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutRulesData, PutRulesErrors, PutRulesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,14 +19,35 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * Get Auth Config
+ *
+ * Where this deployment's sign-in starts.
+ *
+ * Computed server-side because only the server knows whether it is production or a preview;
+ * the browser guessing its own prod origin from the hostname would be one more thing to
+ * keep correct.
+ */
+export const getAuthConfig = <ThrowOnError extends boolean = false>(options?: Options<GetAuthConfigData, ThrowOnError>): RequestResult<GetAuthConfigResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetAuthConfigResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/config', ...options });
+
+/**
  * Begin browser sign-in
  */
-export const startGithubLogin = <ThrowOnError extends boolean = false>(options?: Options<StartGithubLoginData, ThrowOnError>): RequestResult<StartGithubLoginResponses, unknown, ThrowOnError> => (options?.client ?? client).get<StartGithubLoginResponses, unknown, ThrowOnError>({ url: '/api/v1/auth/github/start', ...options });
+export const startGithubLogin = <ThrowOnError extends boolean = false>(options?: Options<StartGithubLoginData, ThrowOnError>): RequestResult<StartGithubLoginResponses, StartGithubLoginErrors, ThrowOnError> => (options?.client ?? client).get<StartGithubLoginResponses, StartGithubLoginErrors, ThrowOnError>({ url: '/api/v1/auth/github/start', ...options });
 
 /**
  * OAuth callback
  */
 export const finishGithubLogin = <ThrowOnError extends boolean = false>(options: Options<FinishGithubLoginData, ThrowOnError>): RequestResult<FinishGithubLoginResponses, FinishGithubLoginErrors, ThrowOnError> => (options.client ?? client).get<FinishGithubLoginResponses, FinishGithubLoginErrors, ThrowOnError>({ url: '/api/v1/auth/github/callback', ...options });
+
+/**
+ * Accept a preview sign-in ticket
+ *
+ * Complete a sign-in that production started on this preview's behalf.
+ *
+ * The ticket is checked against *this* deployment's own hostname, so a ticket minted for
+ * `pr-42` is useless at `pr-43` even though both trust the same signing key.
+ */
+export const acceptHandoff = <ThrowOnError extends boolean = false>(options: Options<AcceptHandoffData, ThrowOnError>): RequestResult<AcceptHandoffResponses, AcceptHandoffErrors, ThrowOnError> => (options.client ?? client).get<AcceptHandoffResponses, AcceptHandoffErrors, ThrowOnError>({ url: '/api/v1/auth/handoff', ...options });
 
 /**
  * Sign out

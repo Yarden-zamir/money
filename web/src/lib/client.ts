@@ -8,6 +8,3 @@ client.setConfig({
   baseUrl: "",
   credentials: "same-origin",
 });
-
-/** Where to send someone who is not signed in. */
-export const LOGIN_URL = "/api/v1/auth/github/start";

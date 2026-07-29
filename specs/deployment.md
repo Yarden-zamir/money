@@ -54,8 +54,9 @@ GitHub secrets and variables named `KITSHN_<NAME>` arrive in the container as `<
 | `DEFAULT_DATA_REPO` | variable | e.g. `Yarden-zamir/budget-joint` |
 | `BASE_URL` | variable | public origin, used to build the OAuth callback |
 
-Two OAuth apps are needed, because a callback URL is fixed per app: one for production and one
-whose callback is the preview wildcard. Preview builds get the preview app's credentials.
+One OAuth app is enough. Its callback is production's, and previews sign in through the
+handoff described in [API and auth](api-and-auth.md) — so `BASE_URL` is production's URL in
+every environment, including previews, which use it to find production.
 
 ## Pushing To The Data Repo
 

@@ -2,6 +2,7 @@
   "name": "money-web",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.17.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

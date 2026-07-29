@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -18,9 +18,13 @@ from money.api.errors import ApiError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Short-lived CSRF state for the browser flow. In-process is fine: a restart only costs an
-# in-flight sign-in, and there is exactly one process per deployment.
-_pending_states: dict[str, float] = {}
+# Short-lived CSRF state for the browser flow, mapped to (started_at, return_host). In-process
+# is fine: a restart only costs an in-flight sign-in, and there is one process per deployment.
+_pending_states: dict[str, tuple[float, str | None]] = {}
+
+
+class AuthConfig(BaseModel):
+    login_url: str
 
 
 class DeviceStart(BaseModel):
@@ -73,14 +77,38 @@ def _upsert_user(
     return user
 
 
+@router.get("/config", operation_id="getAuthConfig", response_model=AuthConfig)
+def get_auth_config(config: Annotated[Settings, Depends(get_settings)]) -> AuthConfig:
+    """Where this deployment's sign-in starts.
+
+    Computed server-side because only the server knows whether it is production or a preview;
+    the browser guessing its own prod origin from the hostname would be one more thing to
+    keep correct.
+    """
+    if config.is_production or config.kitshn_environment == "local":
+        return AuthConfig(login_url=f"{config.base_url}/api/v1/auth/github/start")
+
+    # A preview sends the user to production, which owns the single OAuth callback, and asks
+    # for the finished session to be handed back here.
+    return AuthConfig(
+        login_url=(f"{config.base_url}/api/v1/auth/github/start?return_host={config.own_host}")
+    )
+
+
 @router.get("/github/start", operation_id="startGithubLogin", summary="Begin browser sign-in")
 def start_github_login(
-    request: Request, config: Annotated[Settings, Depends(get_settings)]
+    config: Annotated[Settings, Depends(get_settings)],
+    return_host: str | None = None,
 ) -> RedirectResponse:
     import time
 
+    if return_host is not None and not config.is_valid_preview_host(return_host):
+        # This value decides where a sign-in ticket is sent. Anything unrecognised is an
+        # attempt to turn sign-in into an open redirect, so it is refused outright.
+        raise ApiError("bad_return_host", f"{return_host!r} is not a preview of this app")
+
     state = secrets.token_urlsafe(24)
-    _pending_states[state] = time.monotonic()
+    _pending_states[state] = (time.monotonic(), return_host)
 
     query = {
         "client_id": config.github_client_id,
@@ -96,19 +124,64 @@ def start_github_login(
 def finish_github_login(
     code: str,
     state: str,
-    response: Response,
     session: Annotated[Session, Depends(get_session)],
     config: Annotated[Settings, Depends(get_settings)],
 ) -> RedirectResponse:
     import time
 
-    started = _pending_states.pop(state, None)
-    if started is None or time.monotonic() - started > 600:
+    pending = _pending_states.pop(state, None)
+    if pending is None or time.monotonic() - pending[0] > 600:
         raise ApiError("bad_oauth_state", "sign-in expired or was tampered with", status=400)
+    return_host = pending[1]
 
     token = github.exchange_code(code, config.github_client_id, config.github_client_secret)
-    user = _upsert_user(session, github.fetch_user(token), token, config)
 
+    if return_host:
+        # The session belongs on the preview host, not here. Hand the token over as a
+        # short-lived single-use ticket and let the preview mint its own session.
+        ticket = auth.issue_handoff(
+            github_token=token,
+            host=return_host,
+            secret=config.session_secret,
+            encryption_key=config.token_encryption_key,
+        )
+        return RedirectResponse(f"https://{return_host}/api/v1/auth/handoff?ticket={ticket}")
+
+    user = _upsert_user(session, github.fetch_user(token), token, config)
+    return _redirect_with_session(user, config)
+
+
+@router.get("/handoff", operation_id="acceptHandoff", summary="Accept a preview sign-in ticket")
+def accept_handoff(
+    ticket: str,
+    session: Annotated[Session, Depends(get_session)],
+    config: Annotated[Settings, Depends(get_settings)],
+) -> RedirectResponse:
+    """Complete a sign-in that production started on this preview's behalf.
+
+    The ticket is checked against *this* deployment's own hostname, so a ticket minted for
+    `pr-42` is useless at `pr-43` even though both trust the same signing key.
+    """
+    if config.is_production:
+        raise ApiError("not_a_preview", "production completes its own sign-in", status=400)
+
+    try:
+        github_token = auth.read_handoff(
+            ticket,
+            expected_host=config.own_host,
+            secret=config.session_secret,
+            encryption_key=config.token_encryption_key,
+        )
+    except auth.HandoffError as exc:
+        raise ApiError("bad_handoff", str(exc), status=400) from exc
+
+    # The preview has its own database, so the user is created here from GitHub rather than
+    # copied across. That also proves the token still works before a session is issued.
+    user = _upsert_user(session, github.fetch_user(github_token), github_token, config)
+    return _redirect_with_session(user, config)
+
+
+def _redirect_with_session(user: db.User, config: Settings) -> RedirectResponse:
     redirect = RedirectResponse(url="/")
     redirect.set_cookie(
         auth.SESSION_COOKIE,

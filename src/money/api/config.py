@@ -36,6 +36,38 @@ class Settings(BaseSettings):
     dev_mode: bool = Field(default=False, description="Bypass GitHub auth with a fake user")
 
     @property
+    def is_production(self) -> bool:
+        return self.kitshn_environment == "prod"
+
+    @property
+    def public_host(self) -> str:
+        """Hostname of the production deployment, taken from BASE_URL.
+
+        Previews are always `pr.<number>.<this host>`, which is what makes the sign-in
+        handoff checkable rather than an open redirect.
+        """
+        return self.base_url.removeprefix("https://").removeprefix("http://").split("/")[0]
+
+    @property
+    def own_host(self) -> str:
+        """This deployment's own hostname. Production and previews differ."""
+        if self.is_production or self.kitshn_environment == "local":
+            return self.public_host
+        return f"pr.{self.kitshn_environment.removeprefix('pr-')}.{self.public_host}"
+
+    def is_valid_preview_host(self, host: str) -> bool:
+        """Is `host` a preview of *this* deployment?
+
+        Deliberately strict, and built from parts rather than a pattern match: this value
+        decides where a sign-in ticket gets sent, so anything but an exact
+        `pr.<digits>.<public host>` must be refused.
+        """
+        parts = host.split(".")
+        if len(parts) < 3 or parts[0] != "pr" or not parts[1].isdigit():
+            return False
+        return ".".join(parts[2:]) == self.public_host
+
+    @property
     def data_branch(self) -> str:
         """Which branch of the data repo this deployment reads and writes.
 

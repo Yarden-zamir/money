@@ -2,10 +2,9 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { getMeOptions } from "@/api/@tanstack/react-query.gen";
+import { getAuthConfigOptions, getMeOptions } from "@/api/@tanstack/react-query.gen";
 import { Layout } from "@/components/Layout";
 import { Loading } from "@/components/States";
-import { LOGIN_URL } from "@/lib/client";
 import { BalancesScreen } from "@/features/BalancesScreen";
 import { EntriesScreen } from "@/features/EntriesScreen";
 import { MonthScreen } from "@/features/MonthScreen";
@@ -18,6 +17,7 @@ export default function App() {
 
   if (me.isPending) return <Loading />;
   if (me.isError) return <SignIn message={t("auth.required")} label={t("auth.signIn")} />;
+
 
   return (
     <Layout>
@@ -33,13 +33,18 @@ export default function App() {
 }
 
 function SignIn({ message, label }: { message: string; label: string }) {
+  // Where sign-in starts depends on whether this is production or a PR preview, and only the
+  // server knows which. A preview sends the user to production and gets the session handed
+  // back, because one OAuth app has one callback URL.
+  const config = useQuery({ ...getAuthConfigOptions(), retry: false });
+
   return (
     <div className="grid min-h-dvh place-items-center p-6 text-center">
       <div>
         <h1 className="mb-2 text-2xl font-semibold">money</h1>
         <p className="mb-6 text-ink-muted">{message}</p>
         <a
-          href={LOGIN_URL}
+          href={config.data?.login_url ?? "/api/v1/auth/github/start"}
           className="inline-block rounded-md bg-brand px-4 py-2 text-white"
         >
           {label}

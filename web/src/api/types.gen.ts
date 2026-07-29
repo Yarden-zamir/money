@@ -103,6 +103,16 @@ export type AssignRequest = {
 };
 
 /**
+ * AuthConfig
+ */
+export type AuthConfig = {
+    /**
+     * Login Url
+     */
+    login_url: string;
+};
+
+/**
  * Balance
  */
 export type Balance = {
@@ -889,12 +899,42 @@ export type ValidationError = {
     };
 };
 
-export type StartGithubLoginData = {
+export type GetAuthConfigData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/api/v1/auth/config';
+};
+
+export type GetAuthConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: AuthConfig;
+};
+
+export type GetAuthConfigResponse = GetAuthConfigResponses[keyof GetAuthConfigResponses];
+
+export type StartGithubLoginData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Return Host
+         */
+        return_host?: string | null;
+    };
     url: '/api/v1/auth/github/start';
 };
+
+export type StartGithubLoginErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartGithubLoginError = StartGithubLoginErrors[keyof StartGithubLoginErrors];
 
 export type StartGithubLoginResponses = {
     /**
@@ -929,6 +969,34 @@ export type FinishGithubLoginErrors = {
 export type FinishGithubLoginError = FinishGithubLoginErrors[keyof FinishGithubLoginErrors];
 
 export type FinishGithubLoginResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type AcceptHandoffData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Ticket
+         */
+        ticket: string;
+    };
+    url: '/api/v1/auth/handoff';
+};
+
+export type AcceptHandoffErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AcceptHandoffError = AcceptHandoffErrors[keyof AcceptHandoffErrors];
+
+export type AcceptHandoffResponses = {
     /**
      * Successful Response
      */
