@@ -88,8 +88,19 @@ class GitRepo:
         import os
 
         env = dict(os.environ)
-        # Never let a stray user identity or pager leak into commits made by the service.
-        env |= {"GIT_PAGER": "cat", "GIT_CONFIG_NOSYSTEM": "1"}
+        # Run against no ambient git configuration at all.
+        #
+        # GIT_CONFIG_GLOBAL is the important one: without it, git reads ~/.gitconfig, and a
+        # developer running the tests has their own `core.hooksPath`, so every clone,
+        # checkout and commit here would execute their personal hooks. That made the suite
+        # both slow and flaky, and in production it would mean the service running whatever
+        # hooks the host happened to configure. The service's git behaviour must depend only
+        # on what this file sets.
+        env |= {
+            "GIT_PAGER": "cat",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }
         if extra:
             env |= extra
         return env
