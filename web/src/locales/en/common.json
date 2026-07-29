@@ -7,7 +7,8 @@
     "month": "Month",
     "entries": "Entries",
     "balances": "Balances",
-    "settings": "Settings"
+    "settings": "Settings",
+    "rules": "Rules"
   },
   "auth": {
     "signIn": "Sign in with GitHub",

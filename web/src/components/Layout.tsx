@@ -8,6 +8,7 @@ const NAV = [
   { to: "/", key: "nav.month" },
   { to: "/entries", key: "nav.entries" },
   { to: "/balances", key: "nav.balances" },
+  { to: "/rules", key: "nav.rules" },
   { to: "/settings", key: "nav.settings" },
 ] as const;
 

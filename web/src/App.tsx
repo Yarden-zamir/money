@@ -11,6 +11,7 @@ import { useBudget } from "@/features/useBudget";
 import { BalancesScreen } from "@/features/BalancesScreen";
 import { EntriesScreen } from "@/features/EntriesScreen";
 import { MonthScreen } from "@/features/MonthScreen";
+import { RulesScreen } from "@/features/RulesScreen";
 import { SettingsScreen } from "@/features/SettingsScreen";
 
 export default function App() {
@@ -26,10 +27,11 @@ export default function App() {
     <Layout>
       <BudgetGate>
         <Routes>
-        <Route path="/" element={<MonthScreen />} />
-        <Route path="/entries" element={<EntriesScreen />} />
-        <Route path="/balances" element={<BalancesScreen />} />
-        <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/" element={<MonthScreen />} />
+          <Route path="/entries" element={<EntriesScreen />} />
+          <Route path="/balances" element={<BalancesScreen />} />
+          <Route path="/rules" element={<RulesScreen />} />
+          <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BudgetGate>
