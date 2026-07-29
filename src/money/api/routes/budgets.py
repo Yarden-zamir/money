@@ -34,7 +34,6 @@ from money.api.schemas import (
     MonthResponse,
     SettleRequest,
 )
-
 from money.domain.derive import month_view, net_positions, settle_up
 from money.domain.models import Bucket, Entry, EntryKind, Share
 from money.store.gitrepo import GitRepo
@@ -167,9 +166,7 @@ def get_budget(
     operation_id="getMonth",
     response_model=MonthResponse,
     summary="Envelope view for a month",
-    openapi_extra={
-        "x-cli": {"command": "month", "args": ["month"], "aliases": {"person": "-p"}}
-    },
+    openapi_extra={"x-cli": {"command": "month", "args": ["month"], "aliases": {"person": "-p"}}},
 )
 def get_month(
     context: Annotated[BudgetContext, Depends(budget_context)],
@@ -204,9 +201,7 @@ def get_month(
     operation_id="assignToBucket",
     response_model=MonthResponse,
     summary="Assign money to a bucket",
-    openapi_extra={
-        "x-cli": {"command": "assign", "args": ["month", "bucket", "amount"]}
-    },
+    openapi_extra={"x-cli": {"command": "assign", "args": ["month", "bucket", "amount"]}},
 )
 def assign_to_bucket(
     context: Annotated[BudgetContext, Depends(writable)],
@@ -266,9 +261,7 @@ def list_buckets(
 def get_balances(context: Annotated[BudgetContext, Depends(budget_context)]) -> BalanceSheet:
     budget = context.store.budget()
     balances = net_positions(context.store.all_entries(), [m.person for m in budget.members])
-    return BalanceSheet(
-        currency=budget.currency, balances=balances, settle_up=settle_up(balances)
-    )
+    return BalanceSheet(currency=budget.currency, balances=balances, settle_up=settle_up(balances))
 
 
 @router.post(

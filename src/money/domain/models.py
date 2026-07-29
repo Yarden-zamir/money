@@ -156,7 +156,9 @@ class Budget(Base):
         people = [m.person for m in self.members]
         duplicates = {p for p in people if people.count(p) > 1}
         if duplicates:
-            raise ValueError(f"duplicate person ids in budget.yaml: {', '.join(sorted(duplicates))}")
+            raise ValueError(
+                f"duplicate person ids in budget.yaml: {', '.join(sorted(duplicates))}"
+            )
         return self
 
     def person_for_github(self, login: str) -> str | None:

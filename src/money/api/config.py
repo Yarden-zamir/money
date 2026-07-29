@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Self
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Self
 
 
 class Settings(BaseSettings):
@@ -61,8 +61,12 @@ class Settings(BaseSettings):
             return self
         missing = [
             name
-            for name in ("github_client_id", "github_client_secret", "session_secret",
-                         "token_encryption_key")
+            for name in (
+                "github_client_id",
+                "github_client_secret",
+                "session_secret",
+                "token_encryption_key",
+            )
             if not getattr(self, name)
         ]
         if missing:

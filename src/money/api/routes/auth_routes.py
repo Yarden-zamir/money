@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -41,7 +41,9 @@ class DeviceResult(BaseModel):
     login: str | None = None
 
 
-def _upsert_user(session: Session, profile: github.GitHubUser, token: str, config: Settings) -> db.User:
+def _upsert_user(
+    session: Session, profile: github.GitHubUser, token: str, config: Settings
+) -> db.User:
     """Create or refresh the user, always re-encrypting the freshest GitHub token.
 
     The stored token is what later pushes to the data repo, so a stale one would mean writes

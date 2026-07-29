@@ -15,9 +15,9 @@ from pathlib import Path
 import pytest
 
 from money.domain.models import Bucket, Entry
+from money.store import yamlio
 from money.store.gitrepo import GitRepo
 from money.store.store import Actor, BudgetStore, new_id
-from money.store import yamlio
 
 D = Decimal
 ACTOR = Actor(
@@ -39,9 +39,7 @@ members:
 
 
 def git(*args: str, cwd: Path) -> str:
-    result = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True, check=True
-    )
+    result = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
     return result.stdout
 
 
@@ -49,7 +47,9 @@ def git(*args: str, cwd: Path) -> str:
 def remote(tmp_path: Path) -> Path:
     """A bare repo seeded with a budget on main, standing in for GitHub."""
     bare = tmp_path / "remote.git"
-    subprocess.run(["git", "init", "--bare", "-b", "main", str(bare)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--bare", "-b", "main", str(bare)], check=True, capture_output=True
+    )
 
     seed = tmp_path / "seed"
     subprocess.run(["git", "clone", str(bare), str(seed)], check=True, capture_output=True)
@@ -174,12 +174,8 @@ class TestOrdering:
     def test_entries_are_kept_sorted_so_concurrent_appends_do_not_conflict(
         self, store: BudgetStore
     ) -> None:
-        later = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FZ").model_copy(
-            update={"date": date(2026, 7, 20)}
-        )
-        earlier = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FA").model_copy(
-            update={"date": date(2026, 7, 2)}
-        )
+        later = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FZ").model_copy(update={"date": date(2026, 7, 20)})
+        earlier = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FA").model_copy(update={"date": date(2026, 7, 2)})
         store.add_entry(later, ACTOR)
         store.add_entry(earlier, ACTOR)
 

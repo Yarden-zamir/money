@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 
-from money.domain.models import Budget, Bucket, Entry
+from money.domain.models import Bucket, Budget, Entry
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock

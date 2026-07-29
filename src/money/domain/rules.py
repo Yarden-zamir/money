@@ -75,9 +75,8 @@ class Rule(BaseModel):
             raise ValueError(f"rule {self.id}: split ratios sum to {total}, must sum to 1")
         unknown = set(self.bucket) - set(self.split)
         if unknown:
-            raise ValueError(
-                f"rule {self.id}: bucket names people not in the split: {', '.join(sorted(unknown))}"
-            )
+            named = ", ".join(sorted(unknown))
+            raise ValueError(f"rule {self.id}: bucket names people not in the split: {named}")
         return self
 
 

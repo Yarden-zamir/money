@@ -195,7 +195,9 @@ class TestRules:
     @pytest.fixture
     def ruleset(self) -> list[Rule]:
         return [
-            Rule.model_validate({"id": "hobby", "when": {"tag": "hobby"}, "split": {"yarden": 1.0}}),
+            Rule.model_validate(
+                {"id": "hobby", "when": {"tag": "hobby"}, "split": {"yarden": 1.0}}
+            ),
             Rule.model_validate(
                 {
                     "id": "groceries",
@@ -220,9 +222,7 @@ class TestRules:
         assert matched.id == "split-5050"
 
     def test_rule_produces_shares_that_sum_exactly(self, ruleset: list[Rule]) -> None:
-        rule = first_match(
-            ruleset, payee="שופרסל", tags=[], paid_by="yarden", amount=D("-284.51")
-        )
+        rule = first_match(ruleset, payee="שופרסל", tags=[], paid_by="yarden", amount=D("-284.51"))
         assert rule is not None
         shares = shares_from_rule(rule, D("-284.51"), EntryKind.EXPENSE)
         assert sum(s.amount for s in shares) == D("-284.51")

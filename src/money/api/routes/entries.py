@@ -137,9 +137,7 @@ def list_entries(
     payee: str | None = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
 ) -> EntryList:
-    entries = (
-        context.store.entries_for_month(month) if month else context.store.all_entries()
-    )
+    entries = context.store.entries_for_month(month) if month else context.store.all_entries()
 
     if person:
         entries = [e for e in entries if any(s.person == person for s in e.shares)]
@@ -247,7 +245,5 @@ def preview_split(
     shares, rule_id = _resolve_shares(context, body, payer, body.kind)
     return SplitPreview(
         rule=rule_id,
-        shares=[
-            ShareInput(person=s.person, amount=s.amount, bucket=s.bucket) for s in shares
-        ],
+        shares=[ShareInput(person=s.person, amount=s.amount, bucket=s.bucket) for s in shares],
     )

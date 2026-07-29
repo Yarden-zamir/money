@@ -47,9 +47,7 @@ async def handle_api_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ApiError)
     return JSONResponse(
         status_code=exc.status,
-        content={
-            "error": {"code": exc.code, "message": exc.message, "details": exc.details}
-        },
+        content={"error": {"code": exc.code, "message": exc.message, "details": exc.details}},
     )
 
 

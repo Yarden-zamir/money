@@ -25,9 +25,7 @@ _locks_guard = threading.Lock()
 
 # Supplies the push credential over stdin-free config instead of embedding it in the remote
 # URL, which would persist it in .git/config. The token stays in the environment.
-_CREDENTIAL_HELPER = (
-    '!f() { echo "username=x-access-token"; echo "password=$MONEY_GIT_TOKEN"; }; f'
-)
+_CREDENTIAL_HELPER = '!f() { echo "username=x-access-token"; echo "password=$MONEY_GIT_TOKEN"; }; f'
 
 
 class GitError(RuntimeError):
@@ -156,7 +154,9 @@ class GitRepo:
     def head_sha(self) -> str:
         return self._run("rev-parse", "HEAD").strip()
 
-    def log(self, *, path: str | None = None, grep: str | None = None, limit: int = 50) -> list[Commit]:
+    def log(
+        self, *, path: str | None = None, grep: str | None = None, limit: int = 50
+    ) -> list[Commit]:
         args = [
             "log",
             f"--max-count={limit}",

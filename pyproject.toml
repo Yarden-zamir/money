@@ -55,3 +55,10 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Generated code is regenerated, not hand-wrapped; `money generate-cli --check` guards it.
+# B006: Typer expresses a repeatable option as a list default; that is its documented API.
+# F541: a generated f-string path may or may not interpolate, depending on the route.
+"src/money_cli/generated.py" = ["E501", "B006", "F541"]
+"src/money_cli/main.py" = ["B006"]
