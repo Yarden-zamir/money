@@ -1,3 +1,9 @@
+# TypeScript is held at 5.x deliberately. @hey-api/openapi-ts drives the TypeScript
+# compiler API, which TypeScript 7's native port does not expose, so generating the client
+# fails outright on 7.x. The override keeps `pnpm update --latest` from reintroducing it.
+overrides:
+  typescript: 5.9.3
+
 minimumReleaseAgeExclude:
   - react-router-dom@7.18.2
   - react-router@7.18.2

@@ -7,7 +7,10 @@ WORKDIR /web
 # rather than `npm i -g pnpm@x` keeps the pnpm version coming from the `packageManager` field
 # in web/package.json, which is the same source CI uses.
 RUN npm install -g corepack@latest && corepack enable
-COPY web/package.json web/pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries the supply-chain policy settings, including which freshly
+# published packages have been reviewed and allowed. Without it the install here applies
+# different rules than a developer's does, and fails on packages that pass locally.
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY web/ ./
 RUN pnpm run build

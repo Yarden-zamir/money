@@ -34,11 +34,18 @@ missing key falls back to English rather than rendering a raw key.
 
 Two pins exist for reasons that are not obvious from `package.json`:
 
-- **TypeScript 5.x**, not 7. The client generator uses the TypeScript compiler API, which
-  TypeScript 7's native port does not expose. Unpin when `@hey-api/openapi-ts` supports it.
-- **`react-router-dom` at an exact version**, not a range. pnpm enforces a minimum release
-  age as a supply-chain check, and a range resolves to the newest patch, which can be hours
-  old and fail the build. Bump it deliberately once a release has aged.
+Everything is on its latest release except one, which is held back deliberately:
+
+- **TypeScript 5.9.3**, not 7.x, enforced by an override in `pnpm-workspace.yaml` so
+  `pnpm update --latest` cannot reintroduce it. `@hey-api/openapi-ts` drives the TypeScript
+  compiler API, and TypeScript 7's native port does not expose it — `ts.SyntaxKind` is
+  undefined and client generation fails outright. Drop the override once the generator
+  supports 7.x.
+
+`pnpm-workspace.yaml` also carries `minimumReleaseAgeExclude`, pnpm's supply-chain check for
+packages published very recently. The Dockerfile copies that file into the build stage:
+without it the image installs under different rules than a developer does, and fails on
+packages that pass locally.
 
 ## Structure
 
