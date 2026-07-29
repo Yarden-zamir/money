@@ -30,6 +30,16 @@ The rules that keep it working:
 Translations live in `src/locales/{he,en}/*.json`. `en` is the source of truth for keys, and a
 missing key falls back to English rather than rendering a raw key.
 
+## Dependency Pins
+
+Two pins exist for reasons that are not obvious from `package.json`:
+
+- **TypeScript 5.x**, not 7. The client generator uses the TypeScript compiler API, which
+  TypeScript 7's native port does not expose. Unpin when `@hey-api/openapi-ts` supports it.
+- **`react-router-dom` at an exact version**, not a range. pnpm enforces a minimum release
+  age as a supply-chain check, and a range resolves to the newest patch, which can be hours
+  old and fail the build. Bump it deliberately once a release has aged.
+
 ## Structure
 
 ```
