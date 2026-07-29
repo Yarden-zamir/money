@@ -28,6 +28,8 @@ entry_app = typer.Typer(no_args_is_help=True, help="entry commands")
 
 key_app = typer.Typer(no_args_is_help=True, help="key commands")
 
+member_app = typer.Typer(no_args_is_help=True, help="member commands")
+
 rule_app = typer.Typer(no_args_is_help=True, help="rule commands")
 
 
@@ -416,6 +418,44 @@ def key_list(
     )
 
 
+@member_app.command("list", help='Who is in this budget')
+def member_list(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/members",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@member_app.command("set", help='Replace the member list')
+def member_set(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "PUT",
+            f"/budgets/{resolve_budget(budget)}/members",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @rule_app.command("list", help='Default split rules, in match order')
 def rule_list(
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
@@ -462,4 +502,5 @@ def register(app: typer.Typer) -> None:
     app.add_typer(budget_app, name="budget")
     app.add_typer(entry_app, name="entry")
     app.add_typer(key_app, name="key")
+    app.add_typer(member_app, name="member")
     app.add_typer(rule_app, name="rule")

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutRulesData, PutRulesErrors, PutRulesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -101,6 +101,28 @@ export const connectBudget = <ThrowOnError extends boolean = false>(options: Opt
  * One budget
  */
 export const getBudget = <ThrowOnError extends boolean = false>(options: Options<GetBudgetData, ThrowOnError>): RequestResult<GetBudgetResponses, GetBudgetErrors, ThrowOnError> => (options.client ?? client).get<GetBudgetResponses, GetBudgetErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}', ...options });
+
+/**
+ * Who is in this budget
+ */
+export const listMembers = <ThrowOnError extends boolean = false>(options: Options<ListMembersData, ThrowOnError>): RequestResult<ListMembersResponses, ListMembersErrors, ThrowOnError> => (options.client ?? client).get<ListMembersResponses, ListMembersErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/members', ...options });
+
+/**
+ * Replace the member list
+ *
+ * Replaces the list wholesale, so removals are expressible and not just additions.
+ *
+ * Membership decides who can be assigned a share, not who can reach the budget — that is
+ * GitHub repo access. Someone listed here without repo access simply never signs in.
+ */
+export const putMembers = <ThrowOnError extends boolean = false>(options: Options<PutMembersData, ThrowOnError>): RequestResult<PutMembersResponses, PutMembersErrors, ThrowOnError> => (options.client ?? client).put<PutMembersResponses, PutMembersErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/members',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Envelope view for a month

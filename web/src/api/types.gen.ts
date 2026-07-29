@@ -1160,6 +1160,85 @@ export type GetBudgetResponses = {
 
 export type GetBudgetResponse = GetBudgetResponses[keyof GetBudgetResponses];
 
+export type ListMembersData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/members';
+};
+
+export type ListMembersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMembersError = ListMembersErrors[keyof ListMembersErrors];
+
+export type ListMembersResponses = {
+    /**
+     * Response Listmembers
+     *
+     * Successful Response
+     */
+    200: Array<Member>;
+};
+
+export type ListMembersResponse = ListMembersResponses[keyof ListMembersResponses];
+
+export type PutMembersData = {
+    /**
+     * Body
+     */
+    body: Array<Member>;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/members';
+};
+
+export type PutMembersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutMembersError = PutMembersErrors[keyof PutMembersErrors];
+
+export type PutMembersResponses = {
+    /**
+     * Response Putmembers
+     *
+     * Successful Response
+     */
+    200: Array<Member>;
+};
+
+export type PutMembersResponse = PutMembersResponses[keyof PutMembersResponses];
+
 export type GetMonthData = {
     body?: never;
     headers?: {

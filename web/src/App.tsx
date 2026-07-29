@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -5,6 +6,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { getAuthConfigOptions, getMeOptions } from "@/api/@tanstack/react-query.gen";
 import { Layout } from "@/components/Layout";
 import { Loading } from "@/components/States";
+import { ConnectBudget } from "@/features/ConnectBudget";
+import { useBudget } from "@/features/useBudget";
 import { BalancesScreen } from "@/features/BalancesScreen";
 import { EntriesScreen } from "@/features/EntriesScreen";
 import { MonthScreen } from "@/features/MonthScreen";
@@ -21,15 +24,39 @@ export default function App() {
 
   return (
     <Layout>
-      <Routes>
+      <BudgetGate>
+        <Routes>
         <Route path="/" element={<MonthScreen />} />
         <Route path="/entries" element={<EntriesScreen />} />
         <Route path="/balances" element={<BalancesScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BudgetGate>
     </Layout>
   );
+}
+
+/**
+ * Nothing in this app means anything until a budget repo is connected, and every screen
+ * would otherwise sit on a query that never runs. Ask for the repo instead of rendering
+ * four empty tables.
+ */
+function BudgetGate({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  const { budgets, isPending, isError } = useBudget();
+
+  if (isPending) return <Loading />;
+  if (!isError && budgets.length === 0) {
+    return (
+      <section className="mx-auto max-w-xl">
+        <h1 className="mb-1 text-lg font-semibold">{t("budgets.none")}</h1>
+        <p className="mb-4 text-sm text-ink-muted">{t("budgets.noneHelp")}</p>
+        <ConnectBudget />
+      </section>
+    );
+  }
+  return <>{children}</>;
 }
 
 function SignIn({ message, label }: { message: string; label: string }) {

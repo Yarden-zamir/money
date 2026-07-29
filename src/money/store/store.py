@@ -198,6 +198,20 @@ class BudgetStore:
             trailers={"Person": person, "Month": month},
         )
 
+    def put_members(self, budget: Budget, actor: Actor) -> str:
+        def mutate() -> list[str]:
+            self.repo.write(
+                "budget.yaml", yamlio.dump(budget.model_dump(mode="python", exclude_none=True))
+            )
+            return ["budget.yaml"]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"members: {len(budget.members)} in {budget.name}",
+            trailers={},
+        )
+
     def put_rules(self, rules: list[Rule], actor: Actor) -> str:
         def mutate() -> list[str]:
             self.repo.write(

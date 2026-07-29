@@ -23,6 +23,12 @@ README.md                          # generated; explains this layout to a human
 Person ids are lowercase slugs (`yarden`, `dana`), not GitHub logins. `budget.yaml` maps
 GitHub logins onto person ids, so a person keeps their identity if they rename on GitHub.
 
+Membership and access are different things. `members` decides who can hold a share of an
+entry; GitHub repo access decides who can read or write the budget at all. Someone listed as
+a member without repo access simply never signs in. Removing a member is refused while any
+entry still references them, because dropping them would orphan those shares and silently
+change every balance.
+
 ## Entries
 
 An entry is one real-world event. Every entry answers two independent questions:

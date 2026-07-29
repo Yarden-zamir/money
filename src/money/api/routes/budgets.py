@@ -35,7 +35,7 @@ from money.api.schemas import (
     SettleRequest,
 )
 from money.domain.derive import month_view, net_positions, settle_up
-from money.domain.models import Bucket, Entry, EntryKind, Share
+from money.domain.models import Bucket, Entry, EntryKind, Member, Share
 from money.store.gitrepo import GitRepo
 from money.store.store import BudgetStore, new_id
 
@@ -159,6 +159,59 @@ def get_budget(
         me=budget.person_for_github(context.actor.login),
         can_write=context.can_write,
     )
+
+
+@router.get(
+    "/budgets/{budget}/members",
+    operation_id="listMembers",
+    response_model=list[Member],
+    summary="Who is in this budget",
+    openapi_extra={"x-cli": {"command": "member list"}},
+)
+def list_members(context: Annotated[BudgetContext, Depends(budget_context)]) -> list[Member]:
+    return context.store.budget().members
+
+
+@router.put(
+    "/budgets/{budget}/members",
+    operation_id="putMembers",
+    response_model=list[Member],
+    summary="Replace the member list",
+    openapi_extra={"x-cli": {"command": "member set"}},
+)
+def put_members(
+    body: list[Member],
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> list[Member]:
+    """Replaces the list wholesale, so removals are expressible and not just additions.
+
+    Membership decides who can be assigned a share, not who can reach the budget — that is
+    GitHub repo access. Someone listed here without repo access simply never signs in.
+    """
+    if not body:
+        raise ApiError("empty_members", "a budget needs at least one member")
+
+    people = [member.person for member in body]
+    duplicates = {person for person in people if people.count(person) > 1}
+    if duplicates:
+        raise ApiError("duplicate_person", f"duplicate person ids: {', '.join(sorted(duplicates))}")
+
+    # Removing someone who still carries shares would orphan those shares and silently change
+    # every balance, so it is refused while any entry references them.
+    referenced = {
+        share.person for entry in context.store.all_entries() for share in entry.shares
+    } | {person for entry in context.store.all_entries() for person in entry.paid_by}
+    orphaned = referenced - set(people)
+    if orphaned:
+        raise ApiError(
+            "person_in_use",
+            f"these people still appear in entries: {', '.join(sorted(orphaned))}",
+            details={"people": sorted(orphaned)},
+        )
+
+    updated = context.store.budget().model_copy(update={"members": body})
+    context.store.put_members(updated, context.actor)
+    return body
 
 
 @router.get(

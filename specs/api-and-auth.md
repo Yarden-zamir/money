@@ -83,6 +83,9 @@ PUT    /budgets/{budget}/months/{month}/assign  assign money to a bucket
 GET    /budgets/{budget}/balances            net positions and the suggested settle-up
 POST   /budgets/{budget}/settle              record a settlement between two people
 
+GET    /budgets/{budget}/members             who can hold a share
+PUT    /budgets/{budget}/members             replace the member list
+
 GET    /budgets/{budget}/rules
 PUT    /budgets/{budget}/rules
 POST   /budgets/{budget}/rules/preview       what would this entry split into? no write

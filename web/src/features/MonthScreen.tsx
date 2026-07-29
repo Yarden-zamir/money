@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getMonthOptions } from "@/api/@tanstack/react-query.gen";
+import {
+  assignToBucketMutation,
+  getMonthOptions,
+  putBucketMutation,
+} from "@/api/@tanstack/react-query.gen";
+import { Button, Input } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { Empty, ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
@@ -48,6 +53,8 @@ export function MonthScreen() {
         </div>
       </header>
 
+      {budget.can_write && <NewBucket budget={budget.slug} />}
+
       {view.buckets.length === 0 ? (
         <Empty message={t("month.empty")} />
       ) : (
@@ -71,7 +78,16 @@ export function MonthScreen() {
                     )}
                   </td>
                   <td className="p-3 text-end">
-                    <Money amount={bucket.assigned} currency={view.currency} colour={false} />
+                    {budget.can_write ? (
+                      <AssignCell
+                        budget={budget.slug}
+                        month={month}
+                        bucket={bucket.bucket}
+                        assigned={bucket.assigned}
+                      />
+                    ) : (
+                      <Money amount={bucket.assigned} currency={view.currency} colour={false} />
+                    )}
                   </td>
                   <td className="p-3 text-end">
                     <Money amount={bucket.activity} currency={view.currency} />
@@ -86,6 +102,109 @@ export function MonthScreen() {
         </div>
       )}
     </section>
+  );
+}
+
+/** Assigning is the most repeated action in envelope budgeting, so it is edited in place. */
+function AssignCell({
+  budget,
+  month,
+  bucket,
+  assigned,
+}: {
+  budget: string;
+  month: string;
+  bucket: string;
+  assigned: string;
+}) {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const assign = useMutation({
+    ...assignToBucketMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+      setDraft(null);
+    },
+  });
+
+  const commit = () => {
+    if (draft === null) return;
+    if (draft.trim() === "" || Number(draft) === Number(assigned)) {
+      setDraft(null);
+      return;
+    }
+    assign.mutate({
+      path: { budget, month },
+      body: { bucket, amount: Number(draft).toFixed(2) },
+    });
+  };
+
+  return (
+    <Input
+      className="numeric w-24 text-end"
+      inputMode="decimal"
+      value={draft ?? assigned}
+      onFocus={() => setDraft(assigned)}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Escape") setDraft(null);
+      }}
+      disabled={assign.isPending}
+    />
+  );
+}
+
+function NewBucket({ budget }: { budget: string }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [id, setId] = useState("");
+
+  const create = useMutation({
+    ...putBucketMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+      setName("");
+      setId("");
+    },
+  });
+
+  // A readable id is derived from the name, but stays editable: it is what the CLI and the
+  // YAML files use, so it should not be a slugified surprise.
+  const suggested = id || name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 39);
+
+  return (
+    <form
+      className="mb-4 flex flex-wrap items-end gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!name.trim() || !suggested) return;
+        create.mutate({
+          path: { budget, bucket_id: suggested },
+          body: { id: suggested, name: name.trim() },
+        });
+      }}
+    >
+      <Input
+        className="w-48"
+        placeholder={t("month.bucketName")}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <Input
+        className="w-40"
+        dir="ltr"
+        placeholder={t("month.bucketId")}
+        value={suggested}
+        onChange={(event) => setId(event.target.value)}
+      />
+      <Button type="submit" disabled={!name.trim() || create.isPending}>
+        {t("month.create")}
+      </Button>
+    </form>
   );
 }
 

@@ -470,6 +470,181 @@
         }
       }
     },
+    "/api/v1/budgets/{budget}/members": {
+      "get": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Who is in this budget",
+        "operationId": "listMembers",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Member"
+                  },
+                  "title": "Response Listmembers"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "member list"
+        }
+      },
+      "put": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Replace the member list",
+        "description": "Replaces the list wholesale, so removals are expressible and not just additions.\n\nMembership decides who can be assigned a share, not who can reach the budget \u2014 that is\nGitHub repo access. Someone listed here without repo access simply never signs in.",
+        "operationId": "putMembers",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Member"
+                },
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Member"
+                  },
+                  "title": "Response Putmembers"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "member set"
+        }
+      }
+    },
     "/api/v1/budgets/{budget}/months/{month}": {
       "get": {
         "tags": [

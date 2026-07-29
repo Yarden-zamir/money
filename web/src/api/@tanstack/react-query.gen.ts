@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getMe, getMonth, listApiKeys, listBuckets, listBudgets, listEntries, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putRules, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutRulesData, PutRulesError, PutRulesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getMe, getMonth, listApiKeys, listBuckets, listBudgets, listEntries, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putMembers, putRules, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -234,6 +234,46 @@ export const getBudgetOptions = (options: Options<GetBudgetData>) => queryOption
     },
     queryKey: getBudgetQueryKey(options)
 });
+
+export const listMembersQueryKey = (options: Options<ListMembersData>) => createQueryKey('listMembers', options);
+
+/**
+ * Who is in this budget
+ */
+export const listMembersOptions = (options: Options<ListMembersData>) => queryOptions<ListMembersResponse, ListMembersError, ListMembersResponse, ReturnType<typeof listMembersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listMembers({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listMembersQueryKey(options)
+});
+
+/**
+ * Replace the member list
+ *
+ * Replaces the list wholesale, so removals are expressible and not just additions.
+ *
+ * Membership decides who can be assigned a share, not who can reach the budget — that is
+ * GitHub repo access. Someone listed here without repo access simply never signs in.
+ */
+export const putMembersMutation = (options?: Partial<Options<PutMembersData>>): UseMutationOptions<PutMembersResponse, PutMembersError, Options<PutMembersData>> => {
+    const mutationOptions: UseMutationOptions<PutMembersResponse, PutMembersError, Options<PutMembersData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putMembers({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getMonthQueryKey = (options: Options<GetMonthData>) => createQueryKey('getMonth', options);
 

@@ -1,6 +1,14 @@
 {
-  "app": { "name": "money", "tagline": "Budget and shared expenses" },
-  "nav": { "month": "Month", "entries": "Entries", "balances": "Balances", "settings": "Settings" },
+  "app": {
+    "name": "money",
+    "tagline": "Budget and shared expenses"
+  },
+  "nav": {
+    "month": "Month",
+    "entries": "Entries",
+    "balances": "Balances",
+    "settings": "Settings"
+  },
   "auth": {
     "signIn": "Sign in with GitHub",
     "signOut": "Sign out",
@@ -16,7 +24,12 @@
     "bucket": "Bucket",
     "previous": "Previous month",
     "next": "Next month",
-    "empty": "No buckets yet. Create one to start assigning money."
+    "empty": "No buckets yet. Create one to start assigning money.",
+    "assign": "Assign",
+    "newBucket": "New bucket",
+    "bucketName": "Bucket name",
+    "create": "Create",
+    "bucketId": "Short id"
   },
   "entries": {
     "title": "Entries",
@@ -31,7 +44,30 @@
     "filterAll": "All months",
     "viewCommit": "View change",
     "splitBy": "Split by rule {{rule}}",
-    "splitManual": "Split manually"
+    "splitManual": "Split manually",
+    "add": "Add entry",
+    "kind": "Kind",
+    "note": "Note",
+    "tags": "Tags",
+    "bucket": "Bucket",
+    "save": "Save",
+    "delete": "Delete",
+    "confirmDelete": "Delete this entry?",
+    "splitPreview": "Split",
+    "amountHint": "Just the number — the kind decides the sign",
+    "kinds": {
+      "expense": "Expense",
+      "income": "Income",
+      "transfer": "Transfer",
+      "settlement": "Settlement"
+    },
+    "total": "Total",
+    "addPayer": "Add payer",
+    "bears": "Split between",
+    "addShare": "Add share",
+    "customSplit": "Custom split",
+    "splitEven": "Split evenly",
+    "useRules": "Use rules"
   },
   "balances": {
     "title": "Balances",
@@ -40,7 +76,9 @@
     "allSquare": "All square — nothing to settle.",
     "settleUp": "Settle up",
     "youAreOwed": "You are owed",
-    "youOwe": "You owe"
+    "youOwe": "You owe",
+    "settleNow": "Settle",
+    "settling": "Recording…"
   },
   "settings": {
     "title": "Settings",
@@ -66,5 +104,35 @@
     "you": "You",
     "cancel": "Cancel",
     "save": "Save"
+  },
+  "budgets": {
+    "connect": "Connect a budget",
+    "slug": "Short name",
+    "repo": "GitHub repo",
+    "repoHint": "owner/repo — a private repo you can push to",
+    "slugHint": "Used in URLs and the CLI, e.g. joint",
+    "none": "No budget connected yet",
+    "noneHelp": "Connect the private GitHub repo that holds your budget data to get started.",
+    "connecting": "Connecting…"
+  },
+  "members": {
+    "title": "People",
+    "person": "Person id",
+    "name": "Name",
+    "github": "GitHub login",
+    "add": "Add person",
+    "save": "Save people",
+    "hint": "Repo access decides who can sign in; this decides who can hold a share."
+  },
+  "rules": {
+    "title": "Split rules",
+    "hint": "First match wins. An empty condition matches everything.",
+    "id": "Name",
+    "payeeContains": "Payee contains",
+    "tag": "Tag",
+    "split": "Split",
+    "add": "Add rule",
+    "save": "Save rules",
+    "none": "No rules yet."
   }
 }

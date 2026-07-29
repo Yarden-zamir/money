@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getBalancesOptions } from "@/api/@tanstack/react-query.gen";
+import { getBalancesOptions, settleUpMutation } from "@/api/@tanstack/react-query.gen";
+import { Button } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { useBudget } from "./useBudget";
@@ -52,8 +53,15 @@ export function BalancesScreen() {
                 <span>
                   {t("balances.owes", { payer: payment.payer, payee: payment.payee })}
                 </span>
-                <span className="ms-auto">
+                <span className="ms-auto flex items-center gap-3">
                   <Money amount={payment.amount} currency={currency} colour={false} />
+                  {budget.can_write && payment.payer === budget.me && (
+                    <SettleButton
+                      budget={budget.slug}
+                      payee={payment.payee}
+                      amount={payment.amount}
+                    />
+                  )}
                 </span>
               </li>
             ))}
@@ -61,5 +69,38 @@ export function BalancesScreen() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Records a settlement. Only offered to the person who owes: the API records whatever it is
+ * asked to, so putting the button on the wrong row would make it easy to move a balance the
+ * wrong way.
+ */
+function SettleButton({
+  budget,
+  payee,
+  amount,
+}: {
+  budget: string;
+  payee: string;
+  amount: string;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  const settle = useMutation({
+    ...settleUpMutation(),
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
+
+  return (
+    <Button
+      type="button"
+      disabled={settle.isPending}
+      onClick={() => settle.mutate({ path: { budget }, body: { to: payee, amount } })}
+    >
+      {settle.isPending ? t("balances.settling") : t("balances.settleNow")}
+    </Button>
   );
 }

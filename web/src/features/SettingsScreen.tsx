@@ -7,8 +7,13 @@ import {
   deleteApiKeyMutation,
   listApiKeysOptions,
   listApiKeysQueryKey,
+  listMembersOptions,
+  putMembersMutation,
 } from "@/api/@tanstack/react-query.gen";
+import type { BudgetSummary, Member } from "@/api/types.gen";
+import { Button, FormError, Input } from "@/components/Form";
 import { ErrorState, Loading } from "@/components/States";
+import { ConnectBudget } from "./ConnectBudget";
 import { useBudget } from "./useBudget";
 
 export function SettingsScreen() {
@@ -21,6 +26,9 @@ export function SettingsScreen() {
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-ink-muted">{t("settings.budgets")}</h2>
+        <div className="mb-3">
+          <ConnectBudget />
+        </div>
         <ul className="divide-y divide-line rounded-lg ring-1 ring-line">
           {budgets.map((candidate) => (
             <li key={candidate.slug} className="flex flex-wrap items-baseline gap-3 p-3">
@@ -43,8 +51,101 @@ export function SettingsScreen() {
         </ul>
       </div>
 
+      {budget && <Members budget={budget} />}
       <ApiKeys />
     </section>
+  );
+}
+
+/**
+ * Who can hold a share of an entry.
+ *
+ * Separate from who can *reach* the budget, which is GitHub repo access — the hint says so,
+ * because the two being different is surprising until it is stated.
+ */
+function Members({ budget }: { budget: BudgetSummary }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const members = useQuery(listMembersOptions({ path: { budget: budget.slug } }));
+  const [draft, setDraft] = useState<Member[] | null>(null);
+
+  const save = useMutation({
+    ...putMembersMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+      setDraft(null);
+    },
+  });
+
+  if (members.isPending) return <Loading />;
+  if (members.isError) return <ErrorState onRetry={() => void members.refetch()} />;
+
+  const rows = draft ?? members.data;
+  const update = (index: number, patch: Partial<Member>) =>
+    setDraft(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-medium text-ink-muted">{t("members.title")}</h2>
+      <p className="mb-2 text-xs text-ink-muted">{t("members.hint")}</p>
+
+      <div className="space-y-2">
+        {rows.map((member, index) => (
+          <div key={index} className="flex flex-wrap gap-2">
+            <Input
+              className="w-32"
+              dir="ltr"
+              placeholder={t("members.person")}
+              value={member.person}
+              onChange={(event) => update(index, { person: event.target.value })}
+            />
+            <Input
+              className="w-40"
+              placeholder={t("members.name")}
+              value={member.name}
+              onChange={(event) => update(index, { name: event.target.value })}
+            />
+            <Input
+              className="w-48"
+              dir="ltr"
+              placeholder={t("members.github")}
+              value={member.github ?? ""}
+              onChange={(event) => update(index, { github: event.target.value || null })}
+            />
+            {rows.length > 1 && (
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => setDraft(rows.filter((_, i) => i !== index))}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {budget.can_write && (
+        <div className="mt-2 flex gap-2">
+          <Button
+            type="button"
+            variant="quiet"
+            onClick={() => setDraft([...rows, { person: "", name: "", github: null }])}
+          >
+            {t("members.add")}
+          </Button>
+          <Button
+            type="button"
+            disabled={draft === null || save.isPending}
+            onClick={() => draft && save.mutate({ path: { budget: budget.slug }, body: draft })}
+          >
+            {t("members.save")}
+          </Button>
+        </div>
+      )}
+
+      <FormError error={save.error} />
+    </div>
   );
 }
 

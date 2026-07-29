@@ -245,6 +245,51 @@ class TestMonths:
         assert response.status_code == 404
 
 
+class TestMembers:
+    def test_a_person_can_be_added(self, client: TestClient) -> None:
+        response = client.put(
+            "/api/v1/budgets/joint/members",
+            json=[
+                {"person": "yarden", "name": "Yarden", "github": "dev"},
+                {"person": "dana", "name": "Dana", "github": "dana-example"},
+                {"person": "noa", "name": "Noa", "github": None},
+            ],
+        )
+        assert response.status_code == 200
+        assert [m["person"] for m in response.json()] == ["yarden", "dana", "noa"]
+
+        # The change lands in budget.yaml, so the next read sees it.
+        assert len(client.get("/api/v1/budgets/joint/members").json()) == 3
+
+    def test_removing_someone_who_still_has_entries_is_refused(self, client: TestClient) -> None:
+        """Dropping them would orphan their shares and silently move every balance."""
+        post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+
+        response = client.put(
+            "/api/v1/budgets/joint/members",
+            json=[{"person": "yarden", "name": "Yarden", "github": "dev"}],
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "person_in_use"
+        assert "dana" in response.json()["error"]["details"]["people"]
+
+    def test_duplicate_person_ids_are_refused(self, client: TestClient) -> None:
+        response = client.put(
+            "/api/v1/budgets/joint/members",
+            json=[
+                {"person": "yarden", "name": "Yarden", "github": "dev"},
+                {"person": "yarden", "name": "Other", "github": None},
+            ],
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "duplicate_person"
+
+    def test_a_budget_cannot_be_left_with_nobody(self, client: TestClient) -> None:
+        response = client.put("/api/v1/budgets/joint/members", json=[])
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "empty_members"
+
+
 class TestErrorShape:
     def test_every_error_uses_the_same_envelope(self, client: TestClient) -> None:
         response = client.get("/api/v1/budgets/joint/entries/01K0000000000000000000000A")

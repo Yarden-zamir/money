@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { listEntriesOptions } from "@/api/@tanstack/react-query.gen";
-import type { Entry } from "@/api/types.gen";
+import { deleteEntryMutation, listEntriesOptions } from "@/api/@tanstack/react-query.gen";
+import { Button } from "@/components/Form";
+import { AddEntry } from "./AddEntry";
+import type { BudgetSummary, Entry } from "@/api/types.gen";
 import { Money } from "@/components/Money";
 import { Empty, ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatDate, formatMonth, shiftMonth } from "@/lib/format";
@@ -15,6 +17,7 @@ export function EntriesScreen() {
   const { t, i18n } = useTranslation();
   const { budget, isPending: budgetPending } = useBudget();
   const [month, setMonth] = useState<string>(currentMonth);
+  const [adding, setAdding] = useState(false);
 
   const query = useQuery({
     ...listEntriesOptions({
@@ -33,8 +36,11 @@ export function EntriesScreen() {
 
   return (
     <section>
-      <header className="mb-4 flex items-center gap-3">
+      <header className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-semibold">{t("entries.title")}</h1>
+        {budget.can_write && !adding && (
+          <Button onClick={() => setAdding(true)}>{t("entries.add")}</Button>
+        )}
         <select
           className="ms-auto rounded-md border border-line bg-surface px-2 py-1 text-sm"
           value={month}
@@ -50,12 +56,14 @@ export function EntriesScreen() {
         </select>
       </header>
 
+      {adding && <AddEntry budget={budget} onDone={() => setAdding(false)} />}
+
       {query.data.entries.length === 0 ? (
         <Empty message={t("entries.empty")} />
       ) : (
         <ul className="divide-y divide-line rounded-lg ring-1 ring-line">
           {query.data.entries.map((entry) => (
-            <EntryRow key={entry.id} entry={entry} me={budget.me} />
+            <EntryRow key={entry.id} entry={entry} budget={budget} />
           ))}
         </ul>
       )}
@@ -63,8 +71,15 @@ export function EntriesScreen() {
   );
 }
 
-function EntryRow({ entry, me }: { entry: Entry; me: string | null }) {
+function EntryRow({ entry, budget }: { entry: Entry; budget: BudgetSummary }) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const me = budget.me;
+
+  const remove = useMutation({
+    ...deleteEntryMutation(),
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
 
   // The split is the interesting part of this app, so a row shows both dimensions: what the
   // whole thing cost, and what it cost *you*.
@@ -96,6 +111,22 @@ function EntryRow({ entry, me }: { entry: Entry; me: string | null }) {
           </span>
         )}
         <Money amount={entry.amount} currency={entry.currency} className="font-medium" />
+        {budget.can_write && (
+          <button
+            type="button"
+            className="text-xs text-ink-muted hover:text-negative"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (window.confirm(t("entries.confirmDelete"))) {
+                remove.mutate({
+                  path: { budget: budget.slug, entry_id: entry.id },
+                });
+              }
+            }}
+          >
+            {t("entries.delete")}
+          </button>
+        )}
       </span>
     </li>
   );
