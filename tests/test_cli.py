@@ -125,5 +125,7 @@ class TestConfig:
     def test_a_bare_hostname_is_https(self) -> None:
         from money_cli.config import HostConfig
 
-        assert HostConfig(host="money.yarden-zamir.com").base_url == "https://money.yarden-zamir.com"
+        assert (
+            HostConfig(host="money.yarden-zamir.com").base_url == "https://money.yarden-zamir.com"
+        )
         assert HostConfig(host="http://localhost:8000").base_url == "http://localhost:8000"

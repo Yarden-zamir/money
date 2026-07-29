@@ -52,6 +52,7 @@ GitHub secrets and variables named `KITSHN_<NAME>` arrive in the container as `<
 | `SESSION_SECRET` | secret | signs session cookies; rotating it logs everyone out |
 | `TOKEN_ENCRYPTION_KEY` | secret | encrypts stored user OAuth tokens at rest |
 | `DEFAULT_DATA_REPO` | variable | e.g. `Yarden-zamir/budget-joint` |
+| `BASE_URL` | variable | public origin, used to build the OAuth callback |
 
 Two OAuth apps are needed, because a callback URL is fixed per app: one for production and one
 whose callback is the preview wildcard. Preview builds get the preview app's credentials.
@@ -67,7 +68,9 @@ decrypted for the duration of a push.
 
 ## Persistence
 
-`${KITSHN_DATA_DIR}` holds two things:
+The KitSHn host data directory is mounted at `/data` in the container, and the app is told so
+through `DATA_DIR`. The two are kept as separate names on purpose: one is a host path, the
+other is where this process writes. It holds two things:
 
 - `app.db` — SQLite: users, API keys, budget-to-repo mapping. Rebuildable by signing in again;
   losing it loses no budget data.

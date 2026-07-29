@@ -10,9 +10,11 @@ call site fails `tsc`.
 Hebrew is a first-class language, not a translation applied to a layout designed for English.
 The rules that keep it working:
 
-- **Logical CSS properties only.** `ms-4`/`me-4`, `ps-2`/`pe-2`, `start-0`/`end-0`. Physical
-  `ml-`/`mr-`/`left-`/`right-` are banned in app code and rejected by lint, because they are
-  the single most common way an RTL layout silently breaks.
+- **Logical CSS properties only.** `ms-4`/`me-4`, `ps-2`/`pe-2`, `start-0`/`end-0`. The
+  physical equivalents are banned in app code and `tests/test_rtl.py` fails the build on
+  them, because they are the single most common way an RTL layout silently breaks. The same
+  suite checks that the two locale files define identical keys, and that the bidi isolates in
+  `formatMoney` are still there — they are invisible characters a cleanup could easily drop.
 - `dir` is set on `<html>` from the active language, and the whole tree inherits it. No
   component sets `dir` on itself.
 - **Numbers and money stay LTR inside RTL text.** Amounts render in an isolating span so a
@@ -20,8 +22,10 @@ The rules that keep it working:
   is a number that displays as `50.00-` and looks like a different value.
 - Formatting goes through `Intl.NumberFormat` and `Intl.DateTimeFormat` with the active
   locale. No manual string concatenation of currency symbols.
-- Icons that encode direction (back, forward, trend arrows) flip with `rtl:-scale-x-100`;
-  icons that do not (a plus, a wallet) never flip.
+- Icons that encode direction (back, forward, trend arrows) flip via the `.icon-directional`
+  class, which uses the `:dir(rtl)` selector; icons that do not (a plus, a wallet) never flip.
+  Characters that are already **Bidi-Mirrored**, such as `‹` and `›`, must *not* get that
+  class: the text engine flips them, and flipping again would point them the wrong way.
 
 Translations live in `src/locales/{he,en}/*.json`. `en` is the source of truth for keys, and a
 missing key falls back to English rather than rendering a raw key.

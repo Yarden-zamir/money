@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen --extra server
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Format check
+        run: uv run ruff format --check src tests
+
+      - name: Test
+        # The store tests drive real git, so a committer identity has to exist.
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
+          uv run pytest -q
+
+      - name: CLI is in sync with the API
+        # A route whose x-cli annotation changed without regenerating fails here rather than
+        # shipping a CLI that disagrees with the server.
+        env:
+          DEV_MODE: "1"
+        run: uv run money generate-cli --check
+
+      - name: Committed schema is current
+        # openapi.json is tracked so API changes show up in the pull request diff.
+        env:
+          DEV_MODE: "1"
+        run: |
+          uv run python -c "import json; from money.api.app import create_app; json.dump(create_app().openapi(), open('openapi.json','w'), indent=2)"
+          git diff --exit-code openapi.json
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+
+      - name: Export the schema
+        env:
+          DEV_MODE: "1"
+        run: |
+          uv sync --frozen --extra server
+          uv run python -c "import json; from money.api.app import create_app; json.dump(create_app().openapi(), open('openapi.json','w'), indent=2)"
+
+      - name: TypeScript client is in sync with the API
+        run: pnpm run generate:check
+        working-directory: web
+
+      - name: Build
+        run: pnpm run build
+        working-directory: web

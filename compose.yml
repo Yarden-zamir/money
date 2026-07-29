@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    environment:
+      KITSHN_RECIPE: ${KITSHN_RECIPE}
+      KITSHN_ENVIRONMENT: ${KITSHN_ENVIRONMENT}
+      KITSHN_DEPLOYMENT: ${KITSHN_DEPLOYMENT}
+      KITSHN_SOCKET_DIR: ${KITSHN_SOCKET_DIR}
+      KITSHN_DEFAULT_SOCKET: ${KITSHN_DEFAULT_SOCKET}
+
+      # Container path, mounted from the KitSHn host data directory below.
+      DATA_DIR: /data
+
+      # From GitHub secrets and variables named KITSHN_<NAME>; see specs/deployment.md.
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?TOKEN_ENCRYPTION_KEY is required}
+      DEFAULT_DATA_REPO: ${DEFAULT_DATA_REPO:-}
+      BASE_URL: ${BASE_URL:?BASE_URL is required}
+    volumes:
+      # app.db and the working clones of each data repo. Both are caches of GitHub state:
+      # losing this volume costs a re-clone and a sign-in, never budget history.
+      - ${KITSHN_DATA_DIR}/state:/data
+      - ${KITSHN_SOCKET_DIR}:${KITSHN_SOCKET_DIR}
+    restart: unless-stopped

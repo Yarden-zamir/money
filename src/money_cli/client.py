@@ -73,7 +73,7 @@ def _describe_error(response: httpx.Response) -> str:
     """Render the API's error envelope, falling back to raw text for anything else."""
     try:
         error = response.json()["error"]
-    except (json.JSONDecodeError, KeyError, TypeError):
+    except json.JSONDecodeError, KeyError, TypeError:
         return f"HTTP {response.status_code}: {response.text[:400]}"
 
     message = f"{error['message']} ({error['code']})"

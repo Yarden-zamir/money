@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* Hebrew and Latin both need to look right. Heebo covers Hebrew well and falls back to the
+   system stack for anything it lacks. */
+@theme {
+  --font-sans: "Heebo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-surface: oklch(99% 0 0);
+  --color-surface-raised: oklch(100% 0 0);
+  --color-ink: oklch(20% 0.01 260);
+  --color-ink-muted: oklch(52% 0.015 260);
+  --color-line: oklch(91% 0.005 260);
+  --color-brand: oklch(58% 0.16 255);
+  --color-positive: oklch(56% 0.14 155);
+  --color-negative: oklch(58% 0.19 25);
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-surface: oklch(19% 0.01 260);
+    --color-surface-raised: oklch(23% 0.012 260);
+    --color-ink: oklch(96% 0.005 260);
+    --color-ink-muted: oklch(70% 0.015 260);
+    --color-line: oklch(31% 0.012 260);
+    --color-brand: oklch(72% 0.14 255);
+    --color-positive: oklch(75% 0.15 155);
+    --color-negative: oklch(70% 0.17 25);
+  }
+}
+
+body {
+  @apply bg-surface text-ink font-sans antialiased;
+}
+
+/* Direction-encoding icons flip with the layout; a plus or a wallet does not. */
+.icon-directional:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* Numbers stay upright and LTR wherever they appear. */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  direction: ltr;
+}

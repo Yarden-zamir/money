@@ -55,7 +55,7 @@ BUCKETS_YAML = """\
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("DEV_MODE", "1")
-    monkeypatch.setenv("KITSHN_DATA_DIR", str(tmp_path / "var"))
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "var"))
 
     from money.api.config import settings
 

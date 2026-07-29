@@ -25,10 +25,12 @@ class Settings(BaseSettings):
 
     default_data_repo: str | None = None
 
-    # KitSHn supplies these. Absent when running locally.
+    # KitSHn supplies the environment name; the branch is derived from it below.
     kitshn_environment: str = "local"
-    kitshn_data_dir: Path = Path("./var")
-    kitshn_default_socket: str | None = None
+
+    # Where this process writes its own state. This is a *container* path: compose mounts the
+    # KitSHn host data directory onto it, so the two must not be conflated.
+    data_dir: Path = Path("./var")
 
     base_url: str = "http://localhost:8000"
     dev_mode: bool = Field(default=False, description="Bypass GitHub auth with a fake user")
@@ -44,11 +46,11 @@ class Settings(BaseSettings):
 
     @property
     def db_path(self) -> Path:
-        return self.kitshn_data_dir / "app.db"
+        return self.data_dir / "app.db"
 
     @property
     def repos_dir(self) -> Path:
-        return self.kitshn_data_dir / "repos"
+        return self.data_dir / "repos"
 
     @model_validator(mode="after")
     def _require_secrets_outside_dev(self) -> Self:

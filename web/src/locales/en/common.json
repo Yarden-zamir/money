@@ -1,0 +1,70 @@
+{
+  "app": { "name": "money", "tagline": "Budget and shared expenses" },
+  "nav": { "month": "Month", "entries": "Entries", "balances": "Balances", "settings": "Settings" },
+  "auth": {
+    "signIn": "Sign in with GitHub",
+    "signOut": "Sign out",
+    "required": "Sign in to see your budget",
+    "signedInAs": "Signed in as {{login}}"
+  },
+  "month": {
+    "readyToAssign": "Ready to assign",
+    "income": "Income",
+    "assigned": "Assigned",
+    "activity": "Activity",
+    "available": "Available",
+    "bucket": "Bucket",
+    "previous": "Previous month",
+    "next": "Next month",
+    "empty": "No buckets yet. Create one to start assigning money."
+  },
+  "entries": {
+    "title": "Entries",
+    "date": "Date",
+    "payee": "Payee",
+    "amount": "Amount",
+    "buckets": "Buckets",
+    "yourShare": "Your share",
+    "paidBy": "Paid by",
+    "empty": "No entries yet.",
+    "filterMonth": "Month",
+    "filterAll": "All months",
+    "viewCommit": "View change",
+    "splitBy": "Split by rule {{rule}}",
+    "splitManual": "Split manually"
+  },
+  "balances": {
+    "title": "Balances",
+    "net": "Net",
+    "owes": "{{payer}} owes {{payee}}",
+    "allSquare": "All square — nothing to settle.",
+    "settleUp": "Settle up",
+    "youAreOwed": "You are owed",
+    "youOwe": "You owe"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "budgets": "Budgets",
+    "apiKeys": "API keys",
+    "createKey": "Create key",
+    "keyName": "Key name",
+    "keyShownOnce": "Copy this key now. It will not be shown again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "revoke": "Revoke",
+    "lastUsed": "Last used",
+    "never": "Never",
+    "noKeys": "No API keys yet.",
+    "dataRepo": "Data repo",
+    "branch": "Branch"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "you": "You",
+    "cancel": "Cancel",
+    "save": "Save"
+  }
+}

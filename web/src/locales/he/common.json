@@ -1,0 +1,70 @@
+{
+  "app": { "name": "money", "tagline": "תקציב והוצאות משותפות" },
+  "nav": { "month": "חודש", "entries": "תנועות", "balances": "מאזן", "settings": "הגדרות" },
+  "auth": {
+    "signIn": "התחברות עם GitHub",
+    "signOut": "התנתקות",
+    "required": "יש להתחבר כדי לראות את התקציב",
+    "signedInAs": "מחובר כ־{{login}}"
+  },
+  "month": {
+    "readyToAssign": "זמין לשיוך",
+    "income": "הכנסות",
+    "assigned": "שויך",
+    "activity": "תנועה",
+    "available": "יתרה",
+    "bucket": "קטגוריה",
+    "previous": "החודש הקודם",
+    "next": "החודש הבא",
+    "empty": "אין עדיין קטגוריות. צרו קטגוריה כדי להתחיל לשייך כסף."
+  },
+  "entries": {
+    "title": "תנועות",
+    "date": "תאריך",
+    "payee": "בית עסק",
+    "amount": "סכום",
+    "buckets": "קטגוריות",
+    "yourShare": "החלק שלך",
+    "paidBy": "שולם על ידי",
+    "empty": "אין עדיין תנועות.",
+    "filterMonth": "חודש",
+    "filterAll": "כל החודשים",
+    "viewCommit": "הצגת השינוי",
+    "splitBy": "חולק לפי הכלל {{rule}}",
+    "splitManual": "חלוקה ידנית"
+  },
+  "balances": {
+    "title": "מאזן",
+    "net": "נטו",
+    "owes": "{{payer}} חייב ל{{payee}}",
+    "allSquare": "אין חובות פתוחים.",
+    "settleUp": "סגירת חשבון",
+    "youAreOwed": "חייבים לך",
+    "youOwe": "אתה חייב"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "language": "שפה",
+    "budgets": "תקציבים",
+    "apiKeys": "מפתחות API",
+    "createKey": "יצירת מפתח",
+    "keyName": "שם המפתח",
+    "keyShownOnce": "העתיקו את המפתח עכשיו. הוא לא יוצג שוב.",
+    "copy": "העתקה",
+    "copied": "הועתק",
+    "revoke": "ביטול",
+    "lastUsed": "שימוש אחרון",
+    "never": "מעולם לא",
+    "noKeys": "אין עדיין מפתחות API.",
+    "dataRepo": "מאגר הנתונים",
+    "branch": "ענף"
+  },
+  "common": {
+    "loading": "טוען…",
+    "error": "משהו השתבש",
+    "retry": "ניסיון חוזר",
+    "you": "אתה",
+    "cancel": "ביטול",
+    "save": "שמירה"
+  }
+}

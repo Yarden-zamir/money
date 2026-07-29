@@ -27,7 +27,7 @@ WEB_DIST = Path(__file__).resolve().parents[3] / "web" / "dist"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config = settings()
-    config.kitshn_data_dir.mkdir(parents=True, exist_ok=True)
+    config.data_dir.mkdir(parents=True, exist_ok=True)
     app.state.sessionmaker = db.make_sessionmaker(config.db_path)
     yield
 

@@ -52,6 +52,11 @@ target-version = "py314"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.format]
+# The generator owns this file's layout byte for byte: `money generate-cli --check` compares
+# exact text, so a formatter pass here would make the check permanently fail.
+exclude = ["src/money_cli/generated.py"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

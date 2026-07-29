@@ -6,3 +6,8 @@ __pycache__/
 node_modules/
 dist/
 .env
+
+# Build output. openapi.json is deliberately NOT ignored: it is the contract both clients
+# generate from, and committing it makes API changes visible in a pull request diff.
+web/dist/
+var/
