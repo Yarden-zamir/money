@@ -73,6 +73,25 @@ expanded panel, so it cannot be hit while scrolling.
 
 Controls are at least 44px tall (`.control`, `Button`).
 
+## Controls
+
+Conventions that exist because they drifted once already:
+
+- **Action order is not a per-screen decision.** `FormActions` places the primary action at
+  the inline start, secondary next, and anything destructive pushed to the inline end. Screens
+  used to arrange their own buttons and disagreed, so the blue button landed on a different
+  side depending where you were.
+- **Every field has a visible label.** Placeholders are not labels: they disappear the moment
+  a field is filled, which left the member editor as three anonymous boxes once it had data.
+  Placeholders carry examples, not names.
+- **Width is opt-in.** `Input`/`Select` are full width unless given `fullWidth={false}`; a
+  fixed width without it fights the base utility and the winner depends on stylesheet order.
+  `tests/test_rtl.py` fails the build on that combination.
+- **Lists whose order is meaningful say so.** Rules are numbered and moved with explicit
+  controls, because "first match wins" is invisible otherwise.
+- **Destructive actions are separated and coloured**, never adjacent to a routine one, and
+  never on a scrollable row where a thumb lands.
+
 ## Structure
 
 ```

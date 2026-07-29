@@ -74,6 +74,32 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   );
 }
 
+/**
+ * Form actions in a fixed order: primary first at the inline start, then secondary, then
+ * anything destructive pushed to the inline end.
+ *
+ * Every form used to arrange its own buttons, and they drifted — some screens led with the
+ * secondary action, so the blue button landed on a different side depending on the screen.
+ * Going through here means the order cannot vary.
+ */
+export function FormActions({
+  primary,
+  secondary,
+  destructive,
+}: {
+  primary?: ReactNode;
+  secondary?: ReactNode;
+  destructive?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {primary}
+      {secondary}
+      {destructive && <div className="ms-auto">{destructive}</div>}
+    </div>
+  );
+}
+
 /** Renders an API error in the envelope the backend always returns. */
 export function FormError({ error }: { error: unknown }) {
   if (!error) return null;

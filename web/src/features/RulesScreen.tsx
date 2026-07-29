@@ -2,17 +2,21 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { listRulesOptions, putRulesMutation } from "@/api/@tanstack/react-query.gen";
-import type { RuleInput } from "@/api/types.gen";
-import { Button, Field, FormError, Input } from "@/components/Form";
+import {
+  listBucketsOptions,
+  listRulesOptions,
+  putRulesMutation,
+} from "@/api/@tanstack/react-query.gen";
+import type { BucketOutput, Member, RuleInput } from "@/api/types.gen";
+import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
 import { ErrorState, Loading } from "@/components/States";
 import { useBudget } from "./useBudget";
 
 /**
  * Rules decide how an entry is split when nobody specifies one.
  *
- * Order is the whole semantics — first match wins — so the list is edited and saved as a
- * list, with explicit move controls, rather than as independently editable rows.
+ * Order is the whole semantics — first match wins — so rules are numbered, moved explicitly,
+ * and saved as a list rather than edited as independent rows.
  */
 export function RulesScreen() {
   const { t } = useTranslation();
@@ -21,6 +25,10 @@ export function RulesScreen() {
 
   const rules = useQuery({
     ...listRulesOptions({ path: { budget: budget?.slug ?? "" } }),
+    enabled: Boolean(budget),
+  });
+  const buckets = useQuery({
+    ...listBucketsOptions({ path: { budget: budget?.slug ?? "" } }),
     enabled: Boolean(budget),
   });
   const [draft, setDraft] = useState<RuleInput[] | null>(null);
@@ -37,7 +45,7 @@ export function RulesScreen() {
   if (rules.isError || !budget) return <ErrorState onRetry={() => void rules.refetch()} />;
 
   const rows: RuleInput[] = draft ?? rules.data;
-  const members = budget.members;
+  const dirty = draft !== null;
 
   const update = (index: number, patch: Partial<RuleInput>) =>
     setDraft(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -52,114 +60,249 @@ export function RulesScreen() {
   };
 
   return (
-    <section>
-      <h1 className="text-lg font-semibold">{t("rules.title")}</h1>
-      <p className="mb-4 text-sm text-ink-muted">{t("rules.hint")}</p>
+    <section className="space-y-4">
+      <div>
+        <h1 className="text-lg font-semibold">{t("rules.title")}</h1>
+        <p className="text-sm text-ink-muted">{t("rules.hint")}</p>
+      </div>
 
-      {rows.length === 0 && <p className="mb-4 text-ink-muted">{t("rules.none")}</p>}
+      {rows.length === 0 && (
+        <Card className="p-6 text-center text-ink-muted">{t("rules.none")}</Card>
+      )}
 
       <ol className="space-y-3">
         {rows.map((rule, index) => (
-          <li key={index} className="rounded-card border border-line bg-card p-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label={t("rules.id")}>
-                <Input
-                  dir="ltr"
-                  value={rule.id}
-                  onChange={(event) => update(index, { id: event.target.value })}
-                />
-              </Field>
-              <Field label={t("rules.payeeContains")}>
-                <Input
-                  value={rule.when?.payee_contains ?? ""}
-                  onChange={(event) =>
-                    update(index, {
-                      when: { ...rule.when, payee_contains: event.target.value || null },
-                    })
-                  }
-                />
-              </Field>
-              <Field label={t("rules.tag")}>
-                <Input
-                  value={rule.when?.tag ?? ""}
-                  onChange={(event) =>
-                    update(index, { when: { ...rule.when, tag: event.target.value || null } })
-                  }
-                />
-              </Field>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <span className="text-xs text-ink-muted">{t("rules.split")}</span>
-              {members.map((member) => (
-                <label key={member.person} className="text-xs">
-                  <span className="me-1">{member.name}</span>
-                  <Input
-                    fullWidth={false}
-                    className="numeric ltr-field w-20"
-                    inputMode="decimal"
-                    value={String(rule.split?.[member.person] ?? "")}
-                    onChange={(event) => {
-                      const split = { ...rule.split };
-                      if (event.target.value === "") delete split[member.person];
-                      else split[member.person] = event.target.value;
-                      update(index, { split });
-                    }}
-                    placeholder="0.5"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <div className="mt-2 flex gap-2">
-              <Button type="button" variant="quiet" onClick={() => move(index, -1)}>
-                ↑
-              </Button>
-              <Button type="button" variant="quiet" onClick={() => move(index, 1)}>
-                ↓
-              </Button>
-              <Button
-                type="button"
-                variant="quiet"
-                onClick={() => setDraft(rows.filter((_, i) => i !== index))}
-              >
-                {t("entries.delete")}
-              </Button>
-            </div>
-          </li>
+          <RuleCard
+            key={index}
+            rule={rule}
+            index={index}
+            total={rows.length}
+            members={budget.members}
+            buckets={buckets.data ?? []}
+            canWrite={budget.can_write}
+            onChange={(patch) => update(index, patch)}
+            onMove={(delta) => move(index, delta)}
+            onRemove={() => setDraft(rows.filter((_, i) => i !== index))}
+          />
         ))}
       </ol>
 
       {budget.can_write && (
-        <div className="mt-4 flex gap-2">
-          <Button
-            type="button"
-            variant="quiet"
-            onClick={() =>
-              setDraft([
-                ...rows,
-                {
-                  id: `rule-${rows.length + 1}`,
-                  when: {},
-                  split: Object.fromEntries(members.map((m) => [m.person, "1"])),
-                  bucket: {},
-                },
-              ])
-            }
-          >
-            {t("rules.add")}
-          </Button>
-          <Button
-            type="button"
-            disabled={draft === null || save.isPending}
-            onClick={() => draft && save.mutate({ path: { budget: budget.slug }, body: draft })}
-          >
-            {t("rules.save")}
-          </Button>
-        </div>
+        <FormActions
+          primary={
+            <Button
+              disabled={!dirty || save.isPending}
+              onClick={() => draft && save.mutate({ path: { budget: budget.slug }, body: draft })}
+            >
+              {dirty ? t("rules.save") : t("rules.saved")}
+            </Button>
+          }
+          secondary={
+            <>
+              <Button
+                variant="quiet"
+                onClick={() =>
+                  setDraft([
+                    ...rows,
+                    {
+                      id: `rule-${rows.length + 1}`,
+                      when: {},
+                      split: Object.fromEntries(
+                        budget.members.map((member) => [member.person, "1"]),
+                      ),
+                      bucket: {},
+                    },
+                  ])
+                }
+              >
+                + {t("rules.add")}
+              </Button>
+              {dirty && (
+                <Button variant="ghost" onClick={() => setDraft(null)}>
+                  {t("common.cancel")}
+                </Button>
+              )}
+            </>
+          }
+        />
       )}
 
       <FormError error={save.error} />
     </section>
+  );
+}
+
+function RuleCard({
+  rule,
+  index,
+  total,
+  members,
+  buckets,
+  canWrite,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  rule: RuleInput;
+  index: number;
+  total: number;
+  members: Member[];
+  buckets: BucketOutput[];
+  canWrite: boolean;
+  onChange: (patch: Partial<RuleInput>) => void;
+  onMove: (delta: number) => void;
+  onRemove: () => void;
+}) {
+  const { t } = useTranslation();
+
+  const ratios = Object.values(rule.split ?? {}).map((value) => Number(value) || 0);
+  const sum = ratios.reduce((total_, value) => total_ + value, 0);
+  // The API rejects a split that does not sum to 1. Saying so here means finding out while
+  // typing rather than after pressing save.
+  const balanced = Math.abs(sum - 1) < 0.0001;
+
+  const catchAll = !rule.when?.payee_contains && !rule.when?.tag;
+
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
+          {index + 1}
+        </span>
+        {catchAll && (
+          <span className="rounded-full bg-line px-2 py-0.5 text-[11px] text-ink-muted">
+            {t("rules.catchAll")}
+          </span>
+        )}
+
+        {canWrite && (
+          <div className="ms-auto flex gap-1">
+            {/* Vertical arrows encode list order, not reading direction, so they never flip. */}
+            <IconButton label={t("rules.moveUp")} disabled={index === 0} onClick={() => onMove(-1)}>
+              ↑
+            </IconButton>
+            <IconButton
+              label={t("rules.moveDown")}
+              disabled={index === total - 1}
+              onClick={() => onMove(1)}
+            >
+              ↓
+            </IconButton>
+            <IconButton label={t("entries.delete")} onClick={onRemove} danger>
+              ×
+            </IconButton>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={t("rules.id")}>
+          <Input
+            className="ltr-field"
+            value={rule.id}
+            onChange={(event) => onChange({ id: event.target.value })}
+          />
+        </Field>
+        <Field label={t("rules.payeeContains")}>
+          <Input
+            value={rule.when?.payee_contains ?? ""}
+            placeholder={t("rules.anyPayee")}
+            onChange={(event) =>
+              onChange({ when: { ...rule.when, payee_contains: event.target.value || null } })
+            }
+          />
+        </Field>
+        <Field label={t("rules.tag")}>
+          <Input
+            value={rule.when?.tag ?? ""}
+            placeholder={t("rules.anyTag")}
+            onChange={(event) =>
+              onChange({ when: { ...rule.when, tag: event.target.value || null } })
+            }
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <div className="mb-2 flex items-baseline gap-2">
+          <span className="text-xs font-medium text-ink-muted">{t("rules.split")}</span>
+          <span className={`numeric text-xs ${balanced ? "text-ink-muted" : "text-negative"}`}>
+            {sum.toFixed(2)} / 1.00
+          </span>
+        </div>
+
+        {/* One row per person, so the ratio and the bucket it lands in stay together. */}
+        <div className="space-y-2">
+          {members.map((member) => (
+            <div key={member.person} className="grid gap-2 sm:grid-cols-[8rem_6rem_1fr]">
+              <span className="self-center truncate text-sm">{member.name}</span>
+              <Input
+                fullWidth={false}
+                aria-label={`${member.name} ${t("rules.split")}`}
+                className="numeric ltr-field w-full"
+                inputMode="decimal"
+                placeholder="0.5"
+                value={String(rule.split?.[member.person] ?? "")}
+                onChange={(event) => {
+                  const split = { ...rule.split };
+                  if (event.target.value === "") delete split[member.person];
+                  else split[member.person] = event.target.value;
+                  onChange({ split });
+                }}
+              />
+              <Select
+                aria-label={`${member.name} ${t("entries.bucket")}`}
+                // The generated type for this map widens to `unknown` — the schema for a
+                // pattern-constrained key renders as `unknown | string`. The value is always
+                // a bucket id on the wire.
+                value={String(rule.bucket?.[member.person] ?? "")}
+                onChange={(event) => {
+                  const bucket = { ...rule.bucket };
+                  if (event.target.value === "") delete bucket[member.person];
+                  else bucket[member.person] = event.target.value;
+                  onChange({ bucket });
+                }}
+              >
+                <option value="">{t("rules.noBucket")}</option>
+                {buckets.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function IconButton({
+  label,
+  onClick,
+  disabled,
+  danger,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex size-9 items-center justify-center rounded-lg text-base transition disabled:opacity-30 ${
+        danger ? "text-negative hover:bg-negative/10" : "text-ink-muted hover:bg-surface"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

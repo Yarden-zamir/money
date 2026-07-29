@@ -12,7 +12,7 @@ import {
   reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketState } from "@/api/types.gen";
-import { Button, Card, Field, FormError, Input } from "@/components/Form";
+import { Button, Card, Field, FormActions, FormError, Input } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
@@ -334,13 +334,19 @@ function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
           />
         </Field>
 
-        <div className="flex gap-2 sm:col-span-3">
-          <Button type="submit" disabled={!id || create.isPending}>
-            {t("month.create")}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onDone}>
-            {t("common.cancel")}
-          </Button>
+        <div className="sm:col-span-3">
+          <FormActions
+            primary={
+              <Button type="submit" disabled={!id || create.isPending}>
+                {t("month.create")}
+              </Button>
+            }
+            secondary={
+              <Button type="button" variant="ghost" onClick={onDone}>
+                {t("common.cancel")}
+              </Button>
+            }
+          />
         </div>
       </form>
       <FormError error={create.error} />
@@ -442,24 +448,26 @@ function EditBucket({
           />
         </Field>
 
-        <div className="flex flex-wrap gap-2 sm:col-span-3">
-          <Button type="submit" disabled={save.isPending}>
-            {t("common.save")}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onDone}>
-            {t("common.cancel")}
-          </Button>
-          {/* Archive, not delete: entries already reference this bucket and their history
-              must keep resolving to a name. */}
-          <Button
-            type="button"
-            variant="danger"
-            className="ms-auto"
-            disabled={save.isPending}
-            onClick={() => submit(true)}
-          >
-            {t("month.archive")}
-          </Button>
+        <div className="sm:col-span-3">
+          <FormActions
+            primary={
+              <Button type="submit" disabled={save.isPending}>
+                {t("common.save")}
+              </Button>
+            }
+            secondary={
+              <Button type="button" variant="ghost" onClick={onDone}>
+                {t("common.cancel")}
+              </Button>
+            }
+            /* Archive, not delete: entries already reference this bucket and their history
+               must keep resolving to a name. */
+            destructive={
+              <Button type="button" variant="danger" disabled={save.isPending} onClick={() => submit(true)}>
+                {t("month.archive")}
+              </Button>
+            }
+          />
         </div>
       </form>
       <FormError error={save.error} />

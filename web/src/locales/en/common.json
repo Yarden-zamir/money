@@ -117,7 +117,10 @@
     "never": "Never",
     "noKeys": "No API keys yet.",
     "dataRepo": "Data repo",
-    "branch": "Branch"
+    "branch": "Branch",
+    "readWrite": "read/write",
+    "readOnly": "read only",
+    "keyNameHint": "e.g. laptop, phone, CI"
   },
   "common": {
     "loading": "Loading…",
@@ -144,7 +147,8 @@
     "github": "GitHub login",
     "add": "Add person",
     "save": "Save people",
-    "hint": "Repo access decides who can sign in; this decides who can hold a share."
+    "hint": "Repo access decides who can sign in; this decides who can hold a share.",
+    "githubHint": "optional"
   },
   "rules": {
     "title": "Split rules",
@@ -155,6 +159,13 @@
     "split": "Split",
     "add": "Add rule",
     "save": "Save rules",
-    "none": "No rules yet."
+    "none": "No rules yet.",
+    "saved": "Saved",
+    "catchAll": "Catch-all",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "anyPayee": "Any payee",
+    "anyTag": "Any tag",
+    "noBucket": "No bucket"
   }
 }
