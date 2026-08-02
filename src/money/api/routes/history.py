@@ -41,6 +41,54 @@ def _kind_of(subject: str) -> str:
     return "other"
 
 
+def _undo_state(commits: list, me: str) -> tuple[str | None, str | None]:
+    """What undo and redo would act on, replayed from the commits themselves.
+
+    No stored stack: a revert records which commit it reverted, so the state is recoverable
+    from history alone — it survives a restart, is identical on every device, and cannot
+    drift from what the repo says.
+
+    Replaying is necessary rather than fussy. "Is the newest commit a revert" is not enough,
+    because reverting a *redo* is an undo, not another redo; without tracking which is which,
+    pressing redo twice would silently undo the change it had just restored.
+
+    Two stacks, exactly as an editor keeps them:
+
+    - a normal change pushes onto `applied` and clears `redo`, because a new edit discards
+      anything that was waiting to be re-applied;
+    - an undo moves an entry from `applied` to `redo`;
+    - a redo moves it back.
+
+    Each entry remembers which commit currently carries its effect, since after a redo that
+    is the re-applying commit and no longer the original.
+    """
+    mine = [commit for commit in commits if commit.trailers.get("Actor") == me]
+
+    applied: list[tuple[str, str]] = []  # (original sha, sha currently carrying its effect)
+    redo: list[tuple[str, str]] = []  # (original sha, sha of the undo that removed it)
+
+    for commit in reversed(mine):  # oldest first
+        reverted = commit.trailers.get("Reverts")
+
+        if not reverted:
+            applied.append((commit.sha, commit.sha))
+            redo.clear()
+            continue
+
+        if redo and redo[-1][1] == reverted:
+            original, _ = redo.pop()
+            applied.append((original, commit.sha))
+            continue
+
+        for index in range(len(applied) - 1, -1, -1):
+            if applied[index][1] == reverted:
+                original, _ = applied.pop(index)
+                redo.append((original, commit.sha))
+                break
+
+    return (applied[-1][1] if applied else None, redo[-1][1] if redo else None)
+
+
 @router.get(
     "",
     operation_id="getHistory",
@@ -59,6 +107,7 @@ def get_history(
     """
     commits = context.store.repo.log(limit=limit)
     me = context.actor.login
+    undoable, redoable = _undo_state(commits, me)
 
     events = [
         HistoryEvent(
@@ -70,10 +119,11 @@ def get_history(
             date=commit.date,
             entry_id=commit.trailers.get("Entry-Id"),
             mine=commit.trailers.get("Actor") == me,
+            reverts=commit.trailers.get("Reverts"),
         )
         for commit in commits
     ]
-    return HistoryPage(events=events, undoable=next((e.sha for e in events if e.mine), None))
+    return HistoryPage(events=events, undoable=undoable, redoable=redoable)
 
 
 @router.post(
@@ -87,34 +137,59 @@ def undo(
     context: Annotated[BudgetContext, Depends(writable)],
     sha: str | None = None,
 ) -> UndoResult:
-    """Revert a commit, defaulting to your own most recent one.
+    """Revert a change, defaulting to your most recent un-reverted one.
 
     Scoped to your own changes: in a shared budget, silently reversing your partner's work
-    from your phone is the failure worth designing against. Reverting someone else's change
-    is still possible by naming its sha explicitly, which makes it a deliberate act.
+    from your phone is the failure worth designing against. Naming a sha reverts anyone's,
+    which makes doing so deliberate.
     """
-    commits = context.store.repo.log(limit=100)
-    target = None
+    return _apply_revert(context, sha, want="undo")
 
-    if sha:
-        target = next((commit for commit in commits if commit.sha.startswith(sha)), None)
-    else:
-        target = next(
-            (commit for commit in commits if commit.trailers.get("Actor") == context.actor.login),
-            None,
-        )
 
+@router.post(
+    "/redo",
+    operation_id="redoChange",
+    response_model=UndoResult,
+    summary="Re-apply something you undid",
+    openapi_extra={"x-cli": {"command": "redo"}},
+)
+def redo(context: Annotated[BudgetContext, Depends(writable)]) -> UndoResult:
+    """Re-apply the change your last undo reversed, by reverting the revert.
+
+    Only available while the undo is still your most recent change. Anything done afterwards
+    clears it, the way a new edit clears an editor's redo stack — re-applying a change on top
+    of later work would produce a state nobody asked for.
+    """
+    return _apply_revert(context, None, want="redo")
+
+
+def _apply_revert(context: BudgetContext, sha: str | None, *, want: str) -> UndoResult:
+    commits = context.store.repo.log(limit=200)
+    undoable, redoable = _undo_state(commits, context.actor.login)
+
+    target_sha = sha or (undoable if want == "undo" else redoable)
+    if target_sha is None:
+        raise not_found("a change to undo" if want == "undo" else "anything to re-apply")
+
+    target = next((commit for commit in commits if commit.sha.startswith(target_sha)), None)
     if target is None:
-        raise not_found("a change to undo")
+        raise not_found(f"commit {target_sha}")
 
     try:
         new_sha = context.store.revert(target.sha, context.actor)
     except DataError as exc:
         raise ApiError("undo_conflict", str(exc), status=409) from exc
 
+    # After a redo the thing that was re-applied is the original, not the revert we inverted;
+    # naming the revert in the confirmation would be technically true and useless.
+    described = target.subject
+    if want == "redo":
+        original = next((c for c in commits if c.sha == target.trailers.get("Reverts")), None)
+        described = original.subject if original else target.subject
+
     return UndoResult(
         undone_sha=target.sha,
-        undone_subject=target.subject,
+        undone_subject=described,
         commit=new_sha,
-        can_redo=True,
+        can_redo=want == "undo",
     )

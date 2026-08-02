@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import date as date_type
+from datetime import datetime as datetime_type
 from decimal import Decimal
 from typing import Annotated
 
@@ -116,6 +117,9 @@ def create_entry(
         id=new_id(),
         kind=kind,
         date=body.date or date_type.today(),
+        # Recorded even when the date was back-dated, so a time pattern reads when it
+        # actually happened rather than what the accounting date claims.
+        at=body.at or datetime_type.now(),
         payee=body.payee,
         amount=body.amount,
         currency=body.currency or budget.currency,

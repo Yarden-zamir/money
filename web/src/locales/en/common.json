@@ -243,12 +243,15 @@
     "title": "History",
     "hint": "Every change, newest first. Assignments appear alongside entries.",
     "undo": "Undo",
-    "undone": "Undone: {{what}}"
+    "undone": "Undone: {{what}}",
+    "redo": "Redo",
+    "redone": "Redone: {{what}}"
   },
   "shortcuts": {
     "help": "Keyboard shortcuts",
     "newEntry": "Add an entry",
     "undo": "Undo your last change",
-    "note": "Letter shortcuts pause while you are typing in a field."
+    "note": "Letter shortcuts pause while you are typing in a field.",
+    "redo": "Redo"
   }
 }

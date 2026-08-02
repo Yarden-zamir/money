@@ -3960,7 +3960,7 @@
           "history"
         ],
         "summary": "Undo a change you made",
-        "description": "Revert a commit, defaulting to your own most recent one.\n\nScoped to your own changes: in a shared budget, silently reversing your partner's work\nfrom your phone is the failure worth designing against. Reverting someone else's change\nis still possible by naming its sha explicitly, which makes it a deliberate act.",
+        "description": "Revert a change, defaulting to your most recent un-reverted one.\n\nScoped to your own changes: in a shared budget, silently reversing your partner's work\nfrom your phone is the failure worth designing against. Naming a sha reverts anyone's,\nwhich makes doing so deliberate.",
         "operationId": "undoChange",
         "parameters": [
           {
@@ -4045,6 +4045,84 @@
         },
         "x-cli": {
           "command": "undo"
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/history/redo": {
+      "post": {
+        "tags": [
+          "history"
+        ],
+        "summary": "Re-apply something you undid",
+        "description": "Re-apply the change your last undo reversed, by reverting the revert.\n\nOnly available while the undo is still your most recent change. Anything done afterwards\nclears it, the way a new edit clears an editor's redo stack \u2014 re-applying a change on top\nof later work would produce a state nobody asked for.",
+        "operationId": "redoChange",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UndoResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "redo"
         }
       }
     },
@@ -5071,6 +5149,18 @@
             "format": "date",
             "title": "Date"
           },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
           "payee": {
             "type": "string",
             "maxLength": 200,
@@ -5199,6 +5289,19 @@
             ],
             "title": "Date",
             "description": "Defaults to today"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At",
+            "description": "Wall-clock moment it happened. Defaults to now; used for time patterns."
           },
           "kind": {
             "$ref": "#/components/schemas/EntryKind",
@@ -5539,6 +5642,18 @@
             "type": "boolean",
             "title": "Mine",
             "description": "You made this change"
+          },
+          "reverts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverts",
+            "description": "Sha this change undid, if any"
           }
         },
         "type": "object",
@@ -5589,7 +5704,19 @@
               }
             ],
             "title": "Undoable",
-            "description": "Sha of your most recent change, if any"
+            "description": "What undo would revert, if anything"
+          },
+          "redoable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redoable",
+            "description": "Set only while your last change was an undo"
           }
         },
         "type": "object",

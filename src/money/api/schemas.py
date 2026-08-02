@@ -8,6 +8,7 @@ for two downstream artifacts.
 from __future__ import annotations
 
 from datetime import date as DateType
+from datetime import datetime as DateTimeType
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,6 +40,10 @@ class EntryCreate(BaseModel):
     amount: Decimal = Field(description="Negative for money out, positive for money in")
     payee: str = Field(min_length=1, max_length=200)
     date: DateType | None = Field(default=None, description="Defaults to today")
+    at: DateTimeType | None = Field(
+        default=None,
+        description="Wall-clock moment it happened. Defaults to now; used for time patterns.",
+    )
     kind: EntryKind = EntryKind.EXPENSE
     currency: str | None = Field(default=None, description="Defaults to the budget currency")
 
@@ -223,11 +228,15 @@ class HistoryEvent(BaseModel):
     date: str
     entry_id: str | None
     mine: bool = Field(description="You made this change")
+    reverts: str | None = Field(default=None, description="Sha this change undid, if any")
 
 
 class HistoryPage(BaseModel):
     events: list[HistoryEvent]
-    undoable: str | None = Field(description="Sha of your most recent change, if any")
+    undoable: str | None = Field(description="What undo would revert, if anything")
+    redoable: str | None = Field(
+        default=None, description="Set only while your last change was an undo"
+    )
 
 
 class UndoResult(BaseModel):

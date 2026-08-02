@@ -74,6 +74,13 @@ own `fun-money` envelope, and Dana ends up owing Yarden 25 — derived, never wr
 - `bucket` may be `null` for entries that move money without consuming an envelope
   (`income`, `transfer`, `settlement`). It is required for `kind: expense`.
 - `id` is a ULID: sortable by creation, stable across edits, and usable as a filename.
+- `date` and `at` answer different questions. `date` is an accounting decision — which day,
+  and so which budget month, this belongs to — and a person may back-date it. `at` is the
+  wall-clock moment it happened, recorded automatically, and is what time-of-day patterns
+  read. Collapsing them would mean a back-dated entry claiming to have happened at midnight.
+  `at` is naive local time on purpose: which day a purchase belongs to is a local human
+  judgement, and converting through a timezone could land a late-night purchase in the wrong
+  budget month.
 - `rule` records which rule produced the split. It is an audit trail, not an instruction —
   changing a rule never rewrites existing entries.
 

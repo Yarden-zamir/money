@@ -492,6 +492,10 @@ export type Entry = {
      */
     date: string;
     /**
+     * At
+     */
+    at?: string | null;
+    /**
      * Payee
      */
     payee: string;
@@ -554,6 +558,12 @@ export type EntryCreate = {
      * Defaults to today
      */
     date?: string | null;
+    /**
+     * At
+     *
+     * Wall-clock moment it happened. Defaults to now; used for time patterns.
+     */
+    at?: string | null;
     kind?: EntryKind;
     /**
      * Currency
@@ -719,6 +729,12 @@ export type HistoryEvent = {
      * You made this change
      */
     mine: boolean;
+    /**
+     * Reverts
+     *
+     * Sha this change undid, if any
+     */
+    reverts?: string | null;
 };
 
 /**
@@ -742,9 +758,15 @@ export type HistoryPage = {
     /**
      * Undoable
      *
-     * Sha of your most recent change, if any
+     * What undo would revert, if anything
      */
     undoable: string | null;
+    /**
+     * Redoable
+     *
+     * Set only while your last change was an undo
+     */
+    redoable?: string | null;
 };
 
 /**
@@ -3508,6 +3530,42 @@ export type UndoChangeResponses = {
 };
 
 export type UndoChangeResponse = UndoChangeResponses[keyof UndoChangeResponses];
+
+export type RedoChangeData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/history/redo';
+};
+
+export type RedoChangeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RedoChangeError = RedoChangeErrors[keyof RedoChangeErrors];
+
+export type RedoChangeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UndoResult;
+};
+
+export type RedoChangeResponse = RedoChangeResponses[keyof RedoChangeResponses];
 
 export type NearbyPlacesData = {
     body?: never;

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { undoChangeMutation } from "@/api/@tanstack/react-query.gen";
+import { redoChangeMutation, undoChangeMutation } from "@/api/@tanstack/react-query.gen";
 import { Card } from "@/components/Form";
 import { shortcutLabel, useShortcuts, type Shortcut } from "@/lib/useShortcuts";
 import { useBudget } from "./useBudget";
@@ -25,11 +25,18 @@ export function Shortcuts({ onQuickAdd }: { onQuickAdd: () => void }) {
     ...undoChangeMutation(),
     onSuccess: () => void queryClient.invalidateQueries(),
   });
+  const redo = useMutation({
+    ...redoChangeMutation(),
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
 
   const shortcuts: Shortcut[] = [
     { key: "n", label: t("shortcuts.newEntry"), run: onQuickAdd },
     { key: "z", meta: true, label: t("shortcuts.undo"), run: () => {
       if (budget?.can_write) undo.mutate({ path: { budget: budget.slug } });
+    } },
+    { key: "z", meta: true, shift: true, label: t("shortcuts.redo"), run: () => {
+      if (budget?.can_write) redo.mutate({ path: { budget: budget.slug } });
     } },
     { key: "1", label: t("nav.month"), run: () => navigate("/") },
     { key: "2", label: t("nav.entries"), run: () => navigate("/entries") },

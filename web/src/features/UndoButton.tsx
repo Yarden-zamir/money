@@ -2,17 +2,25 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getHistoryOptions, undoChangeMutation } from "@/api/@tanstack/react-query.gen";
+import {
+  getHistoryOptions,
+  redoChangeMutation,
+  undoChangeMutation,
+} from "@/api/@tanstack/react-query.gen";
 import { Icon } from "@/components/Icon";
 import { describeError } from "@/components/Form";
 import { useBudget } from "./useBudget";
 
 /**
- * Undo the last change you made.
+ * Undo and redo, as an editor has them.
  *
- * Scoped to your own commits: in a shared budget, silently reversing your partner's work is
- * the failure worth designing against. What was undone is named in the confirmation, because
- * "undo" with no statement of what it undid is not a reversible action, it is a gamble.
+ * Both are scoped to your own commits: in a shared budget, silently reversing your partner's
+ * work is the failure worth designing against. Each names what it acted on in the
+ * confirmation — "undo" that does not say what it undid is not a reversible action, it is a
+ * gamble.
+ *
+ * Redo appears only while your last change was an undo. Doing anything else makes it vanish,
+ * exactly as a new edit clears an editor's redo stack.
  */
 export function UndoButton() {
   const { t } = useTranslation();
@@ -25,33 +33,59 @@ export function UndoButton() {
     enabled: Boolean(budget),
   });
 
+  const announce = (message: string, ms = 6000) => {
+    setToast(message);
+    setTimeout(() => setToast(null), ms);
+  };
+
   const undo = useMutation({
     ...undoChangeMutation(),
     onSuccess: (result) => {
       void queryClient.invalidateQueries();
-      setToast(t("history.undone", { what: result.undone_subject }));
-      setTimeout(() => setToast(null), 6000);
+      announce(t("history.undone", { what: result.undone_subject }));
     },
-    onError: (error) => {
-      setToast(describeError(error) ?? t("common.error"));
-      setTimeout(() => setToast(null), 8000);
-    },
+    onError: (error) => announce(describeError(error) ?? t("common.error"), 8000),
   });
 
-  if (!budget?.can_write || !history.data?.undoable) return null;
+  const redo = useMutation({
+    ...redoChangeMutation(),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries();
+      announce(t("history.redone", { what: result.undone_subject }));
+    },
+    onError: (error) => announce(describeError(error) ?? t("common.error"), 8000),
+  });
+
+  const canUndo = Boolean(budget?.can_write && history.data?.undoable);
+  const canRedo = Boolean(budget?.can_write && history.data?.redoable);
+  if (!budget || (!canUndo && !canRedo)) return null;
 
   return (
     <>
-      <button
-        type="button"
-        title={`${t("history.undo")} (⌘Z)`}
-        aria-label={t("history.undo")}
-        disabled={undo.isPending}
-        onClick={() => undo.mutate({ path: { budget: budget.slug } })}
-        className="flex size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink disabled:opacity-40"
-      >
-        <Icon name="undo" className="size-4" directional />
-      </button>
+      {canUndo && (
+        <button
+          type="button"
+          title={`${t("history.undo")} (⌘Z)`}
+          aria-label={t("history.undo")}
+          disabled={undo.isPending}
+          onClick={() => undo.mutate({ path: { budget: budget.slug } })}
+          className="flex size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink disabled:opacity-40"
+        >
+          <Icon name="undo" className="size-4" directional />
+        </button>
+      )}
+      {canRedo && (
+        <button
+          type="button"
+          title={`${t("history.redo")} (⇧⌘Z)`}
+          aria-label={t("history.redo")}
+          disabled={redo.isPending}
+          onClick={() => redo.mutate({ path: { budget: budget.slug } })}
+          className="flex size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink disabled:opacity-40"
+        >
+          <Icon name="redo" className="size-4" directional />
+        </button>
+      )}
 
       {toast && (
         <div

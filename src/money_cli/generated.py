@@ -120,6 +120,23 @@ def month(
     )
 
 
+@_root.command("redo", help='Re-apply something you undid')
+def redo(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/history/redo",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @_root.command("settle", help='Record a payment between two people')
 def settle(
     to: Annotated[str, typer.Argument(help='Person id being paid')],
@@ -318,6 +335,7 @@ def entry_add(
     amount: Annotated[str, typer.Argument(help='Negative for money out, positive for money in')],
     payee: Annotated[str, typer.Argument(help='')],
     date: Annotated[str | None, typer.Option("--date", "-d", help='Defaults to today')] = None,
+    at: Annotated[str | None, typer.Option("--at", help='Wall-clock moment it happened. Defaults to now; used for time patterns.')] = None,
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
     currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
     bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='Book every share against this bucket, overriding the rule')] = None,
@@ -327,7 +345,7 @@ def entry_add(
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -452,6 +470,7 @@ def entry_preview(
     amount: Annotated[str, typer.Argument(help='Negative for money out, positive for money in')],
     payee: Annotated[str, typer.Argument(help='')],
     date: Annotated[str | None, typer.Option("--date", help='Defaults to today')] = None,
+    at: Annotated[str | None, typer.Option("--at", help='Wall-clock moment it happened. Defaults to now; used for time patterns.')] = None,
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
     currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
     bucket: Annotated[str | None, typer.Option("--bucket", help='Book every share against this bucket, overriding the rule')] = None,
@@ -461,7 +480,7 @@ def entry_preview(
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
     if raw:
         body.update(json.loads(raw))
     emit(

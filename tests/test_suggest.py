@@ -14,6 +14,7 @@ from money.domain.suggest import (
     SAME_PLACE_METRES,
     distance_metres,
     shares_scaled_to,
+    slots_match,
     suggest,
     time_slot,
     typical_basket,
@@ -150,9 +151,18 @@ class TestTimeSignal:
     def test_slots_separate_days_of_the_week(self) -> None:
         assert time_slot(date(2026, 8, 1)) != time_slot(date(2026, 8, 2))
 
-    def test_a_date_and_a_datetime_on_the_same_day_agree(self) -> None:
-        """Entries carry a date and the query carries a clock time; they must still match."""
-        assert time_slot(date(2026, 8, 1)) == time_slot(datetime(2026, 8, 1, 20, 30))
+    def test_an_entry_with_no_clock_time_still_matches_its_weekday(self) -> None:
+        """A back-dated or imported entry knows only its day.
+
+        It must still be usable — just less specific — rather than excluded from every slot
+        because it cannot name a part of the day.
+        """
+        evening = time_slot(datetime(2026, 8, 1, 20, 30))
+        assert slots_match(evening, time_slot(date(2026, 8, 1)))
+        assert not slots_match(evening, time_slot(datetime(2026, 8, 1, 9, 0)))
+
+    def test_parts_of_the_day_are_distinguished(self) -> None:
+        assert time_slot(datetime(2026, 8, 1, 9)) != time_slot(datetime(2026, 8, 1, 20))
 
 
 class TestBasket:

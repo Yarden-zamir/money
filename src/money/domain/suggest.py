@@ -10,8 +10,9 @@ Signals, strongest first:
 1. **Payee**, when they have already chosen one. It is the most specific thing they can say,
    so it overrides everything else.
 2. **Place**, within a short radius. Being at the same coffee shop is a strong signal.
-3. **Time pattern** — the same day of the week. Saturday shopping looks like other Saturdays,
-   not like a Tuesday.
+3. **Time pattern** — the same weekday, and the same part of the day when the entry recorded
+   one. Saturday-evening shopping looks like other Saturday evenings, not like a Tuesday
+   lunch.
 
 The amount is the *mode* when one repeats, because a coffee costs the same every time. When
 every past visit differs the mean is meaningless — you bought different things — so the most
@@ -34,12 +35,11 @@ from money.domain.models import Entry, EntryKind, LineItem, Share
 # narrow enough not to merge neighbouring shops on a high street.
 SAME_PLACE_METRES = 120.0
 
-# Matching is on weekday alone, not weekday plus part-of-day.
-#
-# An entry stores a date and no time — it is the date the money was spent, which a person may
-# back-date — so the hour of a past purchase is simply unknown. Splitting Saturday into
-# morning and evening would compare "now" against a fabricated midnight and never match.
-# Revisit if entries ever gain a timestamp worth trusting.
+# Part of the day, when the entry knows one. An entry that was back-dated or imported has no
+# recorded clock time, and inventing one would make it match a slot it never happened in — so
+# those match on weekday alone and simply compare against a coarser bucket.
+EVENING_FROM = 17
+MORNING_UNTIL = 11
 
 
 class Suggestion(BaseModel):
@@ -69,8 +69,34 @@ def distance_metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float
 
 
 def time_slot(when: datetime | date) -> str:
-    """The habit's granularity: which day of the week it falls on."""
+    """The habit's granularity: the weekday, plus the part of day when one is known.
+
+    A plain `date` yields the weekday alone. Comparing a coarse slot against a fine one is
+    handled by `slots_match`, so an entry with no clock time still matches its weekday.
+    """
+    if isinstance(when, datetime):
+        part = (
+            "morning"
+            if when.hour < MORNING_UNTIL
+            else "evening"
+            if when.hour >= EVENING_FROM
+            else "midday"
+        )
+        return f"weekday-{when.weekday()}-{part}"
     return f"weekday-{when.weekday()}"
+
+
+def slots_match(query: str, stored: str) -> bool:
+    """Whether two slots describe the same habit.
+
+    An entry with no clock time carries only a weekday, so it matches any part of that day
+    rather than being excluded — a coarser record should still be usable, just less specific.
+    """
+    if query == stored:
+        return True
+    return query.split("-")[1] == stored.split("-")[1] and (
+        len(query.split("-")) == 2 or len(stored.split("-")) == 2
+    )
 
 
 def suggest(
@@ -117,7 +143,9 @@ def suggest(
 
     if at is not None:
         slot = time_slot(at)
-        same_slot = [entry for entry in expenses if time_slot(entry.date) == slot]
+        same_slot = [
+            entry for entry in expenses if slots_match(slot, time_slot(entry.at or entry.date))
+        ]
         # Only worth offering once it is a pattern rather than a coincidence.
         if len(same_slot) >= 3:
             common = Counter(entry.payee for entry in same_slot).most_common(1)[0][0]

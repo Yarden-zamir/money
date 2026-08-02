@@ -6,7 +6,7 @@ drifts from the layout in `specs/data-model.md` is a bug in this file, not in th
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Self
@@ -100,7 +100,23 @@ class Place(Base):
 class Entry(Base):
     id: str = Field(pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")  # ULID
     kind: EntryKind = EntryKind.EXPENSE
+
+    # Two different questions, so two fields.
+    #
+    # `date` is an accounting decision: which day, and therefore which budget month, this
+    # belongs to. A person may back-date it, and doing so must move the money, not lie about
+    # when it happened.
+    #
+    # `at` is the wall-clock moment it actually occurred, recorded automatically. It is what
+    # time-of-day patterns are read from — collapsing the two would mean a back-dated entry
+    # silently claiming to have happened at midnight, which is where the weekday-only
+    # limitation came from.
+    #
+    # Naive local time on purpose: which day a purchase belongs to is a local, human
+    # judgement, and converting through a timezone would let a late-night purchase land in
+    # the wrong budget month.
     date: date
+    at: datetime | None = None
     payee: str = Field(min_length=1, max_length=200)
     amount: Decimal
     currency: str = Field(pattern=r"^[A-Z]{3}$")

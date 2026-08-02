@@ -96,6 +96,10 @@ POST   /budgets/{budget}/invite              invite to the data repo AND add as 
 GET    /github/repos                         repos you could connect, flagged for budget.yaml
 GET    /github/users?q=                      autocomplete a GitHub login before inviting
 
+GET    /budgets/{budget}/history             every change, newest first
+POST   /budgets/{budget}/history/undo        revert; defaults to your last un-reverted change
+POST   /budgets/{budget}/history/redo        re-apply what your last undo reversed
+
 GET    /budgets/{budget}/scheduled           recurring entry templates
 PUT    /budgets/{budget}/scheduled           replace them
 GET    /budgets/{budget}/scheduled/due       what is due, default two weeks out
@@ -136,6 +140,23 @@ created, because GitHub answers 204 when the person already had access.
 
 Both `/github` routes proxy GitHub with the **caller's own token**, so they can only ever
 surface what that person can already see. Neither uses a shared credential.
+
+## Undo And Redo
+
+Both are `git revert`, so the original stays in history and every undo is itself auditable.
+
+The stack is **replayed from the commits**, never stored: each revert records what it
+reverted, so the state survives a restart, is identical on every device, and cannot drift
+from the repo. Replaying is necessary rather than fussy — reverting a *redo* is an undo, so
+"is the newest commit a revert" would make a second redo silently undo what it had just
+restored.
+
+Two stacks, as an editor keeps them: a normal change pushes onto applied and **clears redo**,
+an undo moves an entry from applied to redo, and a redo moves it back. Redo is therefore
+offered only while your last change was an undo.
+
+A revert that will not apply cleanly is refused rather than discarding the later work built
+on it.
 
 ## Errors
 
