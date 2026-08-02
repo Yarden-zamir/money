@@ -34,6 +34,9 @@ class Settings(BaseSettings):
 
     base_url: str = "http://localhost:8000"
 
+    # Optional. Absent means every read goes to git and GitHub, which is correct but slower.
+    redis_url: str | None = None
+
     dev_mode: bool = Field(default=False, description="Bypass GitHub auth with a fake user")
 
     @property

@@ -11,6 +11,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 from money.domain.models import Bucket, Budget, Entry, Scheduled
 from money.domain.rules import Rule
@@ -68,8 +69,10 @@ def close_tag(month: str) -> str:
 
 
 class BudgetStore:
-    def __init__(self, repo: GitRepo) -> None:
+    def __init__(self, repo: GitRepo, cache: Any | None = None) -> None:
         self.repo = repo
+        # Optional so the store stays usable in tests and the CLI without a Redis running.
+        self.cache = cache
 
     # ---- reads ----------------------------------------------------------------------
 
@@ -96,7 +99,25 @@ class BudgetStore:
         return [Entry.model_validate(item) for item in raw]
 
     def all_entries(self) -> list[Entry]:
-        """Every entry, in ledger order. Balances need the whole history to be correct."""
+        """Every entry, in ledger order. Balances need the whole history to be correct.
+
+        This is the expensive read in the whole app — every ledger file, parsed and validated
+        — and it is what balances and carryover both need. Cached against the commit sha, so
+        a write lands on a new sha and the next read simply misses rather than needing anyone
+        to remember to clear a key.
+        """
+        if self.cache is None:
+            return self._read_all_entries()
+
+        from money.api.cache import entries_key
+
+        key = entries_key(self.repo.remote, self.repo.branch, self.repo.head_sha())
+        raw = self.cache.get_or_set(
+            key, lambda: [entry.model_dump(mode="json") for entry in self._read_all_entries()]
+        )
+        return [Entry.model_validate(item) for item in raw]
+
+    def _read_all_entries(self) -> list[Entry]:
         entries: list[Entry] = []
         for path in self.repo.list_files("ledger/"):
             month = path.removeprefix("ledger/").removesuffix(".yaml")

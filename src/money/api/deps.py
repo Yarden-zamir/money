@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from money.api import auth, db
+from money.api.cache import Cache
 from money.api.config import Settings, settings
 from money.api.errors import ApiError, forbidden, not_found
 from money.api.github import AccessCache
@@ -19,6 +20,10 @@ from money.store.store import Actor, BudgetStore
 
 # Process-wide, because the cache and clone locks must be shared across requests.
 _access_cache = AccessCache()
+
+# Repo access is a security-relevant value with no sha to key it against, so its staleness is
+# bounded by time. Revoking someone takes effect within this window.
+ACCESS_TTL_SECONDS = 300
 
 
 def get_settings() -> Settings:
@@ -33,6 +38,10 @@ def get_session(request: Request) -> Session:
 
 def access_cache() -> AccessCache:
     return _access_cache
+
+
+def get_cache(request: Request) -> Cache:
+    return request.app.state.cache
 
 
 @dataclass(frozen=True)
@@ -123,6 +132,7 @@ def budget_context(
     session: Annotated[Session, Depends(get_session)],
     config: Annotated[Settings, Depends(get_settings)],
     cache: Annotated[AccessCache, Depends(access_cache)],
+    shared: Annotated[Cache, Depends(get_cache)],
 ) -> BudgetContext:
     """Resolve a budget slug to a store, after checking GitHub says the caller may see it."""
     link = session.scalar(select(db.BudgetLink).where(db.BudgetLink.slug == budget))
@@ -130,7 +140,7 @@ def budget_context(
         raise not_found(f"budget {budget!r}")
 
     token = github_token(caller.user, config)
-    access = cache.get(caller.user.login, link.repo, token)
+    access = _repo_access(caller.user.login, link.repo, token, shared, cache)
     if not access.can_read:
         # 404, not 403: do not confirm the repo exists to someone who cannot see it.
         raise not_found(f"budget {budget!r}")
@@ -145,7 +155,7 @@ def budget_context(
     return BudgetContext(
         slug=link.slug,
         repo=link.repo,
-        store=BudgetStore(repo),
+        store=BudgetStore(repo, cache=shared),
         actor=Actor(
             login=caller.user.login,
             name=caller.user.name,
@@ -154,6 +164,27 @@ def budget_context(
         ),
         can_write=access.can_write and "write" in caller.scopes,
     )
+
+
+def _repo_access(login: str, repo: str, token: str, shared: Cache, fallback: AccessCache):
+    """Whether this person may read or write the repo, cached briefly.
+
+    Not keyed by a commit sha, because it changes on GitHub with no commit here — so unlike
+    every other cached value this one carries a real TTL, and a revocation takes effect
+    within it. Falls back to the in-process cache when Redis is absent.
+    """
+    from money.api.cache import access_key
+    from money.api.github import RepoAccess, repo_access
+
+    if not shared.enabled:
+        return fallback.get(login, repo, token)
+
+    raw = shared.get_or_set(
+        access_key(login, repo),
+        lambda: repo_access(token, repo).__dict__,
+        ttl=ACCESS_TTL_SECONDS,
+    )
+    return RepoAccess(**raw)
 
 
 def writable(context: Annotated[BudgetContext, Depends(budget_context)]) -> BudgetContext:

@@ -11,8 +11,10 @@ import { useEffect, useRef, useState } from "react";
  * not a finite number.
  */
 export function useCountUp(target: number, durationMs = 900): number {
-  const [value, setValue] = useState(target);
-  const previous = useRef(target);
+  // Starts at zero, not at the target. Seeding `previous` with the target made the first
+  // render a zero-distance animation, so the very run this exists for never happened.
+  const [value, setValue] = useState(0);
+  const previous = useRef(0);
 
   useEffect(() => {
     if (!Number.isFinite(target)) {

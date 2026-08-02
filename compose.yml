@@ -17,10 +17,28 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?TOKEN_ENCRYPTION_KEY is required}
       DEFAULT_DATA_REPO: ${DEFAULT_DATA_REPO:-}
+      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY:-}
+      REDIS_URL: redis://cache:6379/0
       BASE_URL: ${BASE_URL:?BASE_URL is required}
     volumes:
       # app.db and the working clones of each data repo. Both are caches of GitHub state:
       # losing this volume costs a re-clone and a sign-in, never budget history.
       - ${KITSHN_DATA_DIR}/state:/data
       - ${KITSHN_SOCKET_DIR}:${KITSHN_SOCKET_DIR}
+    depends_on:
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cache:
+    image: redis:8-alpine
+    # A cache, not a store: everything in here is derivable from the git repo, so there is no
+    # persistence and losing it costs one slow request per key.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb",
+              "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped

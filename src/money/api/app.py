@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from money.api import db
+from money.api.cache import Cache
 from money.api.config import settings
 from money.api.errors import (
     ApiError,
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
     config = settings()
     config.data_dir.mkdir(parents=True, exist_ok=True)
     app.state.sessionmaker = db.make_sessionmaker(config.db_path)
+    app.state.cache = Cache(config.redis_url)
     yield
 
 
