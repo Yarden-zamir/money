@@ -281,6 +281,11 @@ export type BudgetSummary = {
 };
 
 /**
+ * Cadence
+ */
+export type Cadence = 'weekly' | 'monthly' | 'yearly';
+
+/**
  * CollaboratorResponse
  */
 export type CollaboratorResponse = {
@@ -391,6 +396,59 @@ export type DeviceStart = {
 };
 
 /**
+ * DueEntry
+ */
+export type DueEntry = {
+    /**
+     * Scheduled Id
+     */
+    scheduled_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Payee
+     */
+    payee: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    kind: EntryKind;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Overdue
+     *
+     * Its date has already passed
+     */
+    overdue: boolean;
+};
+
+/**
+ * DueList
+ */
+export type DueList = {
+    /**
+     * Due
+     */
+    due: Array<DueEntry>;
+    /**
+     * Through
+     *
+     * How far ahead this list looked
+     */
+    through: string;
+};
+
+/**
  * Entry
  */
 export type Entry = {
@@ -424,7 +482,7 @@ export type Entry = {
     /**
      * Shares
      */
-    shares: Array<Share>;
+    shares: Array<ShareOutput>;
     /**
      * Note
      */
@@ -773,6 +831,54 @@ export type NoteResponse = {
 };
 
 /**
+ * PostRequest
+ */
+export type PostRequest = {
+    /**
+     * Date
+     *
+     * Defaults to today
+     */
+    date?: string | null;
+};
+
+/**
+ * Recurrence
+ *
+ * How often something repeats.
+ *
+ * Three cadences cover what a household actually has: a salary and rent monthly, a cleaner
+ * weekly, insurance yearly. More exotic rules can be added when something real needs one.
+ */
+export type Recurrence = {
+    cadence: Cadence;
+    /**
+     * Day
+     *
+     * Day of the month, for monthly and yearly
+     */
+    day?: number | null;
+    /**
+     * Weekday
+     *
+     * Monday is 0, for weekly
+     */
+    weekday?: number | null;
+    /**
+     * Month
+     *
+     * Month, for yearly
+     */
+    month?: number | null;
+    /**
+     * Interval
+     *
+     * Every N periods; 2 with a monthly cadence is every other month
+     */
+    interval?: number;
+};
+
+/**
  * RepoOption
  */
 export type RepoOption = {
@@ -849,6 +955,154 @@ export type RuleOutput = {
 };
 
 /**
+ * Scheduled
+ *
+ * A template plus a recurrence: rent, a salary, a subscription.
+ *
+ * It holds the same two-sided split an entry does, so posting one produces an ordinary
+ * entry with nothing inferred at post time. `last_posted` is what stops the same charge
+ * being offered twice.
+ */
+export type ScheduledInput = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    kind?: EntryKind;
+    /**
+     * Payee
+     */
+    payee: string;
+    /**
+     * Amount
+     */
+    amount: number | string;
+    /**
+     * Currency
+     */
+    currency: string;
+    recurrence: Recurrence;
+    /**
+     * Starts
+     */
+    starts: string;
+    /**
+     * Ends
+     */
+    ends?: string | null;
+    /**
+     * Last Posted
+     */
+    last_posted?: string | null;
+    /**
+     * Paused
+     */
+    paused?: boolean;
+    /**
+     * Paid By
+     */
+    paid_by?: {
+        [key: string]: unknown | number | string;
+    };
+    /**
+     * Shares
+     */
+    shares?: Array<ShareInput>;
+    /**
+     * Bucket
+     *
+     * Where an expense lands when no explicit split is given
+     */
+    bucket?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Tags
+     */
+    tags?: Array<string>;
+};
+
+/**
+ * Scheduled
+ *
+ * A template plus a recurrence: rent, a salary, a subscription.
+ *
+ * It holds the same two-sided split an entry does, so posting one produces an ordinary
+ * entry with nothing inferred at post time. `last_posted` is what stops the same charge
+ * being offered twice.
+ */
+export type ScheduledOutput = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    kind?: EntryKind;
+    /**
+     * Payee
+     */
+    payee: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    recurrence: Recurrence;
+    /**
+     * Starts
+     */
+    starts: string;
+    /**
+     * Ends
+     */
+    ends?: string | null;
+    /**
+     * Last Posted
+     */
+    last_posted?: string | null;
+    /**
+     * Paused
+     */
+    paused?: boolean;
+    /**
+     * Paid By
+     */
+    paid_by?: {
+        [key: string]: unknown | string;
+    };
+    /**
+     * Shares
+     */
+    shares?: Array<ShareOutput>;
+    /**
+     * Bucket
+     *
+     * Where an expense lands when no explicit split is given
+     */
+    bucket?: string | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Tags
+     */
+    tags?: Array<string>;
+};
+
+/**
  * SettleRequest
  */
 export type SettleRequest = {
@@ -906,7 +1160,30 @@ export type Settlement = {
  * A person may hold several shares in one entry when they split their own slice across
  * buckets, so this is not keyed by person.
  */
-export type Share = {
+export type ShareInput = {
+    /**
+     * Person
+     */
+    person: string;
+    /**
+     * Amount
+     */
+    amount: number | string;
+    /**
+     * Bucket
+     */
+    bucket?: string | null;
+};
+
+/**
+ * Share
+ *
+ * One person's slice of an entry, booked against one of *their* buckets.
+ *
+ * A person may hold several shares in one entry when they split their own slice across
+ * buckets, so this is not keyed by person.
+ */
+export type ShareOutput = {
     /**
      * Person
      */
@@ -2502,3 +2779,163 @@ export type InviteCollaboratorResponses = {
 };
 
 export type InviteCollaboratorResponse = InviteCollaboratorResponses[keyof InviteCollaboratorResponses];
+
+export type ListScheduledData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/scheduled';
+};
+
+export type ListScheduledErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListScheduledError = ListScheduledErrors[keyof ListScheduledErrors];
+
+export type ListScheduledResponses = {
+    /**
+     * Response Listscheduled
+     *
+     * Successful Response
+     */
+    200: Array<ScheduledOutput>;
+};
+
+export type ListScheduledResponse = ListScheduledResponses[keyof ListScheduledResponses];
+
+export type PutScheduledData = {
+    /**
+     * Body
+     */
+    body: Array<ScheduledInput>;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/scheduled';
+};
+
+export type PutScheduledErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutScheduledError = PutScheduledErrors[keyof PutScheduledErrors];
+
+export type PutScheduledResponses = {
+    /**
+     * Response Putscheduled
+     *
+     * Successful Response
+     */
+    200: Array<ScheduledOutput>;
+};
+
+export type PutScheduledResponse = PutScheduledResponses[keyof PutScheduledResponses];
+
+export type ListDueData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Through
+         */
+        through?: string | null;
+    };
+    url: '/api/v1/budgets/{budget}/scheduled/due';
+};
+
+export type ListDueErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListDueError = ListDueErrors[keyof ListDueErrors];
+
+export type ListDueResponses = {
+    /**
+     * Successful Response
+     */
+    200: DueList;
+};
+
+export type ListDueResponse = ListDueResponses[keyof ListDueResponses];
+
+export type PostScheduledData = {
+    body: PostRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Scheduled Id
+         */
+        scheduled_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/scheduled/{scheduled_id}/post';
+};
+
+export type PostScheduledErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostScheduledError = PostScheduledErrors[keyof PostScheduledErrors];
+
+export type PostScheduledResponses = {
+    /**
+     * Successful Response
+     */
+    200: EntryResponse;
+};
+
+export type PostScheduledResponse = PostScheduledResponses[keyof PostScheduledResponses];

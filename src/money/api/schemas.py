@@ -150,6 +150,28 @@ class BudgetConnect(BaseModel):
     repo: str = Field(pattern=r"^[\w.-]+/[\w.-]+$", description="owner/repo on GitHub")
 
 
+class DueEntry(BaseModel):
+    scheduled_id: str
+    name: str
+    payee: str
+    amount: Decimal
+    currency: str
+    kind: EntryKind
+    date: DateType
+    overdue: bool = Field(description="Its date has already passed")
+
+
+class DueList(BaseModel):
+    due: list[DueEntry]
+    through: DateType = Field(description="How far ahead this list looked")
+
+
+class PostRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    date: DateType | None = Field(default=None, description="Defaults to today")
+
+
 class RepoOption(BaseModel):
     full_name: str
     private: bool

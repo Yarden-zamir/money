@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 
-from money.domain.models import Bucket, Budget, Entry
+from money.domain.models import Bucket, Budget, Entry, Scheduled
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
@@ -54,6 +54,9 @@ def buckets_path(person: str) -> str:
 
 def assignments_path(person: str, month: str) -> str:
     return f"people/{person}/assignments/{month}.yaml"
+
+
+SCHEDULED_PATH = "scheduled.yaml"
 
 
 def note_path(entry_id: str) -> str:
@@ -115,6 +118,10 @@ class BudgetStore:
                 if entry.id == entry_id:
                     return entry, month
         return None
+
+    def scheduled(self) -> list[Scheduled]:
+        raw = yamlio.load(self.repo.read(SCHEDULED_PATH)) or []
+        return [Scheduled.model_validate(item) for item in raw]
 
     def note(self, entry_id: str) -> str | None:
         """The long-form note for an entry, if one was written.
@@ -241,6 +248,65 @@ class BudgetStore:
             actor=actor,
             subject=f"assign: {person} {bucket} {amount:.2f} for {month}",
             trailers={"Person": person, "Month": month},
+        )
+
+    def put_scheduled(self, items: list[Scheduled], actor: Actor) -> str:
+        def mutate() -> list[str]:
+            if items:
+                self.repo.write(
+                    SCHEDULED_PATH,
+                    yamlio.dump(
+                        [item.model_dump(mode="python", exclude_none=True) for item in items]
+                    ),
+                )
+            else:
+                self.repo.delete(SCHEDULED_PATH)
+            return [SCHEDULED_PATH]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"scheduled: {len(items)} recurring "
+            f"{'entry' if len(items) == 1 else 'entries'}",
+            trailers={},
+        )
+
+    def post_scheduled(self, entry: Entry, scheduled_id: str, actor: Actor) -> str:
+        """Create the entry a recurrence is due for, and record that it was posted.
+
+        Both in one commit: if the entry landed but the marker did not, the same charge would
+        be offered again and posted twice.
+        """
+
+        def mutate() -> list[str]:
+            entries = self.entries_for_month(entry.month)
+            if any(existing.id == entry.id for existing in entries):
+                raise DataError(f"entry {entry.id} already exists")
+            self._write_ledger(entry.month, [*entries, entry])
+
+            items = self.scheduled()
+            found = next((item for item in items if item.id == scheduled_id), None)
+            if found is None:
+                raise DataError(f"no scheduled entry {scheduled_id!r}")
+            updated = [
+                item.model_copy(update={"last_posted": entry.date})
+                if item.id == scheduled_id
+                else item
+                for item in items
+            ]
+            self.repo.write(
+                SCHEDULED_PATH,
+                yamlio.dump(
+                    [item.model_dump(mode="python", exclude_none=True) for item in updated]
+                ),
+            )
+            return [ledger_path(entry.month), SCHEDULED_PATH]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"entry: post {entry.payee} {abs(entry.amount):.2f} {entry.currency}",
+            trailers={"Entry-Id": entry.id, "Scheduled": scheduled_id},
         )
 
     def put_note(self, entry_id: str, text: str, actor: Actor) -> str:

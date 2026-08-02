@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -370,6 +370,50 @@ export const listCollaborators = <ThrowOnError extends boolean = false>(options:
  */
 export const inviteCollaborator = <ThrowOnError extends boolean = false>(options: Options<InviteCollaboratorData, ThrowOnError>): RequestResult<InviteCollaboratorResponses, InviteCollaboratorErrors, ThrowOnError> => (options.client ?? client).post<InviteCollaboratorResponses, InviteCollaboratorErrors, ThrowOnError>({
     url: '/api/v1/budgets/{budget}/invite',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Recurring entries
+ */
+export const listScheduled = <ThrowOnError extends boolean = false>(options: Options<ListScheduledData, ThrowOnError>): RequestResult<ListScheduledResponses, ListScheduledErrors, ThrowOnError> => (options.client ?? client).get<ListScheduledResponses, ListScheduledErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/scheduled', ...options });
+
+/**
+ * Replace the recurring entries
+ */
+export const putScheduled = <ThrowOnError extends boolean = false>(options: Options<PutScheduledData, ThrowOnError>): RequestResult<PutScheduledResponses, PutScheduledErrors, ThrowOnError> => (options.client ?? client).put<PutScheduledResponses, PutScheduledErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/scheduled',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Recurring entries that are due
+ *
+ * What each recurrence owes the ledger, up to `through` (default: two weeks out).
+ *
+ * Dates already posted are excluded, so opening this twice never offers the same charge
+ * twice. A paused recurrence is skipped entirely.
+ */
+export const listDue = <ThrowOnError extends boolean = false>(options: Options<ListDueData, ThrowOnError>): RequestResult<ListDueResponses, ListDueErrors, ThrowOnError> => (options.client ?? client).get<ListDueResponses, ListDueErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/scheduled/due', ...options });
+
+/**
+ * Turn a due recurrence into a real entry
+ *
+ * Creates the entry and records that this date was posted, in one commit.
+ *
+ * One commit matters: if the entry landed and the marker did not, the same charge would be
+ * offered again and posted twice.
+ */
+export const postScheduled = <ThrowOnError extends boolean = false>(options: Options<PostScheduledData, ThrowOnError>): RequestResult<PostScheduledResponses, PostScheduledErrors, ThrowOnError> => (options.client ?? client).post<PostScheduledResponses, PostScheduledErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/scheduled/{scheduled_id}/post',
     ...options,
     headers: {
         'Content-Type': 'application/json',

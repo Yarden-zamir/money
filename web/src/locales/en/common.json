@@ -8,7 +8,8 @@
     "entries": "Entries",
     "balances": "Balances",
     "settings": "Settings",
-    "rules": "Rules"
+    "rules": "Rules",
+    "scheduled": "Scheduled"
   },
   "auth": {
     "signIn": "Sign in with GitHub",
@@ -182,5 +183,37 @@
     "anyPayee": "Any payee",
     "anyTag": "Any tag",
     "noBucket": "No bucket"
+  },
+  "scheduled": {
+    "due": "Due now",
+    "nothingDue": "Nothing due.",
+    "overdue": "overdue",
+    "post": "Post",
+    "templates": "Recurring",
+    "none": "No recurring entries yet.",
+    "add": "Add recurring",
+    "name": "Name",
+    "cadence": "Repeats",
+    "weekday": "Day",
+    "dayOfMonth": "Day of month",
+    "dayHint": "31 falls on the last day of shorter months",
+    "starts": "Starts",
+    "paused": "Paused",
+    "lastPosted": "Last posted {{date}}",
+    "cadences": {
+      "monthly": "Monthly",
+      "weekly": "Weekly",
+      "yearly": "Yearly"
+    },
+    "weekdays": {
+      "0": "Monday",
+      "1": "Tuesday",
+      "2": "Wednesday",
+      "3": "Thursday",
+      "4": "Friday",
+      "5": "Saturday",
+      "6": "Sunday"
+    },
+    "untitled": "Untitled"
   }
 }

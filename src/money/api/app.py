@@ -24,7 +24,15 @@ from money.api.errors import (
     handle_request_validation_error,
     handle_validation_error,
 )
-from money.api.routes import auth_routes, budgets, entries, github_routes, me, rules
+from money.api.routes import (
+    auth_routes,
+    budgets,
+    entries,
+    github_routes,
+    me,
+    rules,
+    scheduled,
+)
 from money.store.store import DataError
 
 API_PREFIX = "/api/v1"
@@ -80,6 +88,7 @@ def create_app() -> FastAPI:
         me.router,
         github_routes.router,
         github_routes.collaborators,
+        scheduled.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
 

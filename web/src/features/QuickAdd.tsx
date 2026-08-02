@@ -58,7 +58,7 @@ export function QuickAdd() {
         title={`${t("entries.add")} (n)`}
         className={
           "fixed end-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex size-14 " +
-          "items-center justify-center rounded-full bg-brand text-3xl leading-none text-white " +
+          "items-center justify-center rounded-full bg-brand text-3xl leading-none text-on-brand " +
           "shadow-lg transition hover:opacity-90 active:scale-95 sm:end-6 sm:bottom-6"
         }
       >

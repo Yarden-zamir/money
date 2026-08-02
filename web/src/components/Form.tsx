@@ -46,7 +46,7 @@ export function Select({
 }
 
 const VARIANTS = {
-  primary: "bg-brand text-white hover:opacity-90",
+  primary: "bg-brand text-on-brand hover:opacity-90",
   quiet: "border border-line bg-card text-ink hover:bg-surface",
   ghost: "text-ink-muted hover:bg-surface hover:text-ink",
   danger: "text-negative hover:bg-negative/10",

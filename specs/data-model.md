@@ -15,6 +15,7 @@ rules.yaml                         # default split rules
 people/<person>/buckets.yaml       # that person's envelopes
 people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
+scheduled.yaml                     # recurring entries, optional
 notes/<entry-id>.md                # long-form note for one entry, optional
 README.md                          # generated; explains this layout to a human
 .money/schema-version              # integer, currently 1
@@ -129,6 +130,25 @@ groceries: 1200.00
 ```
 
 Assignment files are a flat map so a person can edit them by hand without touching the app.
+
+## Recurring Entries
+
+`scheduled.yaml` holds templates: rent, a salary, a subscription. Each carries the same
+two-sided split an entry does, plus a recurrence — weekly on a weekday, monthly on a day,
+yearly on a month and day, each with an optional interval.
+
+**A recurrence never posts by itself.** It produces a list of dates that are *due*, and a
+person turns each one into an entry. Auto-posting would put money in a budget with no author
+and nobody watching, which is exactly what the git-backed history exists to prevent.
+
+- `last_posted` is written only by posting, never by editing a template. The entry and the
+  marker land in **one commit**: if the entry saved and the marker did not, the same charge
+  would be offered again and posted twice.
+- A monthly recurrence on day 31 falls on the last day of shorter months. Rolling into the
+  next month instead would move the charge into the wrong budget month.
+- A template with no explicit split falls back to the rules at post time, so it stays correct
+  as the rules change. One with a split keeps it. An expense must name a bucket or carry a
+  split — checked when the template is written, not weeks later when the charge falls due.
 
 ## Notes
 

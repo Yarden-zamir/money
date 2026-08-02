@@ -118,7 +118,26 @@ const collaborators = [
   { login: "dana-example", name: "Dana", avatar_url: null, permission: "write", invited: true, is_member: true },
 ];
 
+const scheduled = [
+  { id: "rent", name: "Rent", payee: "Landlord", amount: "-5200.00", currency: "ILS", kind: "expense",
+    recurrence: { cadence: "monthly", day: 1, interval: 1 }, starts: "2026-01-01", ends: null,
+    last_posted: "2026-07-01", paused: false, paid_by: {}, shares: [], bucket: "rent", note: null, tags: [] },
+  { id: "salary", name: "Salary", payee: "Employer", amount: "12000.00", currency: "ILS", kind: "income",
+    recurrence: { cadence: "monthly", day: 28, interval: 1 }, starts: "2026-01-01", ends: null,
+    last_posted: null, paused: false, paid_by: {}, shares: [], bucket: null, note: null, tags: [] },
+];
+
+const dueList = {
+  through: "2026-08-16",
+  due: [
+    { scheduled_id: "rent", name: "Rent", payee: "Landlord", amount: "-5200.00", currency: "ILS", kind: "expense", date: "2026-08-01", overdue: true },
+    { scheduled_id: "salary", name: "Salary", payee: "Employer", amount: "12000.00", currency: "ILS", kind: "income", date: "2026-08-28", overdue: false },
+  ],
+};
+
 const ROUTES = [
+  [/\/scheduled\/due/, () => dueList],
+  [/\/budgets\/joint\/scheduled/, () => scheduled],
   [/\/github\/repos/, () => repos],
   [/\/github\/users/, () => []],
   [/\/budgets\/joint\/collaborators/, () => collaborators],
@@ -155,6 +174,7 @@ const SCREENS = [
   ["month", "/"],
   ["entries", "/entries"],
   ["balances", "/balances"],
+  ["scheduled", "/scheduled"],
   ["rules", "/rules"],
   ["settings", "/settings"],
 ];

@@ -72,6 +72,18 @@ Two steps, because they are two different things and the screen says so: members
 who can hold a share of an entry, GitHub repo access decides who can sign in at all. Removing
 a member is refused while any entry still references them.
 
+## 7. The rent is due again
+
+*The same four charges every month. I do not want to retype them, and I do not want them
+appearing behind my back.*
+
+**Scheduled tab → Post.** Due charges are listed with an `overdue` chip; each becomes a real
+entry on one tap.
+
+The app never posts on its own. A recurrence produces dates that are *due*; a person confirms
+each one, so every commit still has an author. Templates collapse to a summary row — most
+visits here are to check what is coming, not to edit.
+
 ## Deliberately not optimised
 
 - **Bulk entry.** Importing a bank statement is a different job from logging one expense, and

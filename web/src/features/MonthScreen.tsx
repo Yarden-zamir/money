@@ -165,7 +165,17 @@ function BucketRow({
   const basis = target ?? assigned;
   const spent = Math.abs(Number(bucket.activity));
   const percent = basis > 0 ? Math.min(100, Math.round((spent / basis) * 100)) : 0;
-  const tone = available < 0 ? "bg-negative" : percent >= 90 ? "bg-warning" : "bg-positive";
+
+  // Four states, because "nothing left" and "overspent" are different situations, and an
+  // envelope emptied exactly on plan — a paid bill — is neither a warning nor a success.
+  const tone =
+    available < 0
+      ? "bg-negative"
+      : available === 0
+        ? "bg-ink-muted/50"
+        : basis > 0 && available < basis * 0.1
+          ? "bg-warning"
+          : "bg-positive";
 
   const shortfall = target !== null && assigned < target;
 

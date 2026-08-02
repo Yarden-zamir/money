@@ -3183,6 +3183,376 @@
           ]
         }
       }
+    },
+    "/api/v1/budgets/{budget}/scheduled": {
+      "get": {
+        "tags": [
+          "scheduled"
+        ],
+        "summary": "Recurring entries",
+        "operationId": "listScheduled",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Scheduled-Output"
+                  },
+                  "title": "Response Listscheduled"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "scheduled list"
+        }
+      },
+      "put": {
+        "tags": [
+          "scheduled"
+        ],
+        "summary": "Replace the recurring entries",
+        "operationId": "putScheduled",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Scheduled-Input"
+                },
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Scheduled-Output"
+                  },
+                  "title": "Response Putscheduled"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "scheduled set"
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/scheduled/due": {
+      "get": {
+        "tags": [
+          "scheduled"
+        ],
+        "summary": "Recurring entries that are due",
+        "description": "What each recurrence owes the ledger, up to `through` (default: two weeks out).\n\nDates already posted are excluded, so opening this twice never offers the same charge\ntwice. A paused recurrence is skipped entirely.",
+        "operationId": "listDue",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "through",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Through"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "scheduled due"
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/scheduled/{scheduled_id}/post": {
+      "post": {
+        "tags": [
+          "scheduled"
+        ],
+        "summary": "Turn a due recurrence into a real entry",
+        "description": "Creates the entry and records that this date was posted, in one commit.\n\nOne commit matters: if the entry landed and the marker did not, the same charge would be\noffered again and posted twice.",
+        "operationId": "postScheduled",
+        "parameters": [
+          {
+            "name": "scheduled_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scheduled Id"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "scheduled post",
+          "args": [
+            "scheduled_id",
+            "date"
+          ]
+        }
+      }
     }
   },
   "components": {
@@ -3665,6 +4035,15 @@
         ],
         "title": "BudgetSummary"
       },
+      "Cadence": {
+        "type": "string",
+        "enum": [
+          "weekly",
+          "monthly",
+          "yearly"
+        ],
+        "title": "Cadence"
+      },
       "CollaboratorResponse": {
         "properties": {
           "login": {
@@ -3828,6 +4207,79 @@
         ],
         "title": "DeviceStart"
       },
+      "DueEntry": {
+        "properties": {
+          "scheduled_id": {
+            "type": "string",
+            "title": "Scheduled Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "payee": {
+            "type": "string",
+            "title": "Payee"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EntryKind"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue",
+            "description": "Its date has already passed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheduled_id",
+          "name",
+          "payee",
+          "amount",
+          "currency",
+          "kind",
+          "date",
+          "overdue"
+        ],
+        "title": "DueEntry"
+      },
+      "DueList": {
+        "properties": {
+          "due": {
+            "items": {
+              "$ref": "#/components/schemas/DueEntry"
+            },
+            "type": "array",
+            "title": "Due"
+          },
+          "through": {
+            "type": "string",
+            "format": "date",
+            "title": "Through",
+            "description": "How far ahead this list looked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "due",
+          "through"
+        ],
+        "title": "DueList"
+      },
       "Entry": {
         "properties": {
           "id": {
@@ -3872,7 +4324,7 @@
           },
           "shares": {
             "items": {
-              "$ref": "#/components/schemas/Share"
+              "$ref": "#/components/schemas/Share-Output"
             },
             "type": "array",
             "minItems": 1,
@@ -4553,6 +5005,90 @@
         ],
         "title": "NoteResponse"
       },
+      "PostRequest": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Defaults to today"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PostRequest"
+      },
+      "Recurrence": {
+        "properties": {
+          "cadence": {
+            "$ref": "#/components/schemas/Cadence"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 31.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day",
+            "description": "Day of the month, for monthly and yearly"
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekday",
+            "description": "Monday is 0, for weekly"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month",
+            "description": "Month, for yearly"
+          },
+          "interval": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Interval",
+            "description": "Every N periods; 2 with a monthly cadence is every other month",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cadence"
+        ],
+        "title": "Recurrence",
+        "description": "How often something repeats.\n\nThree cadences cover what a household actually has: a salary and rent monthly, a cleaner\nweekly, insurance yearly. More exotic rules can be added when something real needs one."
+      },
       "RepoOption": {
         "properties": {
           "full_name": {
@@ -4684,6 +5220,286 @@
         ],
         "title": "Rule"
       },
+      "Scheduled-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EntryKind",
+            "default": "expense"
+          },
+          "payee": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Payee"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/Recurrence"
+          },
+          "starts": {
+            "type": "string",
+            "format": "date",
+            "title": "Starts"
+          },
+          "ends": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends"
+          },
+          "last_posted": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Posted"
+          },
+          "paused": {
+            "type": "boolean",
+            "title": "Paused",
+            "default": false
+          },
+          "paid_by": {
+            "patternProperties": {
+              "^[a-z0-9][a-z0-9-]{0,38}$": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                  }
+                ]
+              }
+            },
+            "type": "object",
+            "title": "Paid By"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/Share-Input"
+            },
+            "type": "array",
+            "title": "Shares"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket",
+            "description": "Where an expense lands when no explicit split is given"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "payee",
+          "amount",
+          "currency",
+          "recurrence",
+          "starts"
+        ],
+        "title": "Scheduled",
+        "description": "A template plus a recurrence: rent, a salary, a subscription.\n\nIt holds the same two-sided split an entry does, so posting one produces an ordinary\nentry with nothing inferred at post time. `last_posted` is what stops the same charge\nbeing offered twice."
+      },
+      "Scheduled-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EntryKind",
+            "default": "expense"
+          },
+          "payee": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Payee"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/Recurrence"
+          },
+          "starts": {
+            "type": "string",
+            "format": "date",
+            "title": "Starts"
+          },
+          "ends": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends"
+          },
+          "last_posted": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Posted"
+          },
+          "paused": {
+            "type": "boolean",
+            "title": "Paused",
+            "default": false
+          },
+          "paid_by": {
+            "patternProperties": {
+              "^[a-z0-9][a-z0-9-]{0,38}$": {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            },
+            "type": "object",
+            "title": "Paid By"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/Share-Output"
+            },
+            "type": "array",
+            "title": "Shares"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket",
+            "description": "Where an expense lands when no explicit split is given"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "payee",
+          "amount",
+          "currency",
+          "recurrence",
+          "starts"
+        ],
+        "title": "Scheduled",
+        "description": "A template plus a recurrence: rent, a salary, a subscription.\n\nIt holds the same two-sided split an entry does, so posting one produces an ordinary\nentry with nothing inferred at post time. `last_posted` is what stops the same charge\nbeing offered twice."
+      },
       "SettleRequest": {
         "properties": {
           "to": {
@@ -4773,7 +5589,48 @@
         "title": "Settlement",
         "description": "One suggested payment that reduces outstanding debt."
       },
-      "Share": {
+      "Share-Input": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Person"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "person",
+          "amount"
+        ],
+        "title": "Share",
+        "description": "One person's slice of an entry, booked against one of *their* buckets.\n\nA person may hold several shares in one entry when they split their own slice across\nbuckets, so this is not keyed by person."
+      },
+      "Share-Output": {
         "properties": {
           "person": {
             "type": "string",

@@ -36,6 +36,8 @@ note_app = typer.Typer(no_args_is_help=True, help="note commands")
 
 rule_app = typer.Typer(no_args_is_help=True, help="rule commands")
 
+scheduled_app = typer.Typer(no_args_is_help=True, help="scheduled commands")
+
 
 
 @_root.command("assign", help='Assign money to a bucket')
@@ -600,6 +602,85 @@ def rule_set(
     )
 
 
+@scheduled_app.command("due", help='Recurring entries that are due')
+def scheduled_due(
+    through: Annotated[str | None, typer.Option("--through", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/scheduled/due",
+            query={"through": through},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@scheduled_app.command("list", help='Recurring entries')
+def scheduled_list(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/scheduled",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@scheduled_app.command("post", help='Turn a due recurrence into a real entry')
+def scheduled_post(
+    scheduled_id: Annotated[str, typer.Argument(help='')],
+    date: Annotated[str, typer.Argument(help='Defaults to today')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"date": date}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/scheduled/{scheduled_id}/post",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@scheduled_app.command("set", help='Replace the recurring entries')
+def scheduled_set(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "PUT",
+            f"/budgets/{resolve_budget(budget)}/scheduled",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 def register(app: typer.Typer) -> None:
     """Attach every generated command to the root app."""
     app.registered_commands.extend(_root.registered_commands)
@@ -612,3 +693,4 @@ def register(app: typer.Typer) -> None:
     app.add_typer(month_app, name="month")
     app.add_typer(note_app, name="note")
     app.add_typer(rule_app, name="rule")
+    app.add_typer(scheduled_app, name="scheduled")

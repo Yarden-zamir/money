@@ -73,6 +73,23 @@ expanded panel, so it cannot be hit while scrolling.
 
 Controls are at least 44px tall (`.control`, `Button`).
 
+## Visual Language
+
+The subject is a household ledger, not a fintech dashboard, and the palette says so.
+
+- **Accent is a desaturated petrol**, replacing a generic indigo. It reads as ink, and it sits
+  far enough from the semantic greens and reds that it never competes with them. Neutrals
+  carry the same blue-green bias so they read as chosen rather than as inherited grey.
+- **Semantic colour is reserved for money and envelope state** — an amount, a progress bar, a
+  status chip — and is never used as chrome. That is what keeps it unambiguous.
+- **The accent inverts between themes**, so text on it must invert too: `text-on-brand`, never
+  `text-white`. A light accent with white text fails contrast in dark mode.
+- **Arithmetic is set in monospace.** A ledger's columns line up; IBM Plex Mono with tabular
+  figures makes a column of amounts scannable, and pairs with Heebo, which carries the Hebrew.
+- **One signal per state.** A bucket's bar encodes proportion spent by *length*; its colour
+  only distinguishes states that need attention — overspent, nearly empty, or emptied exactly
+  on plan, which is a paid bill and neither a warning nor a success.
+
 ## Controls
 
 Conventions that exist because they drifted once already:

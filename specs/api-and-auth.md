@@ -96,6 +96,11 @@ POST   /budgets/{budget}/invite              invite to the data repo AND add as 
 GET    /github/repos                         repos you could connect, flagged for budget.yaml
 GET    /github/users?q=                      autocomplete a GitHub login before inviting
 
+GET    /budgets/{budget}/scheduled           recurring entry templates
+PUT    /budgets/{budget}/scheduled           replace them
+GET    /budgets/{budget}/scheduled/due       what is due, default two weeks out
+POST   /budgets/{budget}/scheduled/{id}/post turn one due date into an entry
+
 GET    /budgets/{budget}/rules
 PUT    /budgets/{budget}/rules
 POST   /budgets/{budget}/rules/preview       what would this entry split into? no write

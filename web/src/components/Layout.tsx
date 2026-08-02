@@ -15,6 +15,7 @@ const NAV = [
   { to: "/", key: "nav.month", icon: "◍" },
   { to: "/entries", key: "nav.entries", icon: "≡" },
   { to: "/balances", key: "nav.balances", icon: "⇄" },
+  { to: "/scheduled", key: "nav.scheduled", icon: "↻" },
   { to: "/rules", key: "nav.rules", icon: "⌥" },
   { to: "/settings", key: "nav.settings", icon: "⚙" },
 ] as const;

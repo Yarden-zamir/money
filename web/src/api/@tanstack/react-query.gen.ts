@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listEntries, listGithubRepos, listMembers, listRules, logout, type Options, pollDeviceLogin, previewSplit, putBucket, putEntryNote, putMembers, putRules, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -798,6 +798,86 @@ export const inviteCollaboratorMutation = (options?: Partial<Options<InviteColla
     const mutationOptions: UseMutationOptions<InviteCollaboratorResponse, InviteCollaboratorError, Options<InviteCollaboratorData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await inviteCollaborator({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listScheduledQueryKey = (options: Options<ListScheduledData>) => createQueryKey('listScheduled', options);
+
+/**
+ * Recurring entries
+ */
+export const listScheduledOptions = (options: Options<ListScheduledData>) => queryOptions<ListScheduledResponse, ListScheduledError, ListScheduledResponse, ReturnType<typeof listScheduledQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listScheduled({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listScheduledQueryKey(options)
+});
+
+/**
+ * Replace the recurring entries
+ */
+export const putScheduledMutation = (options?: Partial<Options<PutScheduledData>>): UseMutationOptions<PutScheduledResponse, PutScheduledError, Options<PutScheduledData>> => {
+    const mutationOptions: UseMutationOptions<PutScheduledResponse, PutScheduledError, Options<PutScheduledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putScheduled({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listDueQueryKey = (options: Options<ListDueData>) => createQueryKey('listDue', options);
+
+/**
+ * Recurring entries that are due
+ *
+ * What each recurrence owes the ledger, up to `through` (default: two weeks out).
+ *
+ * Dates already posted are excluded, so opening this twice never offers the same charge
+ * twice. A paused recurrence is skipped entirely.
+ */
+export const listDueOptions = (options: Options<ListDueData>) => queryOptions<ListDueResponse, ListDueError, ListDueResponse, ReturnType<typeof listDueQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listDue({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listDueQueryKey(options)
+});
+
+/**
+ * Turn a due recurrence into a real entry
+ *
+ * Creates the entry and records that this date was posted, in one commit.
+ *
+ * One commit matters: if the entry landed and the marker did not, the same charge would be
+ * offered again and posted twice.
+ */
+export const postScheduledMutation = (options?: Partial<Options<PostScheduledData>>): UseMutationOptions<PostScheduledResponse, PostScheduledError, Options<PostScheduledData>> => {
+    const mutationOptions: UseMutationOptions<PostScheduledResponse, PostScheduledError, Options<PostScheduledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postScheduled({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
