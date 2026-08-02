@@ -5,6 +5,33 @@ What the interface is optimised for. Each story names the path and the cost in t
 
 These are the yardstick for UI changes: a change that makes any of these longer needs a reason.
 
+## 0. Start using it at all
+
+*I signed in. I have never used this and I do not have a "budget repo".*
+
+**Name it → Create budget.** One field, then a working budget with buckets in it.
+
+- Creating is the offer, not connecting. Asking a first-time user for the repo that holds
+  their budget data described a thing they did not have, and left the only route in as
+  hand-writing YAML on github.com. Connecting is still there, one link away, for the people
+  who genuinely do have one.
+- The repo name, the slug and your person id are all derived and hidden behind *Advanced*.
+  None of them is a decision worth having an opinion about on a first screen.
+- A line under the form names the repo that is about to be created. Creating a repo on
+  someone's GitHub account is a visible external side effect and should not be a surprise.
+- You land on a month screen with buckets already in it, so the first expense has somewhere
+  to go.
+
+*Someone shared their budget with me and forgot to add me.*
+
+**Join budget.** One field, pre-filled with a free id.
+
+- Detected by `me` being null while `can_write` is true. Before this, every screen answered
+  403 telling you to edit `budget.yaml` — including the member editor that would have fixed
+  it.
+- A read-only viewer is told to ask a member instead, rather than shown a form that would
+  fail. They cannot fix it themselves and pretending otherwise wastes their time.
+
 ## 1. Log a shared expense while standing at the till
 
 *I just paid for groceries. Both of us share it. I have one hand and ten seconds.*
@@ -20,8 +47,12 @@ These are the yardstick for UI changes: a change that makes any of these longer 
 - The amount field takes a magnitude. The kind decides the sign, because typing a leading
   minus for every purchase is a paper cut and forgetting it is silent.
 - The split comes from the rules. Nothing about who owes whom has to be entered.
-- Date defaults to today. Bucket is optional — an uncategorised entry is better than an
-  abandoned one.
+- Date defaults to today.
+- Bucket is optional *while a rule can supply one* — an uncategorised entry is better than an
+  abandoned one. With no rules defined, an expense with no bucket cannot be saved at all, so
+  the blank option becomes "Choose a bucket" rather than a choice that silently fails. With no
+  buckets at all the form says so before anything else, because every other field is then
+  wasted typing.
 
 `Split` previews what the rules will do before saving, for the cases where that matters.
 

@@ -66,6 +66,7 @@ All paths are under `/api/v1`. Money is a decimal string; dates are ISO-8601.
 ```
 GET    /budgets                              list budgets the caller can see
 POST   /budgets                              connect an existing GitHub repo as a budget
+POST   /budgets/create                       create the repo AND the first budget.yaml
 GET    /budgets/{budget}                     identity, members, currency, data branch
 
 GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee
@@ -90,6 +91,7 @@ POST   /budgets/{budget}/settle              record a settlement between two peo
 
 GET    /budgets/{budget}/members             who can hold a share
 PUT    /budgets/{budget}/members             replace the member list
+POST   /budgets/{budget}/members/me          add yourself, if you can push to the repo
 GET    /budgets/{budget}/collaborators       repo access, including pending invitations
 POST   /budgets/{budget}/invite              invite to the data repo AND add as a member
 
@@ -140,6 +142,27 @@ created, because GitHub answers 204 when the person already had access.
 
 Both `/github` routes proxy GitHub with the **caller's own token**, so they can only ever
 surface what that person can already see. Neither uses a shared credential.
+
+## Starting And Joining
+
+`POST /budgets` only ever *connected* a repo that already contained a `budget.yaml`, which
+meant someone with no budget at all had nowhere to begin: the only way in was hand-writing
+YAML on github.com. `POST /budgets/create` is that missing first step. It creates a private
+repo (or initializes an empty one the caller names), writes `budget.yaml` with the caller as
+sole member, seeds their starter buckets, and links the slug — one call, because every
+intermediate state is one the person would otherwise have to be told about. Initializing a
+repo that already holds a budget is refused, so a typo cannot overwrite someone's ledger.
+
+`POST /members/me` covers the other direction: you can push to a budget's repo but nobody
+added you to `budget.yaml`. Every route that resolves a person answered 403 with "add them to
+members in budget.yaml" — including the member editor that would have fixed it. Push access
+is the authority the rest of the API already trusts to decide who may change this data, so
+refusing to let someone with that access name themselves was the API contradicting itself. It
+only ever adds the caller; changing anyone else stays with `PUT /members`, where removal is
+checked against the entries that reference them.
+
+`GET /budgets/{budget}` deliberately answers 200 with `me: null` for a non-member rather than
+403. A client needs to be able to show who *is* in a budget in order to offer joining it.
 
 ## Undo And Redo
 

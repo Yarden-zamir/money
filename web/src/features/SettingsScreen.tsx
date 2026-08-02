@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { THEMES, applyTheme, storedTheme } from "@/lib/theme";
 import { ConnectBudget } from "./ConnectBudget";
+import { CreateBudget } from "./CreateBudget";
 import { InvitePerson } from "./InvitePerson";
 import { useBudget } from "./useBudget";
 
@@ -25,7 +26,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const [theme, setTheme] = useState(storedTheme);
   const { budget, budgets, select } = useBudget();
-  const [connecting, setConnecting] = useState(false);
+  const [adding, setAdding] = useState<"create" | "connect" | null>(null);
 
   return (
     <section className="space-y-8">
@@ -99,17 +100,26 @@ export function SettingsScreen() {
           })}
         </ul>
 
-        {connecting ? (
+        {adding ? (
           <div className="mt-3">
-            <ConnectBudget onConnected={() => setConnecting(false)} />
-            <Button variant="ghost" className="mt-2" onClick={() => setConnecting(false)}>
+            {adding === "create" ? (
+              <CreateBudget onCreated={() => setAdding(null)} />
+            ) : (
+              <ConnectBudget onConnected={() => setAdding(null)} />
+            )}
+            <Button variant="ghost" className="mt-2" onClick={() => setAdding(null)}>
               {t("common.cancel")}
             </Button>
           </div>
         ) : (
-          <Button variant="quiet" className="mt-3" onClick={() => setConnecting(true)}>
-            + {t("budgets.connect")}
-          </Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="quiet" onClick={() => setAdding("create")}>
+              + {t("budgets.create")}
+            </Button>
+            <Button variant="quiet" onClick={() => setAdding("connect")}>
+              + {t("budgets.connect")}
+            </Button>
+          </div>
         )}
       </div>
 

@@ -396,6 +396,89 @@
         }
       }
     },
+    "/api/v1/budgets/create": {
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Start a new budget in a new or empty repo",
+        "description": "Create the repo, write the first `budget.yaml`, and link it \u2014 in one call.\n\nConnecting a repo assumed one already held a budget, which left someone with no budget\nat all nowhere to start: the only route in was hand-writing YAML on github.com. This is\nthat missing step, and it is deliberately one call because every intermediate state\n(repo but no budget, budget but no buckets) is one the person would have to be told\nabout for no reason.",
+        "operationId": "createBudget",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "budget create",
+          "args": [
+            "name",
+            "repo"
+          ]
+        }
+      }
+    },
     "/api/v1/budgets/{budget}": {
       "get": {
         "tags": [
@@ -642,6 +725,94 @@
         },
         "x-cli": {
           "command": "member set"
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/members/me": {
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Add yourself to a budget you can push to",
+        "description": "Join a budget whose repo you already have push access to.\n\nWithout this, being handed a budget repo by someone who forgot to add you to\n`budget.yaml` made every screen fail with a 403 telling you to go and edit YAML \u2014 while\nthe app's own member editor sat behind the same 403. Push access is the authority the\nrest of the app already trusts to decide who may change this data; refusing to let a\nperson with that access name themselves was the app contradicting itself.\n\nIt only ever adds you. Editing anyone else stays with `putMembers`, where removing\nsomeone is checked against the entries that reference them.",
+        "operationId": "joinBudget",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetJoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "budget join"
         }
       }
     },
@@ -4828,6 +4999,110 @@
           "repo"
         ],
         "title": "BudgetConnect"
+      },
+      "BudgetCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "What to call this budget"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency"
+          },
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Slug"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[\\w.-]+(/[\\w.-]+)?$",
+            "title": "Repo",
+            "description": "A new repo name to create, or an existing owner/repo to initialize"
+          },
+          "person": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Person",
+            "description": "Your id within this budget; appears in every split"
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Display Name",
+            "description": "Your name on screen"
+          },
+          "buckets": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Bucket-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buckets",
+            "description": "Buckets to start with; a default set is used when omitted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "currency",
+          "slug",
+          "repo",
+          "person",
+          "display_name"
+        ],
+        "title": "BudgetCreate",
+        "description": "Everything needed to go from no budget at all to a working one."
+      },
+      "BudgetJoin": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Person"
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Display Name"
+          },
+          "buckets": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Bucket-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buckets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "person",
+          "display_name"
+        ],
+        "title": "BudgetJoin",
+        "description": "Adding yourself to a budget whose repo you can already push to."
       },
       "BudgetSummary": {
         "properties": {

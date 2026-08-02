@@ -23,7 +23,21 @@ const NAV = [
   { to: "/settings", key: "nav.settings", icon: "gear" },
 ] as const;
 
-export function Layout({ children }: { children: ReactNode }) {
+/**
+ * `navigation` is off before there is a budget to navigate. Every tab would lead back to
+ * the same "create a budget" screen, so six of them on a first run are noise pretending to
+ * be an app that already has data in it — and one of them renders as the active tab.
+ *
+ * The header stays: switching language is exactly the thing a first-time reader may need
+ * before they can read anything else.
+ */
+export function Layout({
+  children,
+  navigation = true,
+}: {
+  children: ReactNode;
+  navigation?: boolean;
+}) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -32,6 +46,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-2.5">
           <span className="text-base font-bold tracking-tight">{t("app.name")}</span>
 
+          {navigation && (
           <nav className="ms-4 hidden gap-1 sm:flex">
             {NAV.map((item) => (
               <NavLink
@@ -50,6 +65,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </NavLink>
             ))}
           </nav>
+          )}
 
           <span className="ms-auto flex items-center gap-1">
             <UndoButton />
@@ -87,6 +103,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
+      {navigation && (
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
         <div className="flex">
           {NAV.map((item) => (
@@ -106,6 +123,7 @@ export function Layout({ children }: { children: ReactNode }) {
           ))}
         </div>
       </nav>
+      )}
     </div>
   );
 }

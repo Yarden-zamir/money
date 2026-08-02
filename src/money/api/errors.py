@@ -87,8 +87,30 @@ async def handle_validation_error(_: Request, exc: Exception) -> JSONResponse:
 
     A ledger file that does not balance raises during model validation on *read*, so this
     also covers hand-edited data that is internally inconsistent.
+
+    `str(exc)` would be the full pydantic report — a header counting the errors, the model's
+    class name, the `[type=value_error, input_value=...]` annotation and a link to pydantic's
+    docs. Every part of that describes our internals, and the input dump can echo the whole
+    entry back at the reader. Only the messages are about anything they can act on.
     """
+    raw = getattr(exc, "errors", lambda: [])()
+    fields = {
+        _describe_location(item.get("loc", ())): item.get("msg", "is invalid") for item in raw
+    }
+    # Domain validators are model-wide, so they carry no field and pydantic prefixes the
+    # message with "Value error, ". Neither adds anything for the person reading it.
+    summary = "; ".join(
+        message.removeprefix("Value error, ") if name == "request" else f"{name}: {message}"
+        for name, message in fields.items()
+    )
+
     return JSONResponse(
         status_code=422,
-        content={"error": {"code": "invalid_data", "message": str(exc), "details": None}},
+        content={
+            "error": {
+                "code": "invalid_data",
+                "message": summary or str(exc),
+                "details": {"fields": fields} if fields else None,
+            }
+        },
     )

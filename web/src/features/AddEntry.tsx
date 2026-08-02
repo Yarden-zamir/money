@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createEntryMutation,
   listBucketsOptions,
+  listRulesOptions,
   previewSplitMutation,
 } from "@/api/@tanstack/react-query.gen";
 import { Guessed } from "@/components/Guessed";
@@ -121,6 +122,13 @@ export function AddEntry({
     enabled: Boolean(budget.slug),
   });
 
+  // Rules can supply the bucket an expense is missing, so whether one must be picked here
+  // depends on whether any rule exists at all.
+  const rules = useQuery({
+    ...listRulesOptions({ path: { budget: budget.slug } }),
+    enabled: Boolean(budget.slug),
+  });
+
   // The form takes a magnitude and the kind decides the sign. Asking someone to type a
   // leading minus for every purchase is a paper cut, and getting it wrong is silent.
   const signed = (value: string): string => {
@@ -198,7 +206,15 @@ export function AddEntry({
     },
   });
 
-  const ready = signed(amount) !== "" && payee.trim() !== "";
+  // An expense has to land in some envelope. The bucket can come from this field or from a
+  // rule, but if neither can supply one the entry is rejected by the domain — so the form
+  // says which of the two is missing instead of letting someone submit into a 422.
+  const noBuckets = usesBucket(kind) && buckets.isSuccess && buckets.data.length === 0;
+  const bucketMissing =
+    usesBucket(kind) && !custom && !bucket && rules.isSuccess && rules.data.length === 0;
+
+  const ready =
+    signed(amount) !== "" && payee.trim() !== "" && !noBuckets && !bucketMissing;
 
   return (
     <form
@@ -208,6 +224,17 @@ export function AddEntry({
         if (ready) create.mutate({ path: { budget: budget.slug }, body: body() });
       }}
     >
+      {/* With no buckets an expense cannot be recorded at all, and every other field here is
+          wasted typing — so this comes first and names the fix.
+
+          Told, not linked: this form also renders inside the quick-add dialog, where
+          navigating away would leave the dialog open over the screen it moved to. */}
+      {noBuckets && (
+        <p className="mb-3 rounded-lg bg-warning/15 p-2.5 text-xs text-ink">
+          {t("entries.noBucketsYet")}
+        </p>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field label={t("entries.kind")}>
           <Select value={kind} onChange={(event) => setKind(event.target.value as Kind)}>
@@ -287,9 +314,21 @@ export function AddEntry({
         </Field>
 
         {usesBucket(kind) && (
-          <Field label={t("entries.bucket")}>
+          <Field
+            label={t("entries.bucket")}
+            hint={bucketMissing ? t("entries.bucketRequired") : undefined}
+          >
             <Select value={bucket} onChange={(event) => setBucket(event.target.value)}>
-              <option value="">—</option>
+              {/* An empty bucket only works when a rule can fill it in. With no rules it is
+                  a choice that cannot succeed, so it becomes a prompt rather than a trap —
+                  still the selected value, so the field never shows a bucket nobody picked. */}
+              {bucketMissing ? (
+                <option value="" disabled>
+                  {t("entries.chooseBucket")}
+                </option>
+              ) : (
+                <option value="">{t("entries.byRule")}</option>
+              )}
               {(buckets.data ?? []).map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}

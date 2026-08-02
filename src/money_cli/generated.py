@@ -314,6 +314,55 @@ def budget_connect(
     )
 
 
+@budget_app.command("create", help='Start a new budget in a new or empty repo')
+def budget_create(
+    name: Annotated[str, typer.Argument(help='What to call this budget')],
+    repo: Annotated[str, typer.Argument(help='A new repo name to create, or an existing owner/repo to initialize')],
+    currency: Annotated[str, typer.Option("--currency", help='')],
+    slug: Annotated[str, typer.Option("--slug", help='')],
+    person: Annotated[str, typer.Option("--person", help='Your id within this budget; appears in every split')],
+    display_name: Annotated[str, typer.Option("--display-name", help='Your name on screen')],
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"name": name, "repo": repo, "currency": currency, "slug": slug, "person": person, "display_name": display_name}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/create",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@budget_app.command("join", help='Add yourself to a budget you can push to')
+def budget_join(
+    person: Annotated[str, typer.Option("--person", help='')],
+    display_name: Annotated[str, typer.Option("--display-name", help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"person": person, "display_name": display_name}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/members/me",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @budget_app.command("list", help='List budgets')
 def budget_list(
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,

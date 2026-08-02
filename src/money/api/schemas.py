@@ -14,7 +14,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 from money.domain.derive import Balance, BucketState, Settlement
-from money.domain.models import Entry, EntryKind, Member, Month
+from money.domain.models import Bucket, Entry, EntryKind, Member, Month
 
 
 class ShareInput(BaseModel):
@@ -198,6 +198,39 @@ class BudgetConnect(BaseModel):
 
     slug: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")
     repo: str = Field(pattern=r"^[\w.-]+/[\w.-]+$", description="owner/repo on GitHub")
+
+
+class BudgetCreate(BaseModel):
+    """Everything needed to go from no budget at all to a working one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=100, description="What to call this budget")
+    currency: str = Field(pattern=r"^[A-Z]{3}$")
+    slug: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")
+    repo: str = Field(
+        pattern=r"^[\w.-]+(/[\w.-]+)?$",
+        description="A new repo name to create, or an existing owner/repo to initialize",
+    )
+    person: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9-]{0,38}$",
+        description="Your id within this budget; appears in every split",
+    )
+    display_name: str = Field(min_length=1, max_length=100, description="Your name on screen")
+    buckets: list[Bucket] | None = Field(
+        default=None,
+        description="Buckets to start with; a default set is used when omitted",
+    )
+
+
+class BudgetJoin(BaseModel):
+    """Adding yourself to a budget whose repo you can already push to."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    person: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")
+    display_name: str = Field(min_length=1, max_length=100)
+    buckets: list[Bucket] | None = None
 
 
 class DueEntry(BaseModel):

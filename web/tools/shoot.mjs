@@ -192,6 +192,12 @@ const SCREENS = [
   ["history", "/history"],
 ];
 
+/** What /budgets answers, for the two screens that stand in front of the app. */
+const GATES = [
+  ["firstrun", []],
+  ["join", [{ ...budget, me: null }]],
+];
+
 const VIEWPORTS = [
   ["desktop", { width: 1280, height: 900 }],
   ["mobile", { width: 390, height: 844 }],
@@ -222,6 +228,24 @@ for (const [device, viewport] of VIEWPORTS) {
     });
 
     const page = await context.newPage();
+
+    // The two states that gate everything else. They are not reachable by navigating —
+    // they depend on what /budgets answers — so each gets its own override, and they run
+    // first because the override has to be installed before the app's first request.
+    for (const [name, budgets] of GATES) {
+      await context.route("**/api/v1/budgets", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(budgets),
+        }),
+      );
+      await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: join(OUT, `${device}-${language}-${name}.png`), fullPage: true });
+      await context.unroute("**/api/v1/budgets");
+    }
+
     for (const [name, path] of SCREENS) {
       await page.goto(`http://localhost:${PORT}${path}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(250);

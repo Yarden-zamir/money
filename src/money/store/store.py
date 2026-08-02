@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from money.domain.models import Bucket, Budget, Entry, Scheduled
+from money.domain.models import Bucket, Budget, Entry, Member, Scheduled
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
@@ -253,11 +253,7 @@ class BudgetStore:
         def mutate() -> list[str]:
             buckets = [b for b in self.buckets(person) if b.id != bucket.id]
             buckets.append(bucket)
-            buckets.sort(key=_bucket_sort_key)
-            self.repo.write(
-                buckets_path(person),
-                yamlio.dump([b.model_dump(mode="python", exclude_none=True) for b in buckets]),
-            )
+            self._write_buckets(person, buckets)
             return [buckets_path(person)]
 
         return self._commit(
@@ -409,6 +405,60 @@ class BudgetStore:
             self.repo.ensure_clone(actor.token)
             self.repo.delete_tag(close_tag(month), actor.token)
 
+    def initialize(self, budget: Budget, buckets: list[Bucket], actor: Actor) -> str:
+        """Write `budget.yaml` and the first member's buckets into an empty repo.
+
+        One commit, because a repo carrying a budget with no buckets is a state the app
+        would have to explain, and it exists only between two commits nobody needs to see.
+
+        Refuses a repo that already holds a budget rather than overwriting it: this runs
+        against a repo the caller named, and a typo must not replace someone's ledger.
+        """
+        if self.repo.read("budget.yaml") is not None:
+            raise DataError("this repo already holds a budget; connect it instead of creating")
+
+        person = budget.members[0].person
+
+        def mutate() -> list[str]:
+            self.repo.write(
+                "budget.yaml", yamlio.dump(budget.model_dump(mode="python", exclude_none=True))
+            )
+            self._write_buckets(person, buckets)
+            return ["budget.yaml", buckets_path(person)]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"budget: create {budget.name}",
+            trailers={},
+        )
+
+    def join(self, member: Member, buckets: list[Bucket], actor: Actor) -> str:
+        """Add one person to `budget.yaml`, with buckets of their own.
+
+        Buckets are per-person, so joining without them lands someone in a budget they can
+        read and cannot file anything under — the same dead end `initialize` avoids.
+        """
+        budget = self.budget()
+        if any(m.person == member.person for m in budget.members):
+            raise DataError(f"{member.person} is already a member of this budget")
+
+        updated = budget.model_copy(update={"members": [*budget.members, member]})
+
+        def mutate() -> list[str]:
+            self.repo.write(
+                "budget.yaml", yamlio.dump(updated.model_dump(mode="python", exclude_none=True))
+            )
+            self._write_buckets(member.person, buckets)
+            return ["budget.yaml", buckets_path(member.person)]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"members: {member.name} joined {budget.name}",
+            trailers={},
+        )
+
     def put_members(self, budget: Budget, actor: Actor) -> str:
         def mutate() -> list[str]:
             self.repo.write(
@@ -434,6 +484,22 @@ class BudgetStore:
         return self._commit(mutate, actor=actor, subject="rules: update defaults", trailers={})
 
     # ---- internals ------------------------------------------------------------------
+
+    def _write_buckets(self, person: str, buckets: list[Bucket]) -> None:
+        """Write one person's buckets, always in display order.
+
+        Sorting here as well as on read means the file on disk matches what the app shows,
+        so someone reading the repo directly sees the same order they see on screen.
+        """
+        self.repo.write(
+            buckets_path(person),
+            yamlio.dump(
+                [
+                    b.model_dump(mode="python", exclude_none=True)
+                    for b in sorted(buckets, key=_bucket_sort_key)
+                ]
+            ),
+        )
 
     def _write_ledger(self, month: str, entries: list[Entry]) -> None:
         """Write a month's entries, always sorted by (date, id).

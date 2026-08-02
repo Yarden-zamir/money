@@ -100,7 +100,11 @@
       "split": "Split",
       "note": "Note",
       "history": "History"
-    }
+    },
+    "byRule": "Decided by a rule",
+    "chooseBucket": "Choose a bucket",
+    "bucketRequired": "No rules exist yet, so pick where this belongs.",
+    "noBucketsYet": "You have no buckets yet, so an expense has nowhere to go. Add one on the month screen first."
   },
   "balances": {
     "title": "Balances",
@@ -154,7 +158,7 @@
     "repo": "GitHub repo",
     "repoHint": "owner/repo — a private repo you can push to",
     "slugHint": "Used in URLs and the CLI, e.g. joint",
-    "none": "No budget connected yet",
+    "none": "No budget yet",
     "noneHelp": "Connect the private GitHub repo that holds your budget data to get started.",
     "connecting": "Connecting…",
     "chooseRepo": "Choose a repo",
@@ -163,7 +167,29 @@
     "alreadyConnected": "connected",
     "private": "private",
     "enterManually": "Enter manually",
-    "chooseFromList": "Choose from list"
+    "chooseFromList": "Choose from list",
+    "firstRunHelp": "A budget lives in a private GitHub repo that only you and the people you invite can see. Name it and the repo is created for you.",
+    "name": "Budget name",
+    "nameHint": "Shown at the top of every screen",
+    "namePlaceholder": "Household",
+    "currency": "Currency",
+    "create": "Create budget",
+    "creating": "Creating…",
+    "createSummary": "Creates the private repo {{repo}} and starts you off with a few buckets you can rename.",
+    "showAdvanced": "Advanced",
+    "hideAdvanced": "Hide advanced",
+    "repoCreateHint": "A new private repo on your account",
+    "person": "Your id in this budget",
+    "personHint": "Appears on every split. Lower case, no spaces.",
+    "personTaken": "Someone in this budget already uses that id.",
+    "insteadConnect": "I already have a budget repo",
+    "insteadCreate": "Create a new budget instead",
+    "notMember": "You are not listed in {{name}} yet",
+    "notMemberHelp": "You can push to this budget's repo but nobody has added you to it. Pick the id you want on your side of every split.",
+    "notMemberReadOnly": "You can read this budget but are not one of its members. Ask someone in it to add you.",
+    "membersAlready": "Already in this budget: {{names}}",
+    "join": "Join budget",
+    "joining": "Joining…"
   },
   "members": {
     "title": "People",

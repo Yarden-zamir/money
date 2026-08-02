@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -98,6 +98,26 @@ export const connectBudget = <ThrowOnError extends boolean = false>(options: Opt
 });
 
 /**
+ * Start a new budget in a new or empty repo
+ *
+ * Create the repo, write the first `budget.yaml`, and link it — in one call.
+ *
+ * Connecting a repo assumed one already held a budget, which left someone with no budget
+ * at all nowhere to start: the only route in was hand-writing YAML on github.com. This is
+ * that missing step, and it is deliberately one call because every intermediate state
+ * (repo but no budget, budget but no buckets) is one the person would have to be told
+ * about for no reason.
+ */
+export const createBudget = <ThrowOnError extends boolean = false>(options: Options<CreateBudgetData, ThrowOnError>): RequestResult<CreateBudgetResponses, CreateBudgetErrors, ThrowOnError> => (options.client ?? client).post<CreateBudgetResponses, CreateBudgetErrors, ThrowOnError>({
+    url: '/api/v1/budgets/create',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * One budget
  */
 export const getBudget = <ThrowOnError extends boolean = false>(options: Options<GetBudgetData, ThrowOnError>): RequestResult<GetBudgetResponses, GetBudgetErrors, ThrowOnError> => (options.client ?? client).get<GetBudgetResponses, GetBudgetErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}', ...options });
@@ -117,6 +137,29 @@ export const listMembers = <ThrowOnError extends boolean = false>(options: Optio
  */
 export const putMembers = <ThrowOnError extends boolean = false>(options: Options<PutMembersData, ThrowOnError>): RequestResult<PutMembersResponses, PutMembersErrors, ThrowOnError> => (options.client ?? client).put<PutMembersResponses, PutMembersErrors, ThrowOnError>({
     url: '/api/v1/budgets/{budget}/members',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Add yourself to a budget you can push to
+ *
+ * Join a budget whose repo you already have push access to.
+ *
+ * Without this, being handed a budget repo by someone who forgot to add you to
+ * `budget.yaml` made every screen fail with a 403 telling you to go and edit YAML — while
+ * the app's own member editor sat behind the same 403. Push access is the authority the
+ * rest of the app already trusts to decide who may change this data; refusing to let a
+ * person with that access name themselves was the app contradicting itself.
+ *
+ * It only ever adds you. Editing anyone else stays with `putMembers`, where removing
+ * someone is checked against the entries that reference them.
+ */
+export const joinBudget = <ThrowOnError extends boolean = false>(options: Options<JoinBudgetData, ThrowOnError>): RequestResult<JoinBudgetResponses, JoinBudgetErrors, ThrowOnError> => (options.client ?? client).post<JoinBudgetResponses, JoinBudgetErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/members/me',
     ...options,
     headers: {
         'Content-Type': 'application/json',

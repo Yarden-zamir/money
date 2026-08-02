@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, autoAssign, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, autoAssign, closeMonth, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getMe, getMonth, getMonthClose, inviteCollaborator, joinBudget, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -217,6 +217,31 @@ export const connectBudgetMutation = (options?: Partial<Options<ConnectBudgetDat
     return mutationOptions;
 };
 
+/**
+ * Start a new budget in a new or empty repo
+ *
+ * Create the repo, write the first `budget.yaml`, and link it — in one call.
+ *
+ * Connecting a repo assumed one already held a budget, which left someone with no budget
+ * at all nowhere to start: the only route in was hand-writing YAML on github.com. This is
+ * that missing step, and it is deliberately one call because every intermediate state
+ * (repo but no budget, budget but no buckets) is one the person would have to be told
+ * about for no reason.
+ */
+export const createBudgetMutation = (options?: Partial<Options<CreateBudgetData>>): UseMutationOptions<CreateBudgetResponse, CreateBudgetError, Options<CreateBudgetData>> => {
+    const mutationOptions: UseMutationOptions<CreateBudgetResponse, CreateBudgetError, Options<CreateBudgetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createBudget({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const getBudgetQueryKey = (options: Options<GetBudgetData>) => createQueryKey('getBudget', options);
 
 /**
@@ -265,6 +290,34 @@ export const putMembersMutation = (options?: Partial<Options<PutMembersData>>): 
     const mutationOptions: UseMutationOptions<PutMembersResponse, PutMembersError, Options<PutMembersData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await putMembers({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add yourself to a budget you can push to
+ *
+ * Join a budget whose repo you already have push access to.
+ *
+ * Without this, being handed a budget repo by someone who forgot to add you to
+ * `budget.yaml` made every screen fail with a 403 telling you to go and edit YAML — while
+ * the app's own member editor sat behind the same 403. Push access is the authority the
+ * rest of the app already trusts to decide who may change this data; refusing to let a
+ * person with that access name themselves was the app contradicting itself.
+ *
+ * It only ever adds you. Editing anyone else stays with `putMembers`, where removing
+ * someone is checked against the entries that reference them.
+ */
+export const joinBudgetMutation = (options?: Partial<Options<JoinBudgetData>>): UseMutationOptions<JoinBudgetResponse, JoinBudgetError, Options<JoinBudgetData>> => {
+    const mutationOptions: UseMutationOptions<JoinBudgetResponse, JoinBudgetError, Options<JoinBudgetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await joinBudget({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

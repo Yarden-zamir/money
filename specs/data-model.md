@@ -30,6 +30,18 @@ a member without repo access simply never signs in. Removing a member is refused
 entry still references them, because dropping them would orphan those shares and silently
 change every balance.
 
+Someone who *can* push but is not yet in `members` may add themselves — the one exception to
+membership being edited only as a whole list. Push access already decides who may change this
+data, so making them wait for another member to type their name in was a wall with no
+security value behind it.
+
+A new person always arrives with buckets. Creating a budget and joining one both write
+`people/<person>/buckets.yaml` in the same commit as the `budget.yaml` change, because
+buckets are per-person: someone added without them lands in a budget they can read and
+cannot file anything under. The seeded set (`money.domain.starter`) is a handful of buckets
+across four groups, with no targets — a target is a claim about what that person intends to
+spend, and guessing it would put a number on screen nobody chose.
+
 ## Entries
 
 An entry is one real-world event. Every entry answers two independent questions:

@@ -308,6 +308,32 @@ def invite_collaborator(token: str, repo: str, login: str, permission: str = "pu
     raise GitHubError(f"could not invite {login}: {response.text}")
 
 
+def create_repo(token: str, name: str, *, description: str = "") -> str:
+    """Create a private repo for a new budget and return its `owner/name`.
+
+    Private and initialized with a commit: an empty repo has no branch, and cloning one
+    leaves git with no HEAD to write against. Letting GitHub seed the first commit avoids
+    a special case in the store for "repo exists but has no history".
+    """
+    with _client(token) as client:
+        response = client.post(
+            f"{API}/user/repos",
+            json={
+                "name": name,
+                "description": description,
+                "private": True,
+                "auto_init": True,
+            },
+        )
+    if response.status_code == 201:
+        return str(response.json()["full_name"])
+    if response.status_code == 422:
+        raise GitHubError(f"you already have a repo named {name!r}")
+    if response.status_code in (401, 403):
+        raise GitHubError("this app is not allowed to create repos on your account")
+    raise GitHubError(f"could not create {name}: {response.text}")
+
+
 def remove_collaborator(token: str, repo: str, login: str) -> None:
     with _client(token) as client:
         response = client.delete(f"{API}/repos/{repo}/collaborators/{login}")

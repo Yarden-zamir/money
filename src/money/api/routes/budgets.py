@@ -25,12 +25,14 @@ from money.api.deps import (
     writable,
 )
 from money.api.errors import ApiError, not_found
-from money.api.github import repo_access
+from money.api.github import GitHubError, create_repo, repo_access
 from money.api.schemas import (
     AssignRequest,
     AutoAssignRequest,
     BalanceSheet,
     BudgetConnect,
+    BudgetCreate,
+    BudgetJoin,
     BudgetSummary,
     EntryResponse,
     MonthClose,
@@ -40,9 +42,10 @@ from money.api.schemas import (
 )
 from money.domain.amounts import ZERO
 from money.domain.derive import month_view, net_positions, settle_up, shift_month
-from money.domain.models import Bucket, Entry, EntryKind, Member, Share
+from money.domain.models import Bucket, Budget, Entry, EntryKind, Member, Share
+from money.domain.starter import starter_buckets
 from money.store.gitrepo import GitRepo
-from money.store.store import BudgetStore, new_id
+from money.store.store import Actor, BudgetStore, DataError, new_id
 
 router = APIRouter(tags=["budgets"])
 
@@ -143,6 +146,88 @@ def connect_budget(
     )
 
 
+@router.post(
+    "/budgets/create",
+    operation_id="createBudget",
+    response_model=BudgetSummary,
+    status_code=201,
+    summary="Start a new budget in a new or empty repo",
+    openapi_extra={"x-cli": {"command": "budget create", "args": ["name", "repo"]}},
+)
+def create_budget(
+    body: BudgetCreate,
+    caller: Annotated[CurrentUser, Depends(current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    config: Annotated[Settings, Depends(get_settings)],
+) -> BudgetSummary:
+    """Create the repo, write the first `budget.yaml`, and link it — in one call.
+
+    Connecting a repo assumed one already held a budget, which left someone with no budget
+    at all nowhere to start: the only route in was hand-writing YAML on github.com. This is
+    that missing step, and it is deliberately one call because every intermediate state
+    (repo but no budget, budget but no buckets) is one the person would have to be told
+    about for no reason.
+    """
+    if session.scalar(select(db.BudgetLink).where(db.BudgetLink.slug == body.slug)):
+        raise ApiError("slug_taken", f"a budget named {body.slug!r} already exists", status=409)
+
+    token = github_token(caller.user, config)
+
+    # A bare name means "make me one"; owner/repo means "use this one I already have".
+    if "/" in body.repo:
+        full_name = body.repo
+        if not repo_access(token, full_name).can_write:
+            raise ApiError(
+                "no_repo_access",
+                f"you need push access to {full_name} to set it up as a budget",
+                status=403,
+            )
+    else:
+        try:
+            full_name = create_repo(token, body.repo, description=f"Budget data for {body.name}")
+        except GitHubError as exc:
+            raise ApiError("github_error", str(exc), status=502) from exc
+
+    repo = GitRepo(
+        path=repo_path(config.repos_dir, full_name),
+        remote=f"https://github.com/{full_name}.git",
+        branch=config.data_branch,
+    )
+    actor = Actor(
+        login=caller.user.login,
+        name=caller.user.name,
+        email=caller.user.email,
+        token=token,
+    )
+    repo.ensure_clone(token)
+
+    budget = Budget(
+        name=body.name,
+        currency=body.currency,
+        start_month=date_type.today().strftime("%Y-%m"),
+        members=[Member(person=body.person, name=body.display_name, github=caller.user.login)],
+    )
+    store = BudgetStore(repo)
+    try:
+        store.initialize(budget, body.buckets or starter_buckets(), actor)
+    except DataError as exc:
+        raise ApiError("already_a_budget", str(exc), status=409) from exc
+
+    session.add(db.BudgetLink(slug=body.slug, repo=full_name, created_by=caller.user.id))
+    session.commit()
+
+    return BudgetSummary(
+        slug=body.slug,
+        name=budget.name,
+        repo=full_name,
+        currency=budget.currency,
+        branch=config.data_branch,
+        members=budget.members,
+        me=body.person,
+        can_write=True,
+    )
+
+
 @router.get(
     "/budgets/{budget}",
     operation_id="getBudget",
@@ -175,6 +260,56 @@ def get_budget(
 )
 def list_members(context: Annotated[BudgetContext, Depends(budget_context)]) -> list[Member]:
     return context.store.budget().members
+
+
+@router.post(
+    "/budgets/{budget}/members/me",
+    operation_id="joinBudget",
+    response_model=BudgetSummary,
+    status_code=201,
+    summary="Add yourself to a budget you can push to",
+    openapi_extra={"x-cli": {"command": "budget join"}},
+)
+def join_budget(
+    body: BudgetJoin,
+    context: Annotated[BudgetContext, Depends(writable)],
+    config: Annotated[Settings, Depends(get_settings)],
+) -> BudgetSummary:
+    """Join a budget whose repo you already have push access to.
+
+    Without this, being handed a budget repo by someone who forgot to add you to
+    `budget.yaml` made every screen fail with a 403 telling you to go and edit YAML — while
+    the app's own member editor sat behind the same 403. Push access is the authority the
+    rest of the app already trusts to decide who may change this data; refusing to let a
+    person with that access name themselves was the app contradicting itself.
+
+    It only ever adds you. Editing anyone else stays with `putMembers`, where removing
+    someone is checked against the entries that reference them.
+    """
+    budget = context.store.budget()
+    if budget.person_for_github(context.actor.login) is not None:
+        raise ApiError(
+            "already_a_member",
+            f"{context.actor.login} is already in this budget",
+            status=409,
+        )
+
+    member = Member(person=body.person, name=body.display_name, github=context.actor.login)
+    try:
+        context.store.join(member, body.buckets or starter_buckets(), context.actor)
+    except DataError as exc:
+        raise ApiError("person_taken", str(exc), status=409) from exc
+
+    return BudgetSummary(
+        slug=context.slug,
+        name=budget.name,
+        repo=context.repo,
+        currency=budget.currency,
+        branch=config.data_branch,
+        members=[*budget.members, member],
+        me=member.person,
+        can_write=True,
+    )
 
 
 @router.put(

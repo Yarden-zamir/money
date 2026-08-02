@@ -271,6 +271,72 @@ export type BudgetConnect = {
 };
 
 /**
+ * BudgetCreate
+ *
+ * Everything needed to go from no budget at all to a working one.
+ */
+export type BudgetCreate = {
+    /**
+     * Name
+     *
+     * What to call this budget
+     */
+    name: string;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Repo
+     *
+     * A new repo name to create, or an existing owner/repo to initialize
+     */
+    repo: string;
+    /**
+     * Person
+     *
+     * Your id within this budget; appears in every split
+     */
+    person: string;
+    /**
+     * Display Name
+     *
+     * Your name on screen
+     */
+    display_name: string;
+    /**
+     * Buckets
+     *
+     * Buckets to start with; a default set is used when omitted
+     */
+    buckets?: Array<BucketInput> | null;
+};
+
+/**
+ * BudgetJoin
+ *
+ * Adding yourself to a budget whose repo you can already push to.
+ */
+export type BudgetJoin = {
+    /**
+     * Person
+     */
+    person: string;
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Buckets
+     */
+    buckets?: Array<BucketInput> | null;
+};
+
+/**
  * BudgetSummary
  */
 export type BudgetSummary = {
@@ -605,6 +671,7 @@ export type EntryCreate = {
      * Receipt lines; must sum to the entry amount
      */
     items?: Array<LineItemInputInput> | null;
+    place?: PlaceInput | null;
 };
 
 /**
@@ -669,6 +736,11 @@ export type EntryUpdate = {
      * Items
      */
     items?: Array<LineItemInputInput> | null;
+    place?: PlaceInput | null;
+    /**
+     * At
+     */
+    at?: string | null;
     /**
      * Note
      */
@@ -1120,6 +1192,28 @@ export type PayeeSuggestion = {
  * holds a durable, shared record of where you have been — see specs/data-model.md.
  */
 export type Place = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Provider Id
+     */
+    provider_id?: string | null;
+};
+
+/**
+ * PlaceInput
+ */
+export type PlaceInput = {
     /**
      * Lat
      */
@@ -1959,6 +2053,37 @@ export type ConnectBudgetResponses = {
 
 export type ConnectBudgetResponse = ConnectBudgetResponses[keyof ConnectBudgetResponses];
 
+export type CreateBudgetData = {
+    body: BudgetCreate;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/budgets/create';
+};
+
+export type CreateBudgetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateBudgetError = CreateBudgetErrors[keyof CreateBudgetErrors];
+
+export type CreateBudgetResponses = {
+    /**
+     * Successful Response
+     */
+    201: BudgetSummary;
+};
+
+export type CreateBudgetResponse = CreateBudgetResponses[keyof CreateBudgetResponses];
+
 export type GetBudgetData = {
     body?: never;
     headers?: {
@@ -2073,6 +2198,42 @@ export type PutMembersResponses = {
 };
 
 export type PutMembersResponse = PutMembersResponses[keyof PutMembersResponses];
+
+export type JoinBudgetData = {
+    body: BudgetJoin;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/members/me';
+};
+
+export type JoinBudgetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type JoinBudgetError = JoinBudgetErrors[keyof JoinBudgetErrors];
+
+export type JoinBudgetResponses = {
+    /**
+     * Successful Response
+     */
+    201: BudgetSummary;
+};
+
+export type JoinBudgetResponse = JoinBudgetResponses[keyof JoinBudgetResponses];
 
 export type GetMonthData = {
     body?: never;
