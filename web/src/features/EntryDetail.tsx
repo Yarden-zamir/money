@@ -107,6 +107,28 @@ function SplitTab({
         ))}
       </div>
 
+      {(entry.items?.length ?? 0) > 0 && (
+        <div>
+          <div className="mb-1 font-medium text-ink-muted">{t("entries.receipt")}</div>
+          {(entry.items ?? []).map((item, index) => (
+            <div key={index} className="flex gap-2">
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              <Money amount={String(item.amount)} currency={entry.currency} colour={false} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {entry.place?.name && (
+        <div className="text-ink-muted">{t("entries.at", { place: entry.place.name })}</div>
+      )}
+
+      {entry.at && (
+        <div className="text-ink-muted">
+          {new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(entry.at))}
+        </div>
+      )}
+
       {entry.rule && (
         <div className="text-ink-muted">{t("entries.splitBy", { rule: entry.rule })}</div>
       )}

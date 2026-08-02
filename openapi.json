@@ -5401,6 +5401,16 @@
             ],
             "title": "Items",
             "description": "Receipt lines; must sum to the entry amount"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaceInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5549,6 +5559,28 @@
               }
             ],
             "title": "Items"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaceInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
           },
           "note": {
             "anyOf": [
@@ -6365,6 +6397,53 @@
         ],
         "title": "Place",
         "description": "Where a payment happened.\n\nCoordinates are committed to the budget repo, which is a deliberate choice: it makes the\nsuggestions work on every device and survive clearing a browser. It also means the repo\nholds a durable, shared record of where you have been \u2014 see specs/data-model.md."
+      },
+      "PlaceInput": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "PlaceInput"
       },
       "PostRequest": {
         "properties": {

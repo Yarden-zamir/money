@@ -53,6 +53,18 @@ export function Layout({ children }: { children: ReactNode }) {
 
           <span className="ms-auto flex items-center gap-1">
             <UndoButton />
+            <NavLink
+              to="/history"
+              title={t("history.title")}
+              aria-label={t("history.title")}
+              className={({ isActive }) =>
+                `flex size-9 items-center justify-center rounded-lg transition ${
+                  isActive ? "bg-brand-soft text-brand" : "text-ink-muted hover:bg-sunken hover:text-ink"
+                }`
+              }
+            >
+              <Icon name="clock" className="size-4" />
+            </NavLink>
             <Select
               fullWidth={false}
               className="h-9 min-h-0 py-0 text-xs"

@@ -30,7 +30,7 @@ from money.api.schemas import (
     SplitPreview,
 )
 from money.domain.amounts import ZERO
-from money.domain.models import Entry, EntryKind, LineItem, Share
+from money.domain.models import Entry, EntryKind, LineItem, Place, Share
 from money.domain.rules import first_match, shares_from_rule
 from money.store.store import new_id
 
@@ -128,6 +128,7 @@ def create_entry(
         note=body.note,
         tags=body.tags,
         rule=rule_id,
+        place=Place(**body.place.model_dump()) if body.place else None,
         items=[
             LineItem(
                 label=item.label,
@@ -286,6 +287,8 @@ def update_entry(
             LineItem(**{**item, "shares": [Share(**s) for s in (item.get("shares") or [])]})
             for item in changes["items"]
         ]
+    if "place" in changes:
+        changes["place"] = Place(**changes["place"])
 
     # Rebuilding through the model re-runs the balance checks, so an edit that leaves paid_by
     # and shares disagreeing is rejected here rather than written to the ledger.

@@ -60,6 +60,15 @@ def assignments_path(person: str, month: str) -> str:
 SCHEDULED_PATH = "scheduled.yaml"
 
 
+def _bucket_sort_key(bucket: Bucket) -> tuple[str, int, str]:
+    """Group, then the arranged position, then name as a stable tiebreak.
+
+    Name rather than id, because two buckets created together both start at order 0 and the
+    list should read alphabetically until someone actually arranges it.
+    """
+    return (bucket.group or "", bucket.order, bucket.name)
+
+
 def note_path(entry_id: str) -> str:
     return f"notes/{entry_id}.md"
 
@@ -87,8 +96,13 @@ class BudgetStore:
         return [Rule.model_validate(item) for item in raw]
 
     def buckets(self, person: str) -> list[Bucket]:
+        """Buckets in the order a person arranged them.
+
+        Sorted on read as well as on write, because the file can be edited by hand and a
+        reordering typed into YAML should take effect without needing the app to rewrite it.
+        """
         raw = yamlio.load(self.repo.read(buckets_path(person))) or []
-        return [Bucket.model_validate(item) for item in raw]
+        return sorted((Bucket.model_validate(item) for item in raw), key=_bucket_sort_key)
 
     def entries_for_month(self, month: str) -> list[Entry]:
         raw = yamlio.load(self.repo.read(ledger_path(month)))
@@ -239,7 +253,7 @@ class BudgetStore:
         def mutate() -> list[str]:
             buckets = [b for b in self.buckets(person) if b.id != bucket.id]
             buckets.append(bucket)
-            buckets.sort(key=lambda b: (b.group or "", b.id))
+            buckets.sort(key=_bucket_sort_key)
             self.repo.write(
                 buckets_path(person),
                 yamlio.dump([b.model_dump(mode="python", exclude_none=True) for b in buckets]),

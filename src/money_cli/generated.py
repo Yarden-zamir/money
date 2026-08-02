@@ -341,11 +341,12 @@ def entry_add(
     bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='Book every share against this bucket, overriding the rule')] = None,
     note: Annotated[str | None, typer.Option("--note", "-n", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
+    place: Annotated[str | None, typer.Option("--place", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags, "place": place}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -384,13 +385,15 @@ def entry_edit(
     amount: Annotated[str | None, typer.Option("--amount", help='')] = None,
     payee: Annotated[str | None, typer.Option("--payee", help='')] = None,
     date: Annotated[str | None, typer.Option("--date", help='')] = None,
+    place: Annotated[str | None, typer.Option("--place", help='')] = None,
+    at: Annotated[str | None, typer.Option("--at", help='')] = None,
     note: Annotated[str | None, typer.Option("--note", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "note": note, "tags": tags}
+    body = {"amount": amount, "payee": payee, "date": date, "place": place, "at": at, "note": note, "tags": tags}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -476,11 +479,12 @@ def entry_preview(
     bucket: Annotated[str | None, typer.Option("--bucket", help='Book every share against this bucket, overriding the rule')] = None,
     note: Annotated[str | None, typer.Option("--note", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
+    place: Annotated[str | None, typer.Option("--place", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags, "place": place}
     if raw:
         body.update(json.loads(raw))
     emit(

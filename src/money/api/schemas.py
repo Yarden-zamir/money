@@ -25,6 +25,15 @@ class ShareInput(BaseModel):
     bucket: str | None = None
 
 
+class PlaceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    name: str | None = Field(default=None, max_length=200)
+    provider_id: str | None = Field(default=None, max_length=200)
+
+
 class LineItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -61,6 +70,7 @@ class EntryCreate(BaseModel):
     items: list[LineItemInput] | None = Field(
         default=None, description="Receipt lines; must sum to the entry amount"
     )
+    place: PlaceInput | None = None
 
 
 class EntryUpdate(BaseModel):
@@ -72,6 +82,8 @@ class EntryUpdate(BaseModel):
     paid_by: dict[str, Decimal] | None = None
     shares: list[ShareInput] | None = None
     items: list[LineItemInput] | None = None
+    place: PlaceInput | None = None
+    at: DateTimeType | None = None
     note: str | None = None
     tags: list[str] | None = None
 

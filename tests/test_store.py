@@ -8,7 +8,7 @@ survives a round trip, and that a preview branch is created from main without to
 from __future__ import annotations
 
 import subprocess
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -208,6 +208,109 @@ class TestBranches:
 
         prod.repo.ensure_clone(ACTOR.token)
         assert len(prod.entries_for_month("2026-07")) == 1
+
+
+class TestFullRoundTrip:
+    """Every field on an entry must survive being written and read back.
+
+    The place field existed on the model but not on the write schema, so entries carrying a
+    location were rejected outright and the whole feature was dead. A field that exists in
+    one layer and not the next is the failure mode these cover.
+    """
+
+    def rich(self) -> Entry:
+        return Entry.model_validate(
+            {
+                "id": new_id(),
+                "kind": "expense",
+                "date": date(2026, 7, 14),
+                "at": datetime(2026, 7, 14, 19, 42),
+                "payee": "קפה גרג",
+                "amount": "-50.00",
+                "currency": "ILS",
+                "paid_by": {"yarden": "-50.00"},
+                "shares": [
+                    {"person": "yarden", "amount": "-15.00", "bucket": "fun-money"},
+                    {"person": "yarden", "amount": "-35.00", "bucket": "groceries"},
+                ],
+                "items": [
+                    {
+                        "label": "Coffee",
+                        "amount": "-15.00",
+                        "shares": [{"person": "yarden", "amount": "-15.00", "bucket": "fun-money"}],
+                    },
+                    {
+                        "label": "Cake",
+                        "amount": "-35.00",
+                        "shares": [{"person": "yarden", "amount": "-35.00", "bucket": "groceries"}],
+                    },
+                ],
+                "place": {"lat": 32.0853, "lon": 34.7818, "name": "קפה גרג", "provider_id": "abc"},
+                "note": "with cake",
+                "tags": ["coffee"],
+            }
+        )
+
+    def test_every_field_survives_yaml(self, store: BudgetStore) -> None:
+        original = self.rich()
+        store.add_entry(original, ACTOR)
+
+        [loaded] = store.entries_for_month("2026-07")
+        assert loaded == original
+
+    def test_the_clock_time_is_not_lost(self, store: BudgetStore) -> None:
+        original = self.rich()
+        store.add_entry(original, ACTOR)
+
+        [loaded] = store.entries_for_month("2026-07")
+        assert loaded.at == datetime(2026, 7, 14, 19, 42)
+
+    def test_coordinates_keep_their_precision(self, store: BudgetStore) -> None:
+        """A rounded coordinate would silently widen or move the 'same place' radius."""
+        original = self.rich()
+        store.add_entry(original, ACTOR)
+
+        [loaded] = store.entries_for_month("2026-07")
+        assert loaded.place is not None
+        assert loaded.place.lat == 32.0853
+        assert loaded.place.lon == 34.7818
+
+    def test_every_model_field_is_writable_through_the_api_schema(self) -> None:
+        """A field on the entry that no request can set is a feature nobody can reach.
+
+        `rule` is derived, and `id` is minted by the server, so those are the only two the
+        write schema is allowed to omit.
+        """
+        from money.api.schemas import EntryCreate
+
+        derived = {"id", "rule"}
+        missing = set(Entry.model_fields) - set(EntryCreate.model_fields) - derived
+        assert not missing, f"entry fields no request can set: {sorted(missing)}"
+
+
+class TestBucketOrder:
+    def test_buckets_come_back_in_the_arranged_order(self, store: BudgetStore) -> None:
+        for index, name in enumerate(["Rent", "Groceries", "Transport"]):
+            store.put_bucket(
+                "yarden",
+                Bucket(id=name.lower(), name=name, group="Essentials", order=2 - index),
+                ACTOR,
+            )
+        assert [b.name for b in store.buckets("yarden")] == ["Transport", "Groceries", "Rent"]
+
+    def test_saving_a_bucket_does_not_discard_the_arrangement(self, store: BudgetStore) -> None:
+        """put_bucket used to re-sort by id, so any save silently undid a reordering."""
+        store.put_bucket("yarden", Bucket(id="b", name="B", order=0), ACTOR)
+        store.put_bucket("yarden", Bucket(id="a", name="A", order=1), ACTOR)
+
+        assert [b.id for b in store.buckets("yarden")] == ["b", "a"]
+
+    def test_unarranged_buckets_read_alphabetically(self, store: BudgetStore) -> None:
+        """Two buckets created together both start at order 0."""
+        store.put_bucket("yarden", Bucket(id="zeta", name="Zeta"), ACTOR)
+        store.put_bucket("yarden", Bucket(id="alpha", name="Alpha"), ACTOR)
+
+        assert [b.name for b in store.buckets("yarden")] == ["Alpha", "Zeta"]
 
 
 class TestNotes:
