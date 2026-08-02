@@ -39,7 +39,8 @@
     "close": "Close month",
     "reopen": "Reopen",
     "closed": "Closed",
-    "archive": "Archive"
+    "archive": "Archive",
+    "overspent": "Overspent"
   },
   "entries": {
     "title": "Entries",

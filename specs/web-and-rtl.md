@@ -126,8 +126,11 @@ the API, which has a real decimal type.
 
 ## Screens
 
-- **Month** — envelope view for the signed-in person: assigned, activity, available per
-  bucket, and ready-to-assign at the top. The YNAB half.
+- **Month** — a ledger, not a list of cards. One set of column headers rather than a label
+  repeated on every row; groups carry a subtotal, because "can this category cover the rest
+  of the month" is a question about the group; and a severity edge marks overspent rows only.
+  The summary strip states income, assigned, ready-to-assign and how many envelopes are
+  overspent — a single hero number answered none of the last three.
 - **Entries** — ledger with filters, inline split editor showing both dimensions (buckets and
   people) at once, and a link to the commit that recorded each change.
 - **Balances** — net position per person and the suggested settle-up, with a one-tap

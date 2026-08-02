@@ -18,6 +18,13 @@ import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
 import { useBudget } from "./useBudget";
 
+/**
+ * The envelope view.
+ *
+ * Laid out as a ledger, not as a list of cards: one set of column headers, amounts in a
+ * monospace column, and the row itself carrying no repeated labels. The previous version
+ * printed "Available" on every single row, which is noise once there is more than one.
+ */
 export function MonthScreen() {
   const { t, i18n } = useTranslation();
   const { budget, isPending: budgetPending } = useBudget();
@@ -34,10 +41,8 @@ export function MonthScreen() {
   if (query.isError || !budget) return <ErrorState onRetry={() => void query.refetch()} />;
 
   const view = query.data;
-  const ready = Number(view.ready_to_assign);
+  const overspent = view.buckets.filter((bucket) => Number(bucket.available) < 0);
 
-  // Buckets are grouped the way a person thinks about them — essentials, lifestyle, goals —
-  // rather than as one long list. Ungrouped buckets fall into a single trailing section.
   const groups = new Map<string, BucketState[]>();
   for (const bucket of view.buckets) {
     const key = bucket.group ?? "";
@@ -45,15 +50,15 @@ export function MonthScreen() {
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
+    <section className="space-y-4">
+      <header className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-0.5">
           {/* ‹ and › are Bidi-Mirrored: the text engine flips them in RTL, so they must not
               also get .icon-directional. Flex order puts "previous" at the inline start. */}
           <Step label={t("month.previous")} onClick={() => setMonth(shiftMonth(month, -1))}>
             ‹
           </Step>
-          <h1 className="min-w-36 text-center text-base font-semibold sm:min-w-44 sm:text-lg">
+          <h1 className="min-w-32 text-center text-base font-semibold sm:min-w-40">
             {formatMonth(month, i18n.language)}
           </h1>
           <Step label={t("month.next")} onClick={() => setMonth(shiftMonth(month, 1))}>
@@ -61,46 +66,69 @@ export function MonthScreen() {
           </Step>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="ms-auto flex items-center gap-1">
           {month !== currentMonth() && (
-            <Button variant="ghost" onClick={() => setMonth(currentMonth())}>
+            <Button variant="ghost" className="min-h-9 px-3" onClick={() => setMonth(currentMonth())}>
               {t("month.today")}
             </Button>
           )}
           {budget.can_write && <CloseMonth budget={budget.slug} month={month} />}
         </div>
-      </div>
+      </header>
 
-      {/* Ready to assign is the number that drives every decision on this screen, so it is
-          the only thing given hero treatment. */}
-      <Card
-        className={`p-4 ${
-          ready < 0
-            ? "border-negative/40 bg-negative/5"
-            : ready > 0
-              ? "border-brand/40 bg-brand-soft/60"
-              : ""
-        }`}
-      >
-        <div className="text-xs font-medium text-ink-muted">{t("month.readyToAssign")}</div>
-        <Money
+      {/* A summary strip, not a hero number. "Ready to assign" alone cannot answer whether
+          anything is overspent, or how much of the month's income is already committed. */}
+      <Card className="grid grid-cols-2 divide-line sm:grid-cols-4 sm:divide-x rtl:sm:divide-x-reverse">
+        <Stat label={t("month.income")} amount={view.income} currency={view.currency} />
+        <Stat label={t("month.assigned")} amount={view.assigned} currency={view.currency} muted />
+        <Stat
+          label={t("month.readyToAssign")}
           amount={view.ready_to_assign}
           currency={view.currency}
-          className="text-2xl font-semibold sm:text-3xl"
+          emphasis
         />
+        <div className="border-t border-line p-3 sm:border-t-0">
+          <div className="eyebrow">{t("month.overspent")}</div>
+          <div
+            className={`numeric mt-0.5 text-lg font-semibold ${
+              overspent.length ? "text-negative" : "text-ink-muted"
+            }`}
+          >
+            {overspent.length}
+          </div>
+        </div>
       </Card>
 
       {view.buckets.length === 0 ? (
-        <Card className="p-6 text-center text-ink-muted">{t("month.empty")}</Card>
+        <Card className="p-8 text-center text-sm text-ink-muted">{t("month.empty")}</Card>
       ) : (
-        [...groups.entries()].map(([group, buckets]) => (
-          <div key={group}>
-            {group && (
-              <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-                {group}
-              </h2>
-            )}
-            <Card className="divide-y divide-line overflow-hidden">
+        <Card className="overflow-hidden">
+          {/* Column headers once, at the top — not repeated as a label on every row. */}
+          <div className="hidden items-center gap-3 border-b border-line px-4 py-2 sm:flex">
+            <span className="eyebrow flex-1">{t("month.bucket")}</span>
+            <span className="eyebrow w-28 text-end">{t("month.activity")}</span>
+            <span className="eyebrow w-28 text-end">{t("month.available")}</span>
+            <span className="eyebrow w-24 text-end">{t("month.assigned")}</span>
+          </div>
+
+          {[...groups.entries()].map(([group, buckets]) => (
+            <div key={group}>
+              {group && (
+                <div className="flex items-baseline gap-2 bg-sunken px-4 py-1.5">
+                  <span className="eyebrow">{group}</span>
+                  {/* A group subtotal: the question "can this category cover the rest of the
+                      month" is about the group, not any single envelope in it. */}
+                  <span className="ms-auto text-xs text-ink-muted">
+                    <Money
+                      amount={buckets
+                        .reduce((total, bucket) => total + Number(bucket.available), 0)
+                        .toFixed(2)}
+                      currency={view.currency}
+                      colour={false}
+                    />
+                  </span>
+                </div>
+              )}
               {buckets.map((bucket) => (
                 <BucketRow
                   key={bucket.bucket}
@@ -112,9 +140,9 @@ export function MonthScreen() {
                   onEdit={() => setEditing(bucket.bucket)}
                 />
               ))}
-            </Card>
-          </div>
-        ))
+            </div>
+          ))}
+        </Card>
       )}
 
       {editing && (
@@ -130,6 +158,34 @@ export function MonthScreen() {
           </Button>
         ))}
     </section>
+  );
+}
+
+function Stat({
+  label,
+  amount,
+  currency,
+  emphasis,
+  muted,
+}: {
+  label: string;
+  amount: string;
+  currency: string;
+  emphasis?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <div className="p-3">
+      <div className="eyebrow">{label}</div>
+      <Money
+        amount={amount}
+        currency={currency}
+        colour={Boolean(emphasis)}
+        className={`mt-0.5 block ${emphasis ? "text-lg font-semibold" : "text-lg"} ${
+          muted ? "text-ink-muted" : ""
+        }`}
+      />
+    </div>
   );
 }
 
@@ -160,57 +216,47 @@ function BucketRow({
   const target = bucket.target === null ? null : Number(bucket.target);
   const assigned = Number(bucket.assigned);
 
-  // Progress runs against the target when there is one, otherwise against what was assigned.
-  // Either way the question is "how much of this envelope is gone".
   const basis = target ?? assigned;
   const spent = Math.abs(Number(bucket.activity));
   const percent = basis > 0 ? Math.min(100, Math.round((spent / basis) * 100)) : 0;
 
-  // Four states, because "nothing left" and "overspent" are different situations, and an
-  // envelope emptied exactly on plan — a paid bill — is neither a warning nor a success.
+  // Four states: overspent, emptied exactly on plan (a paid bill — neither good nor bad),
+  // running low, and healthy.
   const tone =
     available < 0
       ? "bg-negative"
       : available === 0
-        ? "bg-ink-muted/50"
+        ? "bg-ink-muted/40"
         : basis > 0 && available < basis * 0.1
           ? "bg-warning"
           : "bg-positive";
 
-  const shortfall = target !== null && assigned < target;
-
   return (
-    <div className="p-3 sm:px-4">
+    // The severity edge marks the one state that needs acting on. It is not decoration —
+    // rows that are fine carry no edge at all.
+    <div
+      className={`border-b border-line px-4 py-2.5 last:border-b-0 ${
+        available < 0 ? "border-s-2 border-s-negative" : ""
+      }`}
+    >
       <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            className="truncate text-start text-sm font-medium hover:text-brand"
-            onClick={onEdit}
-            disabled={!canWrite}
-          >
-            {bucket.name}
-          </button>
-          {/* "spent / target" is a fraction: its two halves have a fixed reading order. Each
-              amount is individually isolated, so without an LTR run around the pair the
-              sequence itself flips in Hebrew and the target appears to come first. */}
-          <div dir="ltr" className="numeric mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
-            <Money amount={bucket.activity} currency={currency} colour={false} />
-            {target !== null && (
-              <>
-                <span aria-hidden>/</span>
-                <Money amount={bucket.target ?? "0"} currency={currency} colour={false} />
-              </>
-            )}
-          </div>
-        </div>
+        <button
+          type="button"
+          className="min-w-0 flex-1 truncate text-start text-sm font-medium hover:text-brand disabled:hover:text-ink"
+          onClick={onEdit}
+          disabled={!canWrite}
+        >
+          {bucket.name}
+        </button>
 
-        <div className="text-end">
-          <div className="text-[11px] text-ink-muted">{t("month.available")}</div>
-          <Money amount={bucket.available} currency={currency} className="text-sm font-semibold" />
-        </div>
+        <span className="hidden w-28 text-end text-sm sm:block">
+          <Money amount={bucket.activity} currency={currency} colour={false} />
+        </span>
+        <span className="w-28 text-end text-sm font-semibold">
+          <Money amount={bucket.available} currency={currency} />
+        </span>
 
-        {canWrite && (
+        {canWrite ? (
           <AssignField
             assigned={bucket.assigned}
             pending={assign.isPending}
@@ -218,21 +264,26 @@ function BucketRow({
               assign.mutate({ path: { budget, month }, body: { bucket: bucket.bucket, amount } })
             }
           />
+        ) : (
+          <span className="w-24 text-end text-sm text-ink-muted">
+            <Money amount={bucket.assigned} currency={currency} colour={false} />
+          </span>
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-          <div className={`h-full rounded-full ${tone}`} style={{ width: `${percent}%` }} />
+      <div className="mt-2 flex items-center gap-3">
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
+          <div className={`h-full ${tone}`} style={{ width: `${percent}%` }} />
         </div>
-        {canWrite && shortfall && (
+        {/* Only shown when acting on it would change something. */}
+        {canWrite && target !== null && assigned < target && (
           <button
             type="button"
             className="shrink-0 text-[11px] text-brand hover:underline"
             onClick={() =>
               assign.mutate({
                 path: { budget, month },
-                body: { bucket: bucket.bucket, amount: (target ?? 0).toFixed(2) },
+                body: { bucket: bucket.bucket, amount: target.toFixed(2) },
               })
             }
           >
@@ -268,7 +319,9 @@ function AssignField({
     <Input
       fullWidth={false}
       aria-label={t("month.assign")}
-      className="numeric ltr-field w-24 shrink-0 text-end"
+      // Quiet until touched, so a column of them does not read as a wall of boxes — but it
+      // still has to look editable, hence the border on hover and focus.
+      className="numeric ltr-field min-h-9 w-24 border-transparent bg-transparent px-2 text-end hover:border-line focus:bg-card"
       inputMode="decimal"
       value={draft ?? Number(assigned).toFixed(2)}
       disabled={pending}
@@ -364,28 +417,6 @@ function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
   );
 }
 
-function Step({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="flex size-9 items-center justify-center rounded-lg text-lg text-ink-muted hover:bg-card"
-    >
-      {children}
-    </button>
-  );
-}
-
-
 /** Rename a bucket, change its group or target, or archive it. */
 function EditBucket({
   budget,
@@ -473,7 +504,12 @@ function EditBucket({
             /* Archive, not delete: entries already reference this bucket and their history
                must keep resolving to a name. */
             destructive={
-              <Button type="button" variant="danger" disabled={save.isPending} onClick={() => submit(true)}>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={save.isPending}
+                onClick={() => submit(true)}
+              >
                 {t("month.archive")}
               </Button>
             }
@@ -503,7 +539,8 @@ function CloseMonth({ budget, month }: { budget: string; month: string }) {
 
   return (
     <Button
-      variant="ghost"
+      variant={closed ? "quiet" : "ghost"}
+      className="min-h-9 px-3"
       disabled={close.isPending || reopen.isPending}
       onClick={() =>
         closed
@@ -513,5 +550,26 @@ function CloseMonth({ budget, month }: { budget: string; month: string }) {
     >
       {closed ? t("month.reopen") : t("month.close")}
     </Button>
+  );
+}
+
+function Step({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex size-9 items-center justify-center rounded-lg text-lg text-ink-muted hover:bg-card"
+    >
+      {children}
+    </button>
   );
 }
