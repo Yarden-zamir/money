@@ -13,18 +13,53 @@ import {
 import type { BudgetSummary, Member } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input } from "@/components/Form";
 import { ErrorState, Loading } from "@/components/States";
+import { Link } from "react-router-dom";
+
+import { Icon } from "@/components/Icon";
+import { THEMES, applyTheme, storedTheme } from "@/lib/theme";
 import { ConnectBudget } from "./ConnectBudget";
 import { InvitePerson } from "./InvitePerson";
 import { useBudget } from "./useBudget";
 
 export function SettingsScreen() {
   const { t } = useTranslation();
+  const [theme, setTheme] = useState(storedTheme);
   const { budget, budgets, select } = useBudget();
   const [connecting, setConnecting] = useState(false);
 
   return (
     <section className="space-y-8">
       <h1 className="text-lg font-semibold">{t("settings.title")}</h1>
+
+      <div>
+        <h2 className="eyebrow mb-2">{t("settings.theme")}</h2>
+        <div className="flex gap-2">
+          {THEMES.map((option) => (
+            <Button
+              key={option}
+              variant={theme === option ? "primary" : "quiet"}
+              className="min-h-9 px-3 text-xs"
+              onClick={() => {
+                applyTheme(option);
+                setTheme(option);
+              }}
+            >
+              {t(`settings.${option}`)}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="eyebrow mb-2">{t("history.title")}</h2>
+        <Link
+          to="/history"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-card px-4 text-sm hover:bg-sunken"
+        >
+          <Icon name="clock" className="size-4" />
+          {t("history.hint")}
+        </Link>
+      </div>
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-ink-muted">{t("settings.budgets")}</h2>

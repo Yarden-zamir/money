@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, autoAssign, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, suggestPayees, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, autoAssign, closeMonth, connectBudget, createApiKey, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getMe, getMonth, getMonthClose, inviteCollaborator, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, reopenMonth, searchGithubUsers, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -962,3 +962,96 @@ export const postScheduledMutation = (options?: Partial<Options<PostScheduledDat
     };
     return mutationOptions;
 };
+
+export const getHistoryQueryKey = (options: Options<GetHistoryData>) => createQueryKey('getHistory', options);
+
+/**
+ * Everything that has changed, newest first
+ *
+ * One feed for every change, whichever file it touched.
+ *
+ * Assignments show up next to entries because they are the same kind of event to the person
+ * reading — money moved — even though one lives in a ledger file and the other in a map.
+ */
+export const getHistoryOptions = (options: Options<GetHistoryData>) => queryOptions<GetHistoryResponse, GetHistoryError, GetHistoryResponse, ReturnType<typeof getHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getHistoryQueryKey(options)
+});
+
+/**
+ * Undo a change you made
+ *
+ * Revert a commit, defaulting to your own most recent one.
+ *
+ * Scoped to your own changes: in a shared budget, silently reversing your partner's work
+ * from your phone is the failure worth designing against. Reverting someone else's change
+ * is still possible by naming its sha explicitly, which makes it a deliberate act.
+ */
+export const undoChangeMutation = (options?: Partial<Options<UndoChangeData>>): UseMutationOptions<UndoChangeResponse, UndoChangeError, Options<UndoChangeData>> => {
+    const mutationOptions: UseMutationOptions<UndoChangeResponse, UndoChangeError, Options<UndoChangeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await undoChange({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const nearbyPlacesQueryKey = (options: Options<NearbyPlacesData>) => createQueryKey('nearbyPlaces', options);
+
+/**
+ * Venues around a point
+ *
+ * Names the shop someone is standing in, so the first visit does not need typing.
+ *
+ * Proxied rather than called from the browser, so the API key stays on the server. Returns
+ * an empty list rather than an error when the lookup fails — a places outage should not
+ * stop anyone recording an expense.
+ */
+export const nearbyPlacesOptions = (options: Options<NearbyPlacesData>) => queryOptions<NearbyPlacesResponse, NearbyPlacesError, NearbyPlacesResponse, ReturnType<typeof nearbyPlacesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await nearbyPlaces({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: nearbyPlacesQueryKey(options)
+});
+
+export const suggestEntryQueryKey = (options: Options<SuggestEntryData>) => createQueryKey('suggestEntry', options);
+
+/**
+ * A guessed entry, with its reasoning
+ *
+ * What this person probably about to record, drawn only from this budget's own history.
+ *
+ * Every field the caller already knows narrows the pool the rest is drawn from, so filling
+ * in the payee improves the amount and the split rather than being ignored.
+ */
+export const suggestEntryOptions = (options: Options<SuggestEntryData>) => queryOptions<SuggestEntryResponse, SuggestEntryError, SuggestEntryResponse, ReturnType<typeof suggestEntryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await suggestEntry({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: suggestEntryQueryKey(options)
+});

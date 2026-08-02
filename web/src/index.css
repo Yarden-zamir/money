@@ -36,6 +36,7 @@
   --radius-card: 0.75rem;
 }
 
+/* Dark tokens apply from the OS preference... */
 @media (prefers-color-scheme: dark) {
   @theme {
     --color-surface: oklch(18% 0.014 235);
@@ -54,6 +55,43 @@
     --color-negative: oklch(69% 0.16 25);
     --color-warning: oklch(78% 0.12 75);
   }
+}
+
+/* ...and an explicit choice overrides it, in both directions. A person who set light while
+   their OS is dark must get light, so `data-theme="light"` has to restate the light tokens
+   rather than merely not applying the dark ones. */
+:root[data-theme="dark"] {
+  --color-surface: oklch(18% 0.014 235);
+  --color-card: oklch(22% 0.016 235);
+  --color-sunken: oklch(15% 0.012 235);
+  --color-ink: oklch(95% 0.006 220);
+  --color-ink-muted: oklch(68% 0.018 225);
+  --color-line: oklch(30% 0.016 235);
+  --color-line-strong: oklch(38% 0.018 235);
+  --color-brand: oklch(74% 0.1 220);
+  --color-brand-soft: oklch(31% 0.045 220);
+  --color-on-brand: oklch(18% 0.014 235);
+  --color-positive: oklch(74% 0.14 155);
+  --color-negative: oklch(69% 0.16 25);
+  --color-warning: oklch(78% 0.12 75);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --color-surface: oklch(97.5% 0.004 220);
+  --color-card: oklch(100% 0 0);
+  --color-sunken: oklch(95% 0.006 220);
+  --color-ink: oklch(24% 0.018 235);
+  --color-ink-muted: oklch(52% 0.02 230);
+  --color-line: oklch(90% 0.008 220);
+  --color-line-strong: oklch(83% 0.012 220);
+  --color-brand: oklch(48% 0.09 220);
+  --color-brand-soft: oklch(94% 0.025 220);
+  --color-on-brand: oklch(99% 0 0);
+  --color-positive: oklch(52% 0.13 155);
+  --color-negative: oklch(52% 0.17 25);
+  --color-warning: oklch(66% 0.13 75);
+  color-scheme: light;
 }
 
 body {

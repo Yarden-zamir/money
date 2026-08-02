@@ -135,7 +135,19 @@ const dueList = {
   ],
 };
 
+const historyFeed = {
+  undoable: "aaaaaaa1",
+  events: [
+    { sha: "aaaaaaa1c0ffee", subject: "entry: add שופרסל דיל 284.51 ILS", kind: "entry", author: "Yarden", actor: "dev", date: "2026-08-02T09:12:00Z", entry_id: null, mine: true },
+    { sha: "bbbbbbb2c0ffee", subject: "assign: yarden groceries 2000.00 for 2026-08", kind: "assignment", author: "Yarden", actor: "dev", date: "2026-08-01T20:03:00Z", entry_id: null, mine: true },
+    { sha: "ccccccc3c0ffee", subject: "bucket: yarden savings", kind: "bucket", author: "Dana", actor: "dana-example", date: "2026-07-30T11:40:00Z", entry_id: null, mine: false },
+  ],
+};
+
 const ROUTES = [
+  [/\/history/, () => historyFeed],
+  [/\/suggest/, () => ({ payee: null, amount: null, bucket: null, shares: [], items: [], place_name: null, confidence: 0, basis: "none", reason: "Nothing similar yet.", sample_size: 0 })],
+  [/\/entries\/payees/, () => []],
   [/\/scheduled\/due/, () => dueList],
   [/\/budgets\/joint\/scheduled/, () => scheduled],
   [/\/github\/repos/, () => repos],
@@ -177,6 +189,7 @@ const SCREENS = [
   ["scheduled", "/scheduled"],
   ["rules", "/rules"],
   ["settings", "/settings"],
+  ["history", "/history"],
 ];
 
 const VIEWPORTS = [

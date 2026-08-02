@@ -48,7 +48,9 @@
     "move": "Move money",
     "moveFrom": "From",
     "moveTo": "To",
-    "cover": "Cover this"
+    "cover": "Cover this",
+    "noTarget": "no target",
+    "moreOptions": "More options"
   },
   "entries": {
     "title": "Entries",
@@ -130,7 +132,11 @@
     "branch": "Branch",
     "readWrite": "read/write",
     "readOnly": "read only",
-    "keyNameHint": "e.g. laptop, phone, CI"
+    "keyNameHint": "e.g. laptop, phone, CI",
+    "theme": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
   },
   "common": {
     "loading": "Loading…",
@@ -138,7 +144,8 @@
     "retry": "Retry",
     "you": "You",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "edit": "Edit {{field}}"
   },
   "budgets": {
     "connect": "Connect a budget",
@@ -230,5 +237,11 @@
       "mode": "Used {{count}} times; this is the amount that repeats",
       "latest": "Every visit differs, so this is the most recent"
     }
+  },
+  "history": {
+    "title": "History",
+    "hint": "Every change, newest first. Assignments appear alongside entries.",
+    "undo": "Undo",
+    "undone": "Undone: {{what}}"
   }
 }

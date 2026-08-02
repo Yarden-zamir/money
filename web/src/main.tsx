@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./lib/client";
 import "./lib/i18n";
+import "./lib/theme";
 import "./index.css";
 
 const queryClient = new QueryClient({

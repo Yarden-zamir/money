@@ -183,6 +183,12 @@ export type BucketInput = {
      * Archived
      */
     archived?: boolean;
+    /**
+     * Order
+     *
+     * Sort position within its group; ties fall back to name
+     */
+    order?: number;
 };
 
 /**
@@ -206,6 +212,12 @@ export type BucketOutput = {
      * Archived
      */
     archived?: boolean;
+    /**
+     * Order
+     *
+     * Sort position within its group; ties fall back to name
+     */
+    order?: number;
 };
 
 /**
@@ -513,6 +525,13 @@ export type Entry = {
      * Rule
      */
     rule?: string | null;
+    /**
+     * Items
+     *
+     * Receipt lines; must sum to the entry amount
+     */
+    items?: Array<LineItem>;
+    place?: Place | null;
 };
 
 /**
@@ -570,6 +589,12 @@ export type EntryCreate = {
      * Tags
      */
     tags?: Array<string>;
+    /**
+     * Items
+     *
+     * Receipt lines; must sum to the entry amount
+     */
+    items?: Array<LineItemInputInput> | null;
 };
 
 /**
@@ -631,6 +656,10 @@ export type EntryUpdate = {
      */
     shares?: Array<ShareInputInput> | null;
     /**
+     * Items
+     */
+    items?: Array<LineItemInputInput> | null;
+    /**
      * Note
      */
     note?: string | null;
@@ -651,6 +680,48 @@ export type HttpValidationError = {
 };
 
 /**
+ * HistoryEvent
+ */
+export type HistoryEvent = {
+    /**
+     * Sha
+     */
+    sha: string;
+    /**
+     * Subject
+     */
+    subject: string;
+    /**
+     * Kind
+     *
+     * entry, assignment, bucket, rules, members, note, undo
+     */
+    kind: string;
+    /**
+     * Author
+     */
+    author: string;
+    /**
+     * Actor
+     */
+    actor: string | null;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Entry Id
+     */
+    entry_id: string | null;
+    /**
+     * Mine
+     *
+     * You made this change
+     */
+    mine: boolean;
+};
+
+/**
  * HistoryList
  */
 export type HistoryList = {
@@ -658,6 +729,22 @@ export type HistoryList = {
      * Commits
      */
     commits: Array<CommitRef>;
+};
+
+/**
+ * HistoryPage
+ */
+export type HistoryPage = {
+    /**
+     * Events
+     */
+    events: Array<HistoryEvent>;
+    /**
+     * Undoable
+     *
+     * Sha of your most recent change, if any
+     */
+    undoable: string | null;
 };
 
 /**
@@ -702,6 +789,81 @@ export type InviteResponse = {
      * Person
      */
     person: string;
+};
+
+/**
+ * LineItem
+ *
+ * One line on a receipt.
+ *
+ * A receipt is one payment but several things bought, and they do not always belong in the
+ * same envelope or to the same person — a supermarket run is groceries and a bottle of wine.
+ * Splitting the *entry* cannot express that, because the entry's split is about the total.
+ *
+ * A line carries its own shares when it needs to. When it does not, it simply belongs to
+ * whatever the entry as a whole decided.
+ */
+export type LineItem = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    /**
+     * Shares
+     */
+    shares?: Array<ShareOutput>;
+};
+
+/**
+ * LineItemInput
+ */
+export type LineItemInputInput = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Amount
+     */
+    amount: number | string;
+    /**
+     * Quantity
+     */
+    quantity?: number | string | null;
+    /**
+     * Shares
+     */
+    shares?: Array<ShareInputInput> | null;
+};
+
+/**
+ * LineItemInput
+ */
+export type LineItemInputOutput = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Amount
+     */
+    amount: string;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    /**
+     * Shares
+     */
+    shares?: Array<ShareInputOutput> | null;
 };
 
 /**
@@ -845,6 +1007,24 @@ export type MoveRequest = {
 };
 
 /**
+ * NearbyPlaceResponse
+ */
+export type NearbyPlaceResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Kind
+     */
+    kind: string | null;
+};
+
+/**
  * NoteBody
  */
 export type NoteBody = {
@@ -906,6 +1086,34 @@ export type PayeeSuggestion = {
      * Which rule produced the suggestion, for the explanation
      */
     basis: string;
+};
+
+/**
+ * Place
+ *
+ * Where a payment happened.
+ *
+ * Coordinates are committed to the budget repo, which is a deliberate choice: it makes the
+ * suggestions work on every device and survive clearing a browser. It also means the repo
+ * holds a durable, shared record of where you have been — see specs/data-model.md.
+ */
+export type Place = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Provider Id
+     */
+    provider_id?: string | null;
 };
 
 /**
@@ -1327,6 +1535,56 @@ export type SplitPreview = {
 };
 
 /**
+ * SuggestionResponse
+ */
+export type SuggestionResponse = {
+    /**
+     * Payee
+     */
+    payee: string | null;
+    /**
+     * Amount
+     */
+    amount: string | null;
+    /**
+     * Bucket
+     */
+    bucket: string | null;
+    /**
+     * Shares
+     */
+    shares: Array<ShareInputOutput>;
+    /**
+     * Items
+     */
+    items: Array<LineItemInputOutput>;
+    /**
+     * Place Name
+     */
+    place_name: string | null;
+    /**
+     * Confidence
+     */
+    confidence: number;
+    /**
+     * Basis
+     *
+     * payee, place, time or none
+     */
+    basis: string;
+    /**
+     * Reason
+     *
+     * Why this was suggested; shown on hover
+     */
+    reason: string;
+    /**
+     * Sample Size
+     */
+    sample_size: number;
+};
+
+/**
  * Target
  */
 export type TargetInput = {
@@ -1360,6 +1618,30 @@ export type TargetOutput = {
      * Due
      */
     due?: string | null;
+};
+
+/**
+ * UndoResult
+ */
+export type UndoResult = {
+    /**
+     * Undone Sha
+     */
+    undone_sha: string;
+    /**
+     * Undone Subject
+     *
+     * What was reverted, for the confirmation
+     */
+    undone_subject: string;
+    /**
+     * Commit
+     */
+    commit: string;
+    /**
+     * Can Redo
+     */
+    can_redo: boolean;
 };
 
 /**
@@ -3144,3 +3426,180 @@ export type PostScheduledResponses = {
 };
 
 export type PostScheduledResponse = PostScheduledResponses[keyof PostScheduledResponses];
+
+export type GetHistoryData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/budgets/{budget}/history';
+};
+
+export type GetHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetHistoryError = GetHistoryErrors[keyof GetHistoryErrors];
+
+export type GetHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: HistoryPage;
+};
+
+export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
+
+export type UndoChangeData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Sha
+         */
+        sha?: string | null;
+    };
+    url: '/api/v1/budgets/{budget}/history/undo';
+};
+
+export type UndoChangeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UndoChangeError = UndoChangeErrors[keyof UndoChangeErrors];
+
+export type UndoChangeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UndoResult;
+};
+
+export type UndoChangeResponse = UndoChangeResponses[keyof UndoChangeResponses];
+
+export type NearbyPlacesData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query: {
+        /**
+         * Lat
+         */
+        lat: number;
+        /**
+         * Lon
+         */
+        lon: number;
+    };
+    url: '/api/v1/places/nearby';
+};
+
+export type NearbyPlacesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type NearbyPlacesError = NearbyPlacesErrors[keyof NearbyPlacesErrors];
+
+export type NearbyPlacesResponses = {
+    /**
+     * Response Nearbyplaces
+     *
+     * Successful Response
+     */
+    200: Array<NearbyPlaceResponse>;
+};
+
+export type NearbyPlacesResponse = NearbyPlacesResponses[keyof NearbyPlacesResponses];
+
+export type SuggestEntryData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Payee
+         */
+        payee?: string | null;
+        /**
+         * Lat
+         */
+        lat?: number | null;
+        /**
+         * Lon
+         */
+        lon?: number | null;
+        /**
+         * At
+         */
+        at?: string | null;
+    };
+    url: '/api/v1/budgets/{budget}/suggest';
+};
+
+export type SuggestEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SuggestEntryError = SuggestEntryErrors[keyof SuggestEntryErrors];
+
+export type SuggestEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: SuggestionResponse;
+};
+
+export type SuggestEntryResponse = SuggestEntryResponses[keyof SuggestEntryResponses];

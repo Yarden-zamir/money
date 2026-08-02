@@ -4,6 +4,7 @@ import { NavLink } from "react-router-dom";
 
 import { Icon } from "@/components/Icon";
 import { Select } from "@/components/Form";
+import { UndoButton } from "@/features/UndoButton";
 import { LANGUAGES, type Language } from "@/lib/i18n";
 
 /**
@@ -50,7 +51,8 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <span className="ms-auto">
+          <span className="ms-auto flex items-center gap-1">
+            <UndoButton />
             <Select
               fullWidth={false}
               className="h-9 min-h-0 py-0 text-xs"

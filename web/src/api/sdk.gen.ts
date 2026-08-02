@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -472,3 +472,45 @@ export const postScheduled = <ThrowOnError extends boolean = false>(options: Opt
         ...options.headers
     }
 });
+
+/**
+ * Everything that has changed, newest first
+ *
+ * One feed for every change, whichever file it touched.
+ *
+ * Assignments show up next to entries because they are the same kind of event to the person
+ * reading — money moved — even though one lives in a ledger file and the other in a map.
+ */
+export const getHistory = <ThrowOnError extends boolean = false>(options: Options<GetHistoryData, ThrowOnError>): RequestResult<GetHistoryResponses, GetHistoryErrors, ThrowOnError> => (options.client ?? client).get<GetHistoryResponses, GetHistoryErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/history', ...options });
+
+/**
+ * Undo a change you made
+ *
+ * Revert a commit, defaulting to your own most recent one.
+ *
+ * Scoped to your own changes: in a shared budget, silently reversing your partner's work
+ * from your phone is the failure worth designing against. Reverting someone else's change
+ * is still possible by naming its sha explicitly, which makes it a deliberate act.
+ */
+export const undoChange = <ThrowOnError extends boolean = false>(options: Options<UndoChangeData, ThrowOnError>): RequestResult<UndoChangeResponses, UndoChangeErrors, ThrowOnError> => (options.client ?? client).post<UndoChangeResponses, UndoChangeErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/history/undo', ...options });
+
+/**
+ * Venues around a point
+ *
+ * Names the shop someone is standing in, so the first visit does not need typing.
+ *
+ * Proxied rather than called from the browser, so the API key stays on the server. Returns
+ * an empty list rather than an error when the lookup fails — a places outage should not
+ * stop anyone recording an expense.
+ */
+export const nearbyPlaces = <ThrowOnError extends boolean = false>(options: Options<NearbyPlacesData, ThrowOnError>): RequestResult<NearbyPlacesResponses, NearbyPlacesErrors, ThrowOnError> => (options.client ?? client).get<NearbyPlacesResponses, NearbyPlacesErrors, ThrowOnError>({ url: '/api/v1/places/nearby', ...options });
+
+/**
+ * A guessed entry, with its reasoning
+ *
+ * What this person probably about to record, drawn only from this budget's own history.
+ *
+ * Every field the caller already knows narrows the pool the rest is drawn from, so filling
+ * in the payee improves the amount and the split rather than being ignored.
+ */
+export const suggestEntry = <ThrowOnError extends boolean = false>(options: Options<SuggestEntryData, ThrowOnError>): RequestResult<SuggestEntryResponses, SuggestEntryErrors, ThrowOnError> => (options.client ?? client).get<SuggestEntryResponses, SuggestEntryErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/suggest', ...options });

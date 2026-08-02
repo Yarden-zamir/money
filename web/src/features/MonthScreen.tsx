@@ -20,6 +20,7 @@ import { useCountUp } from "@/lib/useCountUp";
 import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
+import { InlineEdit } from "@/components/InlineEdit";
 import { useBudget } from "./useBudget";
 
 /**
@@ -40,6 +41,42 @@ export function MonthScreen() {
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
     enabled: Boolean(budget),
   });
+  const buckets = useQuery({
+    ...listBucketsOptions({ path: { budget: budget?.slug ?? "" } }),
+    enabled: Boolean(budget),
+  });
+
+  const queryClient = useQueryClient();
+  const put = useMutation({
+    ...putBucketMutation(),
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
+
+  // putBucket replaces the whole bucket, so an inline edit of one field has to merge into
+  // the current one — sending a partial would silently clear the group and the target.
+  const patchBucket = (id: string, patch: { name?: string; target?: string }) => {
+    const existing = (buckets.data ?? []).find((item) => item.id === id);
+    if (!existing || !budget) return;
+
+    const target =
+      patch.target === undefined
+        ? existing.target
+        : patch.target.trim() === ""
+          ? null
+          : { kind: "monthly", amount: Number(patch.target).toFixed(2) };
+
+    put.mutate({
+      path: { budget: budget.slug, bucket_id: id },
+      body: {
+        id,
+        name: patch.name ?? existing.name,
+        group: existing.group,
+        archived: existing.archived,
+        order: existing.order,
+        target,
+      },
+    });
+  };
 
   if (budgetPending || query.isPending) return <Loading />;
   if (query.isError || !budget) return <ErrorState onRetry={() => void query.refetch()} />;
@@ -147,6 +184,8 @@ export function MonthScreen() {
                   month={month}
                   canWrite={budget.can_write}
                   onEdit={() => setEditing(bucket.bucket)}
+                  onRename={(name) => patchBucket(bucket.bucket, { name })}
+                  onRetarget={(value) => patchBucket(bucket.bucket, { target: value })}
                 />
               ))}
             </div>
@@ -360,6 +399,8 @@ function BucketRow({
   month,
   canWrite,
   onEdit,
+  onRename,
+  onRetarget,
 }: {
   bucket: BucketState;
   currency: string;
@@ -367,6 +408,8 @@ function BucketRow({
   month: string;
   canWrite: boolean;
   onEdit: () => void;
+  onRename: (name: string) => void;
+  onRetarget: (target: string) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -404,14 +447,39 @@ function BucketRow({
       }`}
     >
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="min-w-0 flex-1 truncate text-start text-sm font-medium hover:text-brand disabled:hover:text-ink"
-          onClick={onEdit}
-          disabled={!canWrite}
-        >
-          {bucket.name}
-        </button>
+        <span className="min-w-0 flex-1">
+          <InlineEdit
+            label={t("month.bucketName")}
+            value={bucket.name}
+            disabled={!canWrite}
+            className="block truncate text-sm font-medium"
+            inputClassName="text-sm font-medium"
+            onCommit={(name) => onRename(name)}
+          />
+          {/* The monthly target belongs on the row: "how much was this meant to be" is the
+              question the assigned figure is answered against. */}
+          <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
+            <Icon name="target" className="size-3" />
+            <InlineEdit
+              label={t("month.target")}
+              value={target === null ? "" : target.toFixed(2)}
+              disabled={!canWrite}
+              inputMode="decimal"
+              placeholder={t("month.noTarget")}
+              className="numeric"
+              inputClassName="numeric w-20"
+              onCommit={(next) => onRetarget(next)}
+            />
+            <button
+              type="button"
+              className="ms-1 hover:text-brand"
+              onClick={onEdit}
+              title={t("month.moreOptions")}
+            >
+              <Icon name="sliders" className="size-3.5" />
+            </button>
+          </span>
+        </span>
 
         <span className="hidden w-28 text-end text-sm sm:block">
           <Money amount={bucket.activity} currency={currency} colour={false} />
