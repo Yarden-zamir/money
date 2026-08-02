@@ -122,6 +122,31 @@ body {
   letter-spacing: 0.07em;
 }
 
+/* Keyboard equivalents for a drag handle: present for focus and screen readers, and shown
+   on hover so they do not clutter a list nobody is reordering. */
+.sr-only-controls {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+[draggable]:hover .sr-only-controls,
+.sr-only-controls:focus-within {
+  opacity: 1;
+}
+
+/* On touch there is no hover, and HTML5 drag does not work, so the arrows are the *only*
+   way to reorder — they have to be visible and thumb-sized. */
+@media (hover: none) {
+  .sr-only-controls {
+    opacity: 1;
+  }
+  .sr-only-controls button {
+    padding: 0.25rem 0.5rem;
+  }
+  .drag-handle {
+    display: none;
+  }
+}
+
 /* Direction-encoding icons flip with the layout. Characters that are already Bidi-Mirrored
    (‹ › ← →) must NOT get this — the text engine flips them and this would flip them back. */
 .icon-directional:dir(rtl) {

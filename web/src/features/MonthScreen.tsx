@@ -36,6 +36,7 @@ export function MonthScreen() {
   const [month, setMonth] = useState(currentMonth);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
 
   const query = useQuery({
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
@@ -51,6 +52,44 @@ export function MonthScreen() {
     ...putBucketMutation(),
     onSuccess: () => void queryClient.invalidateQueries(),
   });
+
+  /**
+   * Persist a new order for one group.
+   *
+   * Order is stored per bucket rather than as a list, so two people reordering different
+   * groups at once do not overwrite each other — each writes only the buckets it moved.
+   */
+  const reorder = (ids: string[]) => {
+    if (!budget) return;
+    ids.forEach((id, index) => {
+      const existing = (buckets.data ?? []).find((item) => item.id === id);
+      if (!existing || existing.order === index) return;
+      put.mutate({
+        path: { budget: budget.slug, bucket_id: id },
+        body: { ...existing, order: index },
+      });
+    });
+  };
+
+  const move = (group: BucketState[], id: string, delta: number) => {
+    const ids = group.map((bucket) => bucket.bucket);
+    const from = ids.indexOf(id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    ids.splice(to, 0, ...ids.splice(from, 1));
+    reorder(ids);
+  };
+
+  const drop = (group: BucketState[], onto: string) => {
+    if (!dragging || dragging === onto) return;
+    const ids = group.map((bucket) => bucket.bucket);
+    const from = ids.indexOf(dragging);
+    const to = ids.indexOf(onto);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ...ids.splice(from, 1));
+    reorder(ids);
+    setDragging(null);
+  };
 
   // putBucket replaces the whole bucket, so an inline edit of one field has to merge into
   // the current one — sending a partial would silently clear the group and the target.
@@ -157,7 +196,7 @@ export function MonthScreen() {
             <span className="eyebrow w-24 text-end">{t("month.assigned")}</span>
           </div>
 
-          {[...groups.entries()].map(([group, buckets]) => (
+          {[...groups.entries()].map(([group, buckets_]) => (
             <div key={group}>
               {group && (
                 <div className="flex items-baseline gap-2 bg-sunken px-4 py-1.5">
@@ -166,7 +205,7 @@ export function MonthScreen() {
                       month" is about the group, not any single envelope in it. */}
                   <span className="ms-auto text-xs text-ink-muted">
                     <Money
-                      amount={buckets
+                      amount={buckets_
                         .reduce((total, bucket) => total + Number(bucket.available), 0)
                         .toFixed(2)}
                       currency={view.currency}
@@ -175,7 +214,7 @@ export function MonthScreen() {
                   </span>
                 </div>
               )}
-              {buckets.map((bucket) => (
+              {buckets_.map((bucket) => (
                 <BucketRow
                   key={bucket.bucket}
                   bucket={bucket}
@@ -186,6 +225,11 @@ export function MonthScreen() {
                   onEdit={() => setEditing(bucket.bucket)}
                   onRename={(name) => patchBucket(bucket.bucket, { name })}
                   onRetarget={(value) => patchBucket(bucket.bucket, { target: value })}
+                  dragging={dragging === bucket.bucket}
+                  onDragStart={() => setDragging(bucket.bucket)}
+                  onDragEnd={() => setDragging(null)}
+                  onDropOn={() => drop(buckets_, bucket.bucket)}
+                  onMove={(delta) => move(buckets_, bucket.bucket, delta)}
                 />
               ))}
             </div>
@@ -242,13 +286,13 @@ function MonthActions({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="eyebrow">{t("month.autoAssign")}</span>
+      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+        <span className="eyebrow shrink-0">{t("month.autoAssign")}</span>
         {STRATEGIES.map(([strategy, label]) => (
           <Button
             key={strategy}
             variant="quiet"
-            className="min-h-9 px-3 text-xs"
+            className="min-h-9 shrink-0 px-3 text-xs"
             disabled={auto.isPending}
             onClick={() => auto.mutate({ path: { budget, month }, body: { strategy } })}
           >
@@ -257,7 +301,7 @@ function MonthActions({
         ))}
         <Button
           variant="quiet"
-          className="ms-auto min-h-9 px-3 text-xs"
+          className="min-h-9 shrink-0 px-3 text-xs sm:ms-auto"
           onClick={() => setMoving(!moving)}
         >
           <Icon name="swap" className="size-4" />
@@ -401,6 +445,11 @@ function BucketRow({
   onEdit,
   onRename,
   onRetarget,
+  dragging,
+  onDragStart,
+  onDragEnd,
+  onDropOn,
+  onMove,
 }: {
   bucket: BucketState;
   currency: string;
@@ -410,6 +459,11 @@ function BucketRow({
   onEdit: () => void;
   onRename: (name: string) => void;
   onRetarget: (target: string) => void;
+  dragging: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDropOn: () => void;
+  onMove: (delta: number) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -442,11 +496,47 @@ function BucketRow({
     // The severity edge marks the one state that needs acting on. It is not decoration —
     // rows that are fine carry no edge at all.
     <div
+      draggable={canWrite}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => canWrite && event.preventDefault()}
+      onDrop={onDropOn}
       className={`border-b border-line px-4 py-2.5 last:border-b-0 ${
         available < 0 ? "border-s-2 border-s-negative" : ""
-      }`}
+      } ${dragging ? "opacity-40" : ""}`}
     >
       <div className="flex items-center gap-3">
+        {canWrite && (
+          <span className="flex items-center">
+            {/* Dragging is a mouse gesture, so the handle is also a pair of keyboard
+                controls — reordering must not be reachable by pointer only. */}
+            <span
+              aria-hidden
+              className="drag-handle cursor-grab text-ink-muted active:cursor-grabbing"
+              title={t("month.reorder")}
+            >
+              <Icon name="drag" className="size-4" />
+            </span>
+            <span className="sr-only-controls flex flex-col">
+              <button
+                type="button"
+                aria-label={t("rules.moveUp")}
+                onClick={() => onMove(-1)}
+                className="text-[9px] leading-none text-ink-muted hover:text-brand"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                aria-label={t("rules.moveDown")}
+                onClick={() => onMove(1)}
+                className="text-[9px] leading-none text-ink-muted hover:text-brand"
+              >
+                ▼
+              </button>
+            </span>
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <InlineEdit
             label={t("month.bucketName")}
@@ -458,7 +548,7 @@ function BucketRow({
           />
           {/* The monthly target belongs on the row: "how much was this meant to be" is the
               question the assigned figure is answered against. */}
-          <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
+          <span className="mt-0.5 flex items-center gap-1.5 text-[11px] whitespace-nowrap text-ink-muted">
             <Icon name="target" className="size-3" />
             <InlineEdit
               label={t("month.target")}

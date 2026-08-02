@@ -50,7 +50,8 @@
     "moveTo": "To",
     "cover": "Cover this",
     "noTarget": "no target",
-    "moreOptions": "More options"
+    "moreOptions": "More options",
+    "reorder": "Drag to reorder"
   },
   "entries": {
     "title": "Entries",
@@ -243,5 +244,11 @@
     "hint": "Every change, newest first. Assignments appear alongside entries.",
     "undo": "Undo",
     "undone": "Undone: {{what}}"
+  },
+  "shortcuts": {
+    "help": "Keyboard shortcuts",
+    "newEntry": "Add an entry",
+    "undo": "Undo your last change",
+    "note": "Letter shortcuts pause while you are typing in a field."
   }
 }

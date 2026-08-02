@@ -12,27 +12,21 @@ import { useBudget } from "./useBudget";
  * on the right tab first. The button is fixed at the inline end, clear of the mobile tab bar,
  * and opens the form in a dialog rather than inline so it works the same everywhere.
  */
-export function QuickAdd() {
+export function QuickAdd({ openSignal }: { openSignal?: number }) {
   const { t } = useTranslation();
   const { budget } = useBudget();
   const [open, setOpen] = useState(false);
 
-  // `n` opens it from anywhere, but never while someone is typing — otherwise it fires in
-  // the middle of a payee name.
+  // A counter rather than a boolean, so asking to open twice in a row still works.
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
+
+  // Escape closes it. Opening is `n`, handled centrally in Shortcuts so every shortcut is
+  // declared and discoverable in one place rather than scattered across components.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") return setOpen(false);
-
-      const target = event.target as HTMLElement | null;
-      const typing =
-        target?.isContentEditable ||
-        ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName ?? "");
-      if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
-
-      if (event.key === "n") {
-        event.preventDefault();
-        setOpen(true);
-      }
+      if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

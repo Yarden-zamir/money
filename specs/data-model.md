@@ -150,6 +150,29 @@ and nobody watching, which is exactly what the git-backed history exists to prev
   as the rules change. One with a split keeps it. An expense must name a bucket or carry a
   split — checked when the template is written, not weeks later when the charge falls due.
 
+## Receipts
+
+An entry may carry `items`, the lines of a receipt. One payment buys several things and they
+do not always belong in the same envelope — a supermarket run is groceries and a bottle of
+wine, which the entry-level split cannot express.
+
+Lines must sum to the entry. When they carry their own splits, every line must carry one and
+their total per person and bucket must equal the entry's split: two numbers that disagree,
+with nothing to say which is right, is worse than having no detail at all.
+
+## Location
+
+An entry may record where it happened: coordinates, plus the venue name when one was chosen.
+
+🔴 This is a deliberate trade. Committing coordinates makes suggestions work on every device
+and survive clearing a browser, and it also means the repo holds a durable, shared,
+git-versioned record of where you have been — readable by every collaborator, and present in
+history even after a later edit removes it.
+
+Venue names come from a places lookup proxied through the backend, so the API key never
+reaches a browser. It is called only while someone is adding an entry, never in the
+background.
+
 ## Notes
 
 An entry's `note` field is a one-liner. Anything longer lives in `notes/<entry-id>.md` as

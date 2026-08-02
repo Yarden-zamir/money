@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -12,6 +12,7 @@ import { BalancesScreen } from "@/features/BalancesScreen";
 import { EntriesScreen } from "@/features/EntriesScreen";
 import { MonthScreen } from "@/features/MonthScreen";
 import { QuickAdd } from "@/features/QuickAdd";
+import { Shortcuts } from "@/features/Shortcuts";
 import { HistoryScreen } from "@/features/HistoryScreen";
 import { RulesScreen } from "@/features/RulesScreen";
 import { ScheduledScreen } from "@/features/ScheduledScreen";
@@ -19,6 +20,7 @@ import { SettingsScreen } from "@/features/SettingsScreen";
 
 export default function App() {
   const { t } = useTranslation();
+  const [quickAdd, setQuickAdd] = useState(0);
   // /me is the auth probe: a 401 here means "not signed in", and no retry would help.
   const me = useQuery({ ...getMeOptions(), retry: false });
 
@@ -39,7 +41,8 @@ export default function App() {
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <QuickAdd />
+        <QuickAdd openSignal={quickAdd} />
+        <Shortcuts onQuickAdd={() => setQuickAdd((count) => count + 1)} />
       </BudgetGate>
     </Layout>
   );

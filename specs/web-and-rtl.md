@@ -112,6 +112,24 @@ on load. A column of numbers all animating at once is noise, and a figure still 
 cannot be compared with the one beside it. `useCountUp` returns the target immediately when
 the viewer prefers reduced motion.
 
+## Keyboard
+
+Declared in one place (`features/Shortcuts.tsx`) so every shortcut is discoverable, with `?`
+opening the list — a shortcut nobody can find is a shortcut nobody uses.
+
+Bare letters never fire while a field is focused. This app is mostly typing, and a letter
+that triggers an action mid-word is worse than no shortcut. Combinations with the command key
+still work while typing, because those cannot happen by accident.
+
+## Reordering
+
+Buckets carry an `order`, written per bucket rather than as a list, so two people reordering
+different groups at once do not overwrite each other — each writes only what it moved.
+
+Dragging is a pointer gesture, so every draggable row also carries up/down buttons. They are
+hover-revealed on a mouse and **always visible on touch**, where hover does not exist and
+HTML5 drag does not work — there, they are the only way to reorder.
+
 ## Controls
 
 Conventions that exist because they drifted once already:
