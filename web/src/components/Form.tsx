@@ -16,15 +16,23 @@ export function Field({
   hint,
   children,
   className = "",
+  suffix,
 }: {
   label?: string;
   hint?: string;
   children: ReactNode;
   className?: string;
+  /** Sits beside the label — used for the marker on a field the app filled in. */
+  suffix?: ReactNode;
 }) {
   return (
     <label className={`block ${className}`}>
-      {label && <span className="mb-1.5 block text-xs font-medium text-ink-muted">{label}</span>}
+      {label && (
+        <span className="mb-1.5 flex items-center gap-1 text-xs font-medium text-ink-muted">
+          {label}
+          {suffix}
+        </span>
+      )}
       {children}
       {hint && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
     </label>

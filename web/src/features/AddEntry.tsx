@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -7,7 +7,11 @@ import {
   listBucketsOptions,
   previewSplitMutation,
 } from "@/api/@tanstack/react-query.gen";
+import { Guessed } from "@/components/Guessed";
+import { Icon } from "@/components/Icon";
 import { PayeeField } from "./PayeeField";
+import { ReceiptEditor, type ReceiptLine } from "./ReceiptEditor";
+import { useCoords, useNearbyPlaces, useSuggestion } from "./useSuggestion";
 import { SplitEditor, evenSplit, type PaidRow, type ShareRow } from "./SplitEditor";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
@@ -51,6 +55,67 @@ export function AddEntry({
   const [shares, setShares] = useState<ShareRow[]>([]);
   const [paidBy, setPaidBy] = useState<PaidRow[]>([]);
 
+  // Which fields the app filled, so a marker can disappear the moment one is edited: once it
+  // is your number, saying the app guessed it would be a lie.
+  const [guessed, setGuessed] = useState<Set<string>>(new Set());
+  const forget = (field: string) =>
+    setGuessed((current) => {
+      if (!current.has(field)) return current;
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+
+  const [items, setItems] = useState<ReceiptLine[]>([]);
+  const [place, setPlace] = useState<{ name: string; provider_id?: string } | null>(null);
+
+  const { coords } = useCoords(true);
+  const nearby = useNearbyPlaces(coords);
+  const suggestion = useSuggestion({ budget: budget.slug, enabled: true, payee, coords });
+
+  // Applied once per distinct suggestion and only into untouched fields. Overwriting what
+  // someone typed would make the guess worse than useless.
+  const applied = useRef<string | null>(null);
+  useEffect(() => {
+    const guess = suggestion.data;
+    if (!guess || guess.basis === "none") return;
+
+    const signature = `${guess.basis}:${guess.payee}:${String(guess.amount)}`;
+    if (applied.current === signature) return;
+    applied.current = signature;
+
+    const filled = new Set<string>();
+    if (!payee && guess.payee) {
+      setPayee(guess.payee);
+      filled.add("payee");
+    }
+    if (!amount && guess.amount != null) {
+      setAmount(Math.abs(Number(guess.amount)).toFixed(2));
+      filled.add("amount");
+    }
+    if (!bucket && guess.bucket) {
+      setBucket(guess.bucket);
+      filled.add("bucket");
+    }
+    if (items.length === 0 && guess.items.length > 0) {
+      setItems(
+        guess.items.map((item) => ({
+          label: item.label,
+          amount: Math.abs(Number(item.amount)).toFixed(2),
+        })),
+      );
+      filled.add("items");
+    }
+    if (filled.size) setGuessed(filled);
+  }, [suggestion.data, payee, amount, bucket, items.length]);
+
+  // The nearest venue names the place on a first visit, when history has nothing to offer.
+  useEffect(() => {
+    if (place || !nearby.data?.length) return;
+    const closest = nearby.data[0];
+    if (closest) setPlace({ name: closest.name, provider_id: closest.id });
+  }, [nearby.data, place]);
+
   const buckets = useQuery({
     ...listBucketsOptions({ path: { budget: budget.slug } }),
     enabled: Boolean(budget.slug),
@@ -64,8 +129,32 @@ export function AddEntry({
     return (kind === "income" ? magnitude : -magnitude).toFixed(2);
   };
 
+  const lineTotal = items.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+
   const body = () => ({
     amount: signed(amount),
+    ...(place && coords
+      ? {
+          place: {
+            lat: coords.lat,
+            lon: coords.lon,
+            name: place.name,
+            provider_id: place.provider_id ?? null,
+          },
+        }
+      : {}),
+    ...(items.filter((item) => item.label.trim() && item.amount).length
+      ? {
+          items: items
+            .filter((item) => item.label.trim() && item.amount)
+            .map((item) => ({
+              label: item.label.trim(),
+              amount: (
+                (kind === "income" ? 1 : -1) * Math.abs(Number(item.amount))
+              ).toFixed(2),
+            })),
+        }
+      : {}),
     payee,
     date,
     kind,
@@ -130,23 +219,52 @@ export function AddEntry({
           </Select>
         </Field>
 
-        <Field label={t("entries.amount")} hint={t("entries.amountHint")}>
+        <Field
+          label={t("entries.amount")}
+          hint={t("entries.amountHint")}
+          suffix={
+            guessed.has("amount") && suggestion.data ? (
+              <Guessed
+                reason={suggestion.data.reason}
+                confidence={suggestion.data.confidence}
+                sampleSize={suggestion.data.sample_size}
+              />
+            ) : null
+          }
+        >
           <Input
             className="numeric ltr-field"
             inputMode="decimal"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => {
+              setAmount(event.target.value);
+              forget("amount");
+            }}
             placeholder="50.00"
             autoFocus
           />
         </Field>
 
-        <Field label={t("entries.payee")}>
+        <Field
+          label={t("entries.payee")}
+          suffix={
+            guessed.has("payee") && suggestion.data ? (
+              <Guessed
+                reason={suggestion.data.reason}
+                confidence={suggestion.data.confidence}
+                sampleSize={suggestion.data.sample_size}
+              />
+            ) : null
+          }
+        >
           <PayeeField
             budget={budget.slug}
             currency={budget.currency}
             value={payee}
-            onChange={setPayee}
+            onChange={(next) => {
+              setPayee(next);
+              forget("payee");
+            }}
             onPick={(suggestion) => {
               // Filling only what is still empty: someone who already typed an amount meant
               // it, and having a suggestion overwrite it would be worse than no suggestion.
@@ -237,6 +355,32 @@ export function AddEntry({
           </span>
         )}
       </div>
+
+      {place && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted">
+          <Icon name="target" className="size-3.5" />
+          {t("entries.at", { place: place.name })}
+          <button
+            type="button"
+            aria-label={t("common.cancel")}
+            className="hover:text-negative"
+            onClick={() => setPlace(null)}
+          >
+            <Icon name="close" className="size-3" />
+          </button>
+        </p>
+      )}
+
+      <ReceiptEditor
+        items={items}
+        currency={budget.currency}
+        total={Math.abs(Number(amount)) || 0}
+        lineTotal={lineTotal}
+        onChange={(next) => {
+          setItems(next);
+          forget("items");
+        }}
+      />
 
       {custom && (
         <SplitEditor
