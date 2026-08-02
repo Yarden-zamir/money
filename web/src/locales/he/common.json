@@ -40,7 +40,15 @@
     "reopen": "פתיחה מחדש",
     "closed": "סגור",
     "archive": "העברה לארכיון",
-    "overspent": "בחריגה"
+    "overspent": "בחריגה",
+    "autoAssign": "שיוך אוטומטי",
+    "underfunded": "השלמת כל היעדים",
+    "assignedLastMonth": "כמו בחודש שעבר",
+    "spentLastMonth": "לפי ההוצאה בחודש שעבר",
+    "move": "העברת כסף",
+    "moveFrom": "מ",
+    "moveTo": "אל",
+    "cover": "כיסוי החריגה"
   },
   "entries": {
     "title": "תנועות",
@@ -216,5 +224,11 @@
       "6": "ראשון"
     },
     "untitled": "ללא שם"
+  },
+  "payees": {
+    "basis": {
+      "mode": "נעשה בו שימוש {{count}} פעמים; זה הסכום החוזר",
+      "latest": "כל ביקור שונה, ולכן זה הסכום האחרון"
+    }
   }
 }

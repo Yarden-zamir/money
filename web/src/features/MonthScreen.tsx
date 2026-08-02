@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   assignToBucketMutation,
+  autoAssignMutation,
+  moveMoneyMutation,
   closeMonthMutation,
   getMonthCloseOptions,
   getMonthOptions,
@@ -12,7 +14,9 @@ import {
   reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketState } from "@/api/types.gen";
-import { Button, Card, Field, FormActions, FormError, Input } from "@/components/Form";
+import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
+import { Icon } from "@/components/Icon";
+import { useCountUp } from "@/lib/useCountUp";
 import { Money } from "@/components/Money";
 import { ErrorState, Loading } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
@@ -86,6 +90,7 @@ export function MonthScreen() {
           amount={view.ready_to_assign}
           currency={view.currency}
           emphasis
+          animate
         />
         <div className="border-t border-line p-3 sm:border-t-0">
           <div className="eyebrow">{t("month.overspent")}</div>
@@ -98,6 +103,10 @@ export function MonthScreen() {
           </div>
         </div>
       </Card>
+
+      {budget.can_write && view.buckets.length > 0 && (
+        <MonthActions budget={budget.slug} month={month} buckets={view.buckets} />
+      )}
 
       {view.buckets.length === 0 ? (
         <Card className="p-8 text-center text-sm text-ink-muted">{t("month.empty")}</Card>
@@ -161,24 +170,179 @@ export function MonthScreen() {
   );
 }
 
+/**
+ * Bulk assignment and moving money.
+ *
+ * Funding envelopes one at a time is the most repeated chore in envelope budgeting, and
+ * covering an overspend by editing two figures means doing the arithmetic yourself and
+ * leaving the budget briefly wrong between the two saves.
+ */
+function MonthActions({
+  budget,
+  month,
+  buckets,
+}: {
+  budget: string;
+  month: string;
+  buckets: BucketState[];
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [moving, setMoving] = useState(false);
+
+  const auto = useMutation({
+    ...autoAssignMutation(),
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
+
+  const STRATEGIES = [
+    ["underfunded", t("month.underfunded")],
+    ["assigned_last_month", t("month.assignedLastMonth")],
+    ["spent_last_month", t("month.spentLastMonth")],
+  ] as const;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="eyebrow">{t("month.autoAssign")}</span>
+        {STRATEGIES.map(([strategy, label]) => (
+          <Button
+            key={strategy}
+            variant="quiet"
+            className="min-h-9 px-3 text-xs"
+            disabled={auto.isPending}
+            onClick={() => auto.mutate({ path: { budget, month }, body: { strategy } })}
+          >
+            {label}
+          </Button>
+        ))}
+        <Button
+          variant="quiet"
+          className="ms-auto min-h-9 px-3 text-xs"
+          onClick={() => setMoving(!moving)}
+        >
+          <Icon name="swap" className="size-4" />
+          {t("month.move")}
+        </Button>
+      </div>
+
+      {moving && <MoveMoney budget={budget} month={month} buckets={buckets} onDone={() => setMoving(false)} />}
+      <FormError error={auto.error} />
+    </div>
+  );
+}
+
+function MoveMoney({
+  budget,
+  month,
+  buckets,
+  onDone,
+}: {
+  budget: string;
+  month: string;
+  buckets: BucketState[];
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [source, setSource] = useState(buckets[0]?.bucket ?? "");
+  const [target, setTarget] = useState(buckets[1]?.bucket ?? "");
+  const [amount, setAmount] = useState("");
+
+  const move = useMutation({
+    ...moveMoneyMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+      onDone();
+    },
+  });
+
+  return (
+    <Card className="sheet-in p-4">
+      <form
+        className="grid gap-3 sm:grid-cols-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!amount) return;
+          move.mutate({
+            path: { budget, month },
+            body: { source, target, amount: Math.abs(Number(amount)).toFixed(2) },
+          });
+        }}
+      >
+        <Field label={t("month.moveFrom")}>
+          <Select value={source} onChange={(event) => setSource(event.target.value)}>
+            {buckets.map((bucket) => (
+              <option key={bucket.bucket} value={bucket.bucket}>
+                {bucket.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={t("month.moveTo")}>
+          <Select value={target} onChange={(event) => setTarget(event.target.value)}>
+            {buckets.map((bucket) => (
+              <option key={bucket.bucket} value={bucket.bucket}>
+                {bucket.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={t("entries.amount")}>
+          <Input
+            className="numeric ltr-field"
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="0.00"
+            autoFocus
+          />
+        </Field>
+        <div className="flex items-end">
+          <FormActions
+            primary={
+              <Button type="submit" disabled={!amount || move.isPending}>
+                {t("month.move")}
+              </Button>
+            }
+            secondary={
+              <Button type="button" variant="ghost" onClick={onDone}>
+                {t("common.cancel")}
+              </Button>
+            }
+          />
+        </div>
+      </form>
+      <FormError error={move.error} />
+    </Card>
+  );
+}
+
 function Stat({
   label,
   amount,
   currency,
   emphasis,
   muted,
+  animate,
 }: {
   label: string;
   amount: string;
   currency: string;
   emphasis?: boolean;
   muted?: boolean;
+  animate?: boolean;
 }) {
+  // Only the headline figure counts up. A row of numbers all animating at once is noise, and
+  // a figure still in motion cannot be compared against the one beside it.
+  const counted = useCountUp(animate ? Number(amount) : Number.NaN);
+  const shown = animate && Number.isFinite(counted) ? counted.toFixed(2) : amount;
+
   return (
     <div className="p-3">
       <div className="eyebrow">{label}</div>
       <Money
-        amount={amount}
+        amount={shown}
         currency={currency}
         colour={Boolean(emphasis)}
         className={`mt-0.5 block ${emphasis ? "text-lg font-semibold" : "text-lg"} ${

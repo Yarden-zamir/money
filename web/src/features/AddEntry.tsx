@@ -7,6 +7,7 @@ import {
   listBucketsOptions,
   previewSplitMutation,
 } from "@/api/@tanstack/react-query.gen";
+import { PayeeField } from "./PayeeField";
 import { SplitEditor, evenSplit, type PaidRow, type ShareRow } from "./SplitEditor";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
@@ -141,7 +142,21 @@ export function AddEntry({
         </Field>
 
         <Field label={t("entries.payee")}>
-          <Input value={payee} onChange={(event) => setPayee(event.target.value)} />
+          <PayeeField
+            budget={budget.slug}
+            currency={budget.currency}
+            value={payee}
+            onChange={setPayee}
+            onPick={(suggestion) => {
+              // Filling only what is still empty: someone who already typed an amount meant
+              // it, and having a suggestion overwrite it would be worse than no suggestion.
+              setPayee(suggestion.payee);
+              if (!amount && suggestion.amount != null) {
+                setAmount(Math.abs(Number(suggestion.amount)).toFixed(2));
+              }
+              if (!bucket && suggestion.bucket) setBucket(suggestion.bucket);
+            }}
+          />
         </Field>
 
         <Field label={t("entries.date")}>

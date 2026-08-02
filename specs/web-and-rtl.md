@@ -90,6 +90,28 @@ The subject is a household ledger, not a fintech dashboard, and the palette says
   only distinguishes states that need attention — overspent, nearly empty, or emptied exactly
   on plan, which is a paid bill and neither a warning nor a success.
 
+## Icons
+
+SVG on a 24-unit square viewBox, never text glyphs. A glyph sits on a text baseline rather
+than in the middle of its box, so it can only ever be nudged into approximate alignment and
+the approximation shifts with the font — the action button's plus was a `+` with a negative
+margin. `currentColor` throughout, so an icon inherits the colour of what it sits in.
+
+Only icons that encode reading direction take `directional`. A plus, a gear or a wallet
+never mirrors.
+
+Native `<select>` draws its own arrow flush against the edge and ignores padding, so `Select`
+suppresses it and draws one positioned with a logical inset. Width is forced only when the
+caller asks: an auto-width select inside a shrink-to-fit wrapper resolves `w-full` against
+nothing, dropping the space reserved for the arrow and putting the chevron on the label.
+
+## Motion
+
+One animated figure per screen, and only headline ones — the ready-to-assign total counts up
+on load. A column of numbers all animating at once is noise, and a figure still in motion
+cannot be compared with the one beside it. `useCountUp` returns the target immediately when
+the viewer prefers reduced motion.
+
 ## Controls
 
 Conventions that exist because they drifted once already:

@@ -6,7 +6,9 @@ without it is still reachable through `money api`.
 
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from datetime import date as date_type
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -22,6 +24,7 @@ from money.api.schemas import (
     HistoryList,
     NoteBody,
     NoteResponse,
+    PayeeSuggestion,
     ShareInput,
     SplitPreview,
 )
@@ -153,6 +156,76 @@ def list_entries(
 
     entries.sort(key=lambda e: (e.date, e.id), reverse=True)
     return EntryList(entries=entries[:limit], total=len(entries))
+
+
+@router.get(
+    "/payees",
+    operation_id="suggestPayees",
+    response_model=list[PayeeSuggestion],
+    summary="Payees you have used before",
+    openapi_extra={"x-cli": {"command": "entry payees"}},
+)
+def suggest_payees(
+    context: Annotated[BudgetContext, Depends(budget_context)],
+    q: str = "",
+    limit: Annotated[int, Query(ge=1, le=25)] = 8,
+) -> list[PayeeSuggestion]:
+    """Payees from this budget's own history, with the amount and bucket usually used.
+
+    Typing a shop's name in full every time is the slowest part of logging an expense, and
+    the answer is already in the ledger. Ranked by how recently *and* how often a payee was
+    used: a shop visited weekly should beat one visited once a year, but a one-off from
+    yesterday should still be reachable.
+    """
+    needle = q.strip().casefold()
+    entries = [entry for entry in context.store.all_entries() if entry.kind is EntryKind.EXPENSE]
+
+    grouped: dict[str, list[Entry]] = defaultdict(list)
+    for entry in entries:
+        if not needle or needle in entry.payee.casefold():
+            grouped[entry.payee].append(entry)
+
+    today = date_type.today()
+    suggestions: list[tuple[float, PayeeSuggestion]] = []
+
+    for payee, matches in grouped.items():
+        matches.sort(key=lambda entry: entry.date, reverse=True)
+        amount, basis = _typical_amount(matches)
+
+        buckets = Counter(
+            share.bucket for entry in matches for share in entry.shares if share.bucket
+        )
+        suggestion = PayeeSuggestion(
+            payee=payee,
+            count=len(matches),
+            last_used=matches[0].date,
+            amount=amount,
+            bucket=buckets.most_common(1)[0][0] if buckets else None,
+            basis=basis,
+        )
+
+        # Recency decays over roughly a season, so frequency wins for anything regular while
+        # a recent one-off still surfaces.
+        days = max(0, (today - matches[0].date).days)
+        score = len(matches) * (0.5 ** (days / 90))
+        suggestions.append((score, suggestion))
+
+    suggestions.sort(key=lambda pair: -pair[0])
+    return [suggestion for _, suggestion in suggestions[:limit]]
+
+
+def _typical_amount(matches: list[Entry]) -> tuple[Decimal | None, str]:
+    """The amount to suggest, and why.
+
+    The most common amount when there is one — a coffee is the same price every time. When
+    every visit differs, the mean is meaningless for a shop where you buy different things,
+    so the most recent is shown instead.
+    """
+    amounts = Counter(entry.amount for entry in matches)
+    most_common, seen = amounts.most_common(1)[0]
+    if seen > 1:
+        return most_common, "mode"
+    return matches[0].amount, "latest"
 
 
 @router.get("/{entry_id}", operation_id="getEntry", response_model=Entry, summary="Get one entry")

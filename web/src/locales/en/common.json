@@ -40,7 +40,15 @@
     "reopen": "Reopen",
     "closed": "Closed",
     "archive": "Archive",
-    "overspent": "Overspent"
+    "overspent": "Overspent",
+    "autoAssign": "Auto-assign",
+    "underfunded": "Fund all targets",
+    "assignedLastMonth": "Same as last month",
+    "spentLastMonth": "Spent last month",
+    "move": "Move money",
+    "moveFrom": "From",
+    "moveTo": "To",
+    "cover": "Cover this"
   },
   "entries": {
     "title": "Entries",
@@ -216,5 +224,11 @@
       "6": "Sunday"
     },
     "untitled": "Untitled"
+  },
+  "payees": {
+    "basis": {
+      "mode": "Used {{count}} times; this is the amount that repeats",
+      "latest": "Every visit differs, so this is the most recent"
+    }
   }
 }

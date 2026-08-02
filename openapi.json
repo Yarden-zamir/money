@@ -1118,6 +1118,212 @@
         }
       }
     },
+    "/api/v1/budgets/{budget}/months/{month}/auto-assign": {
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Fund several buckets at once",
+        "description": "Assign to many buckets in one action, which is the payday case.\n\nFunding envelopes one at a time is the single most repeated chore in envelope budgeting.\nThree strategies cover it: top every bucket up to its target, or repeat what was assigned\nor spent last month.\n\nThis deliberately does not stop when the money runs out. Ready-to-assign is allowed to go\nnegative, and the month view says so \u2014 refusing the assignment would leave the plan\nhalf-applied and harder to reason about than an overcommitment you can see.",
+        "operationId": "autoAssign",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoAssignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "assign auto",
+          "args": [
+            "month",
+            "strategy"
+          ]
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/months/{month}/move": {
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Move money from one bucket to another",
+        "description": "Take from one envelope and give to another, in one action.\n\nCovering an overspend by editing two assignment figures means doing the arithmetic\nyourself and leaving the budget briefly wrong between the two saves. This does both sides\ntogether and refuses to move more than the source actually holds.",
+        "operationId": "moveMoney",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "assign move",
+          "args": [
+            "month",
+            "source",
+            "target",
+            "amount"
+          ]
+        }
+      }
+    },
     "/api/v1/budgets/{budget}/buckets/{bucket_id}": {
       "put": {
         "tags": [
@@ -1756,6 +1962,110 @@
             "person": "-p",
             "bucket": "-b"
           }
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/entries/payees": {
+      "get": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Payees you have used before",
+        "description": "Payees from this budget's own history, with the amount and bucket usually used.\n\nTyping a shop's name in full every time is the slowest part of logging an expense, and\nthe answer is already in the ledger. Ranked by how recently *and* how often a payee was\nused: a shop visited weekly should beat one visited once a year, but a one-off from\nyesterday should still be reachable.",
+        "operationId": "suggestPayees",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 25,
+              "minimum": 1,
+              "default": 8,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PayeeSuggestion"
+                  },
+                  "title": "Response Suggestpayees"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "entry payees"
         }
       }
     },
@@ -3749,6 +4059,37 @@
         ],
         "title": "AuthConfig"
       },
+      "AutoAssignRequest": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "pattern": "^(underfunded|assigned_last_month|spent_last_month)$",
+            "title": "Strategy",
+            "description": "How much to put in each bucket"
+          },
+          "buckets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buckets",
+            "description": "Limit to these buckets; all of them when omitted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "strategy"
+        ],
+        "title": "AutoAssignRequest"
+      },
       "Balance": {
         "properties": {
           "person": {
@@ -4971,6 +5312,41 @@
         ],
         "title": "MonthResponse"
       },
+      "MoveRequest": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Bucket the money leaves"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target",
+            "description": "Bucket the money goes to"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "target",
+          "amount"
+        ],
+        "title": "MoveRequest"
+      },
       "NoteBody": {
         "properties": {
           "text": {
@@ -5004,6 +5380,64 @@
           "text"
         ],
         "title": "NoteResponse"
+      },
+      "PayeeSuggestion": {
+        "properties": {
+          "payee": {
+            "type": "string",
+            "title": "Payee"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "How many times this payee appears"
+          },
+          "last_used": {
+            "type": "string",
+            "format": "date",
+            "title": "Last Used"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Typical amount: the mode, else the most recent"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket",
+            "description": "Bucket most often used for this payee"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis",
+            "description": "Which rule produced the suggestion, for the explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payee",
+          "count",
+          "last_used",
+          "amount",
+          "bucket",
+          "basis"
+        ],
+        "title": "PayeeSuggestion"
       },
       "PostRequest": {
         "properties": {

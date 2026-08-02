@@ -18,6 +18,8 @@ from money_cli.client import emit, request, resolve_budget
 _root = typer.Typer()
 
 
+assign_app = typer.Typer(no_args_is_help=True, help="assign commands")
+
 auth_app = typer.Typer(no_args_is_help=True, help="auth commands")
 
 bucket_app = typer.Typer(no_args_is_help=True, help="bucket commands")
@@ -118,6 +120,55 @@ def settle(
         request(
             "POST",
             f"/budgets/{resolve_budget(budget)}/settle",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@assign_app.command("auto", help='Fund several buckets at once')
+def assign_auto(
+    month: Annotated[str, typer.Argument(help='')],
+    strategy: Annotated[str, typer.Argument(help='How much to put in each bucket')],
+    buckets: Annotated[list[str], typer.Option("--buckets", help='Limit to these buckets; all of them when omitted')] = [],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"strategy": strategy, "buckets": buckets}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/months/{month}/auto-assign",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@assign_app.command("move", help='Move money from one bucket to another')
+def assign_move(
+    month: Annotated[str, typer.Argument(help='')],
+    source: Annotated[str, typer.Argument(help='Bucket the money leaves')],
+    target: Annotated[str, typer.Argument(help='Bucket the money goes to')],
+    amount: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"source": source, "target": target, "amount": amount}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/months/{month}/move",
             query={},
             body=body,
         ),
@@ -337,6 +388,25 @@ def entry_list(
         ),
         as_json=json_out,
         table='entries',
+    )
+
+
+@entry_app.command("payees", help='Payees you have used before')
+def entry_payees(
+    q: Annotated[str | None, typer.Option("--q", help='')] = None,
+    limit: Annotated[int | None, typer.Option("--limit", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/entries/payees",
+            query={"q": q, "limit": limit},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
     )
 
 
@@ -684,6 +754,7 @@ def scheduled_set(
 def register(app: typer.Typer) -> None:
     """Attach every generated command to the root app."""
     app.registered_commands.extend(_root.registered_commands)
+    app.add_typer(assign_app, name="assign")
     app.add_typer(auth_app, name="auth")
     app.add_typer(bucket_app, name="bucket")
     app.add_typer(budget_app, name="budget")

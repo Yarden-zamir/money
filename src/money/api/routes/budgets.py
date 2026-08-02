@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date as date_type
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
@@ -27,15 +28,18 @@ from money.api.errors import ApiError, not_found
 from money.api.github import repo_access
 from money.api.schemas import (
     AssignRequest,
+    AutoAssignRequest,
     BalanceSheet,
     BudgetConnect,
     BudgetSummary,
     EntryResponse,
     MonthClose,
     MonthResponse,
+    MoveRequest,
     SettleRequest,
 )
-from money.domain.derive import month_view, net_positions, settle_up
+from money.domain.amounts import ZERO
+from money.domain.derive import month_view, net_positions, settle_up, shift_month
 from money.domain.models import Bucket, Entry, EntryKind, Member, Share
 from money.store.gitrepo import GitRepo
 from money.store.store import BudgetStore, new_id
@@ -317,6 +321,150 @@ def reopen_month(
 ) -> MonthClose:
     context.store.reopen_month(month, context.actor)
     return MonthClose(month=month, closed=False)
+
+
+@router.post(
+    "/budgets/{budget}/months/{month}/auto-assign",
+    operation_id="autoAssign",
+    response_model=MonthResponse,
+    summary="Fund several buckets at once",
+    openapi_extra={"x-cli": {"command": "assign auto", "args": ["month", "strategy"]}},
+)
+def auto_assign(
+    context: Annotated[BudgetContext, Depends(writable)],
+    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
+    body: AutoAssignRequest,
+) -> MonthResponse:
+    """Assign to many buckets in one action, which is the payday case.
+
+    Funding envelopes one at a time is the single most repeated chore in envelope budgeting.
+    Three strategies cover it: top every bucket up to its target, or repeat what was assigned
+    or spent last month.
+
+    This deliberately does not stop when the money runs out. Ready-to-assign is allowed to go
+    negative, and the month view says so — refusing the assignment would leave the plan
+    half-applied and harder to reason about than an overcommitment you can see.
+    """
+    who = person_for(context, context.actor.login)
+    previous = shift_month(month, -1)
+
+    buckets = {bucket.id: bucket for bucket in context.store.buckets(who) if not bucket.archived}
+    wanted = set(body.buckets) if body.buckets else set(buckets)
+    unknown = wanted - set(buckets)
+    if unknown:
+        raise not_found(f"buckets {', '.join(sorted(unknown))}")
+
+    assignments = context.store.assignments(who)
+    current = assignments.get(month, {})
+    entries = context.store.all_entries()
+
+    targets = _auto_assign_amounts(
+        strategy=body.strategy,
+        wanted=wanted,
+        buckets=buckets,
+        current=current,
+        previous_assigned=assignments.get(previous, {}),
+        entries=entries,
+        previous_month=previous,
+        person=who,
+    )
+
+    for bucket_id, amount in sorted(targets.items()):
+        if amount != current.get(bucket_id, ZERO):
+            context.store.assign(who, month, bucket_id, amount, context.actor)
+
+    return get_month(context=context, month=month, person=who)
+
+
+def _auto_assign_amounts(
+    *,
+    strategy: str,
+    wanted: set[str],
+    buckets: dict[str, Bucket],
+    current: dict[str, Decimal],
+    previous_assigned: dict[str, Decimal],
+    entries: list[Entry],
+    previous_month: str,
+    person: str,
+) -> dict[str, Decimal]:
+    """What each bucket should end up assigned, under one strategy."""
+    result: dict[str, Decimal] = {}
+
+    for bucket_id in wanted:
+        bucket = buckets[bucket_id]
+        if strategy == "underfunded":
+            target = bucket.target.amount if bucket.target and bucket.target.amount else None
+            if target is None:
+                continue  # nothing to top up towards
+            # Top up to the target, never down: someone who deliberately over-assigned should
+            # not have it silently clawed back.
+            result[bucket_id] = max(target, current.get(bucket_id, ZERO))
+
+        elif strategy == "assigned_last_month":
+            result[bucket_id] = previous_assigned.get(bucket_id, ZERO)
+
+        else:
+            spent = sum(
+                (
+                    share.amount
+                    for entry in entries
+                    if entry.month == previous_month
+                    for share in entry.shares
+                    if share.person == person and share.bucket == bucket_id
+                ),
+                start=ZERO,
+            )
+            result[bucket_id] = abs(spent)
+
+    return result
+
+
+@router.post(
+    "/budgets/{budget}/months/{month}/move",
+    operation_id="moveMoney",
+    response_model=MonthResponse,
+    summary="Move money from one bucket to another",
+    openapi_extra={
+        "x-cli": {"command": "assign move", "args": ["month", "source", "target", "amount"]}
+    },
+)
+def move_money(
+    context: Annotated[BudgetContext, Depends(writable)],
+    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
+    body: MoveRequest,
+) -> MonthResponse:
+    """Take from one envelope and give to another, in one action.
+
+    Covering an overspend by editing two assignment figures means doing the arithmetic
+    yourself and leaving the budget briefly wrong between the two saves. This does both sides
+    together and refuses to move more than the source actually holds.
+    """
+    who = person_for(context, context.actor.login)
+    if body.source == body.target:
+        raise ApiError("same_bucket", "pick two different buckets")
+
+    known = {bucket.id for bucket in context.store.buckets(who)}
+    for bucket_id in (body.source, body.target):
+        if bucket_id not in known:
+            raise not_found(f"bucket {bucket_id!r}")
+
+    view = get_month(context=context, month=month, person=who)
+    available = {bucket.bucket: Decimal(str(bucket.available)) for bucket in view.buckets}
+    if available.get(body.source, ZERO) < body.amount:
+        raise ApiError(
+            "not_enough_available",
+            f"{body.source} only has {available.get(body.source, ZERO):.2f} available",
+            details={"available": f"{available.get(body.source, ZERO):.2f}"},
+        )
+
+    assigned = context.store.assignments(who).get(month, {})
+    context.store.assign(
+        who, month, body.source, assigned.get(body.source, ZERO) - body.amount, context.actor
+    )
+    context.store.assign(
+        who, month, body.target, assigned.get(body.target, ZERO) + body.amount, context.actor
+    )
+    return get_month(context=context, month=month, person=who)
 
 
 @router.put(

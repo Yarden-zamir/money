@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Icon } from "@/components/Icon";
 import { AddEntry } from "./AddEntry";
 import { useBudget } from "./useBudget";
 
@@ -58,14 +59,14 @@ export function QuickAdd() {
         title={`${t("entries.add")} (n)`}
         className={
           "fixed end-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex size-14 " +
-          "items-center justify-center rounded-full bg-brand text-3xl leading-none text-on-brand " +
+          "items-center justify-center rounded-full bg-brand text-on-brand " +
           "shadow-lg transition hover:opacity-90 active:scale-95 sm:end-6 sm:bottom-6"
         }
       >
-        {/* A plus does not encode direction, so it must not flip in RTL. */}
-        <span aria-hidden className="-mt-1">
-          +
-        </span>
+        {/* An SVG is centred by construction; the glyph it replaced sat on a text baseline
+            and could only ever be nudged into approximate alignment. A plus encodes no
+            direction, so it never mirrors. */}
+        <Icon name="plus" className="size-7" />
       </button>
 
       {open && (
@@ -86,9 +87,9 @@ export function QuickAdd() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label={t("common.cancel")}
-                className="flex size-9 items-center justify-center rounded-lg text-xl text-ink-muted hover:bg-surface"
+                className="flex size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-surface"
               >
-                ×
+                <Icon name="close" className="size-4" />
               </button>
             </div>
 

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { Icon } from "./Icon";
+
 /**
  * Form primitives.
  *
@@ -42,7 +44,26 @@ export function Select({
   fullWidth = true,
   ...rest
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { fullWidth?: boolean }) {
-  return <select {...rest} className={`control ${fullWidth ? "w-full" : ""} ${className}`} />;
+  return (
+    <span className={`relative inline-flex items-center ${fullWidth ? "w-full" : ""}`}>
+      <select
+        {...rest}
+        // The native arrow ignores padding and sits flush against the edge of the control.
+        // Suppressing it and drawing our own is the only way to give it a margin, and the
+        // logical inset means it swaps sides in RTL instead of colliding with the text.
+        //
+        // Width is only forced when the caller asked for it: an auto-width select inside an
+        // inline-flex wrapper sizes to its content, and `w-full` there resolves against a
+        // shrink-to-fit parent, so the reserved space for the arrow is dropped and the
+        // chevron lands on top of the label.
+        className={`control appearance-none pe-9 ${fullWidth ? "w-full" : ""} ${className}`}
+      />
+      <Icon
+        name="chevronDown"
+        className="pointer-events-none absolute end-2.5 size-4 text-ink-muted"
+      />
+    </span>
+  );
 }
 
 const VARIANTS = {

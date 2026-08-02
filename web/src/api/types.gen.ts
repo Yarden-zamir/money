@@ -113,6 +113,24 @@ export type AuthConfig = {
 };
 
 /**
+ * AutoAssignRequest
+ */
+export type AutoAssignRequest = {
+    /**
+     * Strategy
+     *
+     * How much to put in each bucket
+     */
+    strategy: string;
+    /**
+     * Buckets
+     *
+     * Limit to these buckets; all of them when omitted
+     */
+    buckets?: Array<string> | null;
+};
+
+/**
  * Balance
  */
 export type Balance = {
@@ -805,6 +823,28 @@ export type MonthResponse = {
 };
 
 /**
+ * MoveRequest
+ */
+export type MoveRequest = {
+    /**
+     * Source
+     *
+     * Bucket the money leaves
+     */
+    source: string;
+    /**
+     * Target
+     *
+     * Bucket the money goes to
+     */
+    target: string;
+    /**
+     * Amount
+     */
+    amount: number | string;
+};
+
+/**
  * NoteBody
  */
 export type NoteBody = {
@@ -828,6 +868,44 @@ export type NoteResponse = {
      * Text
      */
     text: string;
+};
+
+/**
+ * PayeeSuggestion
+ */
+export type PayeeSuggestion = {
+    /**
+     * Payee
+     */
+    payee: string;
+    /**
+     * Count
+     *
+     * How many times this payee appears
+     */
+    count: number;
+    /**
+     * Last Used
+     */
+    last_used: string;
+    /**
+     * Amount
+     *
+     * Typical amount: the mode, else the most recent
+     */
+    amount: string | null;
+    /**
+     * Bucket
+     *
+     * Bucket most often used for this payee
+     */
+    bucket: string | null;
+    /**
+     * Basis
+     *
+     * Which rule produced the suggestion, for the explanation
+     */
+    basis: string;
 };
 
 /**
@@ -1897,6 +1975,86 @@ export type CloseMonthResponses = {
 
 export type CloseMonthResponse = CloseMonthResponses[keyof CloseMonthResponses];
 
+export type AutoAssignData = {
+    body: AutoAssignRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Month
+         */
+        month: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/months/{month}/auto-assign';
+};
+
+export type AutoAssignErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AutoAssignError = AutoAssignErrors[keyof AutoAssignErrors];
+
+export type AutoAssignResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthResponse;
+};
+
+export type AutoAssignResponse = AutoAssignResponses[keyof AutoAssignResponses];
+
+export type MoveMoneyData = {
+    body: MoveRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Month
+         */
+        month: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/months/{month}/move';
+};
+
+export type MoveMoneyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MoveMoneyError = MoveMoneyErrors[keyof MoveMoneyErrors];
+
+export type MoveMoneyResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthResponse;
+};
+
+export type MoveMoneyResponse = MoveMoneyResponses[keyof MoveMoneyResponses];
+
 export type PutBucketData = {
     body: BucketInput;
     headers?: {
@@ -2148,6 +2306,53 @@ export type CreateEntryResponses = {
 };
 
 export type CreateEntryResponse = CreateEntryResponses[keyof CreateEntryResponses];
+
+export type SuggestPayeesData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Q
+         */
+        q?: string;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/budgets/{budget}/entries/payees';
+};
+
+export type SuggestPayeesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SuggestPayeesError = SuggestPayeesErrors[keyof SuggestPayeesErrors];
+
+export type SuggestPayeesResponses = {
+    /**
+     * Response Suggestpayees
+     *
+     * Successful Response
+     */
+    200: Array<PayeeSuggestion>;
+};
+
+export type SuggestPayeesResponse = SuggestPayeesResponses[keyof SuggestPayeesResponses];
 
 export type DeleteEntryData = {
     body?: never;

@@ -184,6 +184,46 @@ class TestEntries:
         assert client.get("/api/v1/budgets/joint/entries?payee=שופרסל").json()["total"] == 1
 
 
+class TestPayeeSuggestions:
+    def test_a_literal_path_is_not_matched_as_an_entry_id(self, client: TestClient) -> None:
+        """/entries/payees must not be routed to /entries/{entry_id}.
+
+        FastAPI matches in registration order, so a literal segment declared after a path
+        parameter is shadowed by it — the request would 404 as a missing entry.
+        """
+        response = client.get("/api/v1/budgets/joint/entries/payees")
+        assert response.status_code == 200, response.text
+        assert isinstance(response.json(), list)
+
+    def test_it_suggests_the_repeated_amount_when_there_is_one(self, client: TestClient) -> None:
+        for _ in range(3):
+            post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+        post_entry(client, amount="-92.00", payee="קפה גרג", date="2026-07-20")
+
+        [coffee] = client.get("/api/v1/budgets/joint/entries/payees?q=קפה").json()
+        assert coffee["count"] == 4
+        assert coffee["amount"] == "-50.00"
+        assert coffee["basis"] == "mode"
+        assert coffee["bucket"] == "fun-money"
+
+    def test_it_falls_back_to_the_latest_when_every_visit_differs(self, client: TestClient) -> None:
+        """A mean is meaningless for a shop where you buy something different each time."""
+        post_entry(client, amount="-120.00", payee="שופרסל דיל", date="2026-07-10")
+        post_entry(client, amount="-284.51", payee="שופרסל דיל", date="2026-07-27")
+
+        [shop] = client.get("/api/v1/budgets/joint/entries/payees?q=שופרסל").json()
+        assert shop["basis"] == "latest"
+        assert shop["amount"] == "-284.51"
+
+    def test_frequency_outranks_a_single_recent_visit(self, client: TestClient) -> None:
+        for _ in range(4):
+            post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-01")
+        post_entry(client, amount="-30.00", payee="פלאפל", date="2026-07-27")
+
+        suggestions = client.get("/api/v1/budgets/joint/entries/payees").json()
+        assert suggestions[0]["payee"] == "קפה גרג"
+
+
 class TestBalancesAndSettling:
     def test_the_coffee_example_end_to_end(self, client: TestClient) -> None:
         """One shared coffee leaves Dana owing Yarden 25, through the real HTTP surface."""
@@ -270,6 +310,74 @@ class TestMonths:
         assert fun["assigned"] == "400.00"
         assert fun["activity"] == "-25.00"  # only Yarden's half hits Yarden's envelope
         assert fun["available"] == "375.00"
+
+    def test_auto_assign_tops_every_bucket_up_to_its_target(self, client: TestClient) -> None:
+        """Payday: funding envelopes one at a time is the chore this removes."""
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-07/auto-assign",
+            json={"strategy": "underfunded"},
+        )
+        assert response.status_code == 200
+
+        assigned = {b["bucket"]: b["assigned"] for b in response.json()["buckets"]}
+        # Only buckets carrying a target are funded; the seed gives neither one a target.
+        assert set(assigned) == {"fun-money", "groceries"}
+
+    def test_auto_assign_never_claws_back_a_larger_assignment(self, client: TestClient) -> None:
+        """Someone who deliberately over-assigned should not have it silently reduced."""
+        client.put(
+            "/api/v1/budgets/joint/buckets/fun-money",
+            json={
+                "id": "fun-money",
+                "name": "בילויים",
+                "target": {"kind": "monthly", "amount": "400.00"},
+            },
+        )
+        client.put(
+            "/api/v1/budgets/joint/months/2026-07/assign",
+            json={"bucket": "fun-money", "amount": "900.00"},
+        )
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-07/auto-assign",
+            json={"strategy": "underfunded"},
+        )
+        fun = next(b for b in response.json()["buckets"] if b["bucket"] == "fun-money")
+        assert fun["assigned"] == "900.00"
+
+    def test_moving_money_debits_one_bucket_and_credits_the_other(self, client: TestClient) -> None:
+        client.put(
+            "/api/v1/budgets/joint/months/2026-07/assign",
+            json={"bucket": "fun-money", "amount": "400.00"},
+        )
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-07/move",
+            json={"source": "fun-money", "target": "groceries", "amount": "150.00"},
+        )
+        assert response.status_code == 200
+
+        assigned = {b["bucket"]: b["assigned"] for b in response.json()["buckets"]}
+        assert assigned["fun-money"] == "250.00"
+        assert assigned["groceries"] == "150.00"
+
+    def test_moving_more_than_a_bucket_holds_is_refused(self, client: TestClient) -> None:
+        client.put(
+            "/api/v1/budgets/joint/months/2026-07/assign",
+            json={"bucket": "fun-money", "amount": "100.00"},
+        )
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-07/move",
+            json={"source": "fun-money", "target": "groceries", "amount": "500.00"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "not_enough_available"
+
+    def test_moving_money_to_the_same_bucket_is_refused(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-07/move",
+            json={"source": "fun-money", "target": "fun-money", "amount": "10.00"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "same_bucket"
 
     def test_assigning_to_an_unknown_bucket_is_rejected(self, client: TestClient) -> None:
         response = client.put(

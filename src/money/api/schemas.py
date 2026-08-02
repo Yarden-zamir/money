@@ -95,6 +95,26 @@ class MonthResponse(BaseModel):
     buckets: list[BucketState]
 
 
+class AutoAssignRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    strategy: str = Field(
+        pattern=r"^(underfunded|assigned_last_month|spent_last_month)$",
+        description="How much to put in each bucket",
+    )
+    buckets: list[str] | None = Field(
+        default=None, description="Limit to these buckets; all of them when omitted"
+    )
+
+
+class MoveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source: str = Field(description="Bucket the money leaves")
+    target: str = Field(description="Bucket the money goes to")
+    amount: Decimal = Field(gt=0)
+
+
 class AssignRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -170,6 +190,15 @@ class PostRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     date: DateType | None = Field(default=None, description="Defaults to today")
+
+
+class PayeeSuggestion(BaseModel):
+    payee: str
+    count: int = Field(description="How many times this payee appears")
+    last_used: DateType
+    amount: Decimal | None = Field(description="Typical amount: the mode, else the most recent")
+    bucket: str | None = Field(description="Bucket most often used for this payee")
+    basis: str = Field(description="Which rule produced the suggestion, for the explanation")
 
 
 class RepoOption(BaseModel):

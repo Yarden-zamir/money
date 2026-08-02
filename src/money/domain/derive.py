@@ -109,6 +109,13 @@ def months_between(start: str, end: str) -> list[str]:
     ]
 
 
+def shift_month(month: str, delta: int) -> str:
+    """`2026-01` shifted by -1 is `2025-12`."""
+    year, number = (int(part) for part in month.split("-"))
+    total = year * 12 + (number - 1) + delta
+    return f"{total // 12:04d}-{total % 12 + 1:02d}"
+
+
 def _activity_by_month(entries: list[Entry], person: str) -> dict[tuple[str, str], Decimal]:
     """(month, bucket) -> summed activity for one person."""
     activity: dict[tuple[str, str], Decimal] = defaultdict(lambda: ZERO)

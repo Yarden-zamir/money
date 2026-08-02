@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
+import { Icon } from "@/components/Icon";
+import { Select } from "@/components/Form";
 import { LANGUAGES, type Language } from "@/lib/i18n";
 
 /**
@@ -12,12 +14,12 @@ import { LANGUAGES, type Language } from "@/lib/i18n";
  * one-handed and the convention for an app you open at a checkout.
  */
 const NAV = [
-  { to: "/", key: "nav.month", icon: "◍" },
-  { to: "/entries", key: "nav.entries", icon: "≡" },
-  { to: "/balances", key: "nav.balances", icon: "⇄" },
-  { to: "/scheduled", key: "nav.scheduled", icon: "↻" },
-  { to: "/rules", key: "nav.rules", icon: "⌥" },
-  { to: "/settings", key: "nav.settings", icon: "⚙" },
+  { to: "/", key: "nav.month", icon: "wallet" },
+  { to: "/entries", key: "nav.entries", icon: "list" },
+  { to: "/balances", key: "nav.balances", icon: "swap" },
+  { to: "/scheduled", key: "nav.scheduled", icon: "repeat" },
+  { to: "/rules", key: "nav.rules", icon: "sliders" },
+  { to: "/settings", key: "nav.settings", icon: "gear" },
 ] as const;
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -48,18 +50,21 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <select
-            className="control ms-auto h-9 min-h-0 py-0 text-xs"
-            value={i18n.language}
-            onChange={(event) => void i18n.changeLanguage(event.target.value)}
-            aria-label={t("settings.language")}
-          >
-            {Object.entries(LANGUAGES).map(([code, meta]) => (
-              <option key={code} value={code}>
-                {meta.name}
-              </option>
-            ))}
-          </select>
+          <span className="ms-auto">
+            <Select
+              fullWidth={false}
+              className="h-9 min-h-0 py-0 text-xs"
+              value={i18n.language}
+              onChange={(event) => void i18n.changeLanguage(event.target.value)}
+              aria-label={t("settings.language")}
+            >
+              {Object.entries(LANGUAGES).map(([code, meta]) => (
+                <option key={code} value={code}>
+                  {meta.name}
+                </option>
+              ))}
+            </Select>
+          </span>
         </div>
       </header>
 
@@ -81,9 +86,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <span aria-hidden className="text-lg leading-none">
-                {item.icon}
-              </span>
+              <Icon name={item.icon} className="size-5" />
               {t(item.key)}
             </NavLink>
           ))}

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, CloseMonthData, CloseMonthErrors, CloseMonthResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthCloseData, GetMonthCloseErrors, GetMonthCloseResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, ReopenMonthData, ReopenMonthErrors, ReopenMonthResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -165,6 +165,46 @@ export const getMonthClose = <ThrowOnError extends boolean = false>(options: Opt
 export const closeMonth = <ThrowOnError extends boolean = false>(options: Options<CloseMonthData, ThrowOnError>): RequestResult<CloseMonthResponses, CloseMonthErrors, ThrowOnError> => (options.client ?? client).post<CloseMonthResponses, CloseMonthErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/months/{month}/close', ...options });
 
 /**
+ * Fund several buckets at once
+ *
+ * Assign to many buckets in one action, which is the payday case.
+ *
+ * Funding envelopes one at a time is the single most repeated chore in envelope budgeting.
+ * Three strategies cover it: top every bucket up to its target, or repeat what was assigned
+ * or spent last month.
+ *
+ * This deliberately does not stop when the money runs out. Ready-to-assign is allowed to go
+ * negative, and the month view says so — refusing the assignment would leave the plan
+ * half-applied and harder to reason about than an overcommitment you can see.
+ */
+export const autoAssign = <ThrowOnError extends boolean = false>(options: Options<AutoAssignData, ThrowOnError>): RequestResult<AutoAssignResponses, AutoAssignErrors, ThrowOnError> => (options.client ?? client).post<AutoAssignResponses, AutoAssignErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/months/{month}/auto-assign',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Move money from one bucket to another
+ *
+ * Take from one envelope and give to another, in one action.
+ *
+ * Covering an overspend by editing two assignment figures means doing the arithmetic
+ * yourself and leaving the budget briefly wrong between the two saves. This does both sides
+ * together and refuses to move more than the source actually holds.
+ */
+export const moveMoney = <ThrowOnError extends boolean = false>(options: Options<MoveMoneyData, ThrowOnError>): RequestResult<MoveMoneyResponses, MoveMoneyErrors, ThrowOnError> => (options.client ?? client).post<MoveMoneyResponses, MoveMoneyErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/months/{month}/move',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Create or update one of your buckets
  */
 export const putBucket = <ThrowOnError extends boolean = false>(options: Options<PutBucketData, ThrowOnError>): RequestResult<PutBucketResponses, PutBucketErrors, ThrowOnError> => (options.client ?? client).put<PutBucketResponses, PutBucketErrors, ThrowOnError>({
@@ -221,6 +261,18 @@ export const createEntry = <ThrowOnError extends boolean = false>(options: Optio
         ...options.headers
     }
 });
+
+/**
+ * Payees you have used before
+ *
+ * Payees from this budget's own history, with the amount and bucket usually used.
+ *
+ * Typing a shop's name in full every time is the slowest part of logging an expense, and
+ * the answer is already in the ledger. Ranked by how recently *and* how often a payee was
+ * used: a shop visited weekly should beat one visited once a year, but a one-off from
+ * yesterday should still be reachable.
+ */
+export const suggestPayees = <ThrowOnError extends boolean = false>(options: Options<SuggestPayeesData, ThrowOnError>): RequestResult<SuggestPayeesResponses, SuggestPayeesErrors, ThrowOnError> => (options.client ?? client).get<SuggestPayeesResponses, SuggestPayeesErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/payees', ...options });
 
 /**
  * Delete an entry

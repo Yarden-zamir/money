@@ -37,7 +37,12 @@ when the tab opens.
 
 *Income landed. Fill the envelopes without arithmetic.*
 
-**Month tab → type into the assigned field, or `Fill to target`.**
+**Month tab → `Fund all targets`,** or type into the assigned field for one bucket.
+
+Three bulk strategies, because funding envelopes one at a time is the most repeated chore in
+envelope budgeting: top every bucket up to its target, repeat last month's assignment, or
+match what was actually spent last month. Topping up never reduces an assignment — someone
+who deliberately over-assigned should not have it silently clawed back.
 
 - `Ready to assign` is the hero: it is the number that governs every other decision here.
 - Each bucket with a monthly target and a shortfall offers a one-tap fill.
@@ -52,6 +57,14 @@ when the tab opens.
 suggested transfers. The `Settle` button appears **only** on the row where the signed-in
 person is the one who owes: the API records whatever it is asked to, so a button on the other
 row would make it one tap to move a balance the wrong way.
+
+## 4b. Cover an overspend
+
+*Eating out is red and it is the 20th.*
+
+**Month tab → `Move money`.** One action moves from one envelope to another and refuses to
+move more than the source holds. Editing two assignment figures instead means doing the
+arithmetic yourself and leaving the budget briefly wrong between the two saves.
 
 ## 5. Where did the grocery money go?
 
