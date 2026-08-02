@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from money.domain.models import Bucket, Budget, Entry, Member, Scheduled
+from money.domain.amounts import ZERO
+from money.domain.models import Bucket, Budget, Entry, Member, Scheduled, Target
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
@@ -67,6 +68,63 @@ def _bucket_sort_key(bucket: Bucket) -> tuple[str, int, str]:
     list should read alphabetically until someone actually arranges it.
     """
     return (bucket.group or "", bucket.order, bucket.name)
+
+
+def _describe_target(target: Target | None) -> str:
+    if target is None or target.kind == "none":
+        return "no target"
+    if target.kind == "monthly":
+        return f"{target.amount:.2f}/month"
+    return f"{target.amount:.2f} by {target.due}"
+
+
+def describe_bucket_change(before: Bucket | None, after: Bucket) -> str:
+    """What actually changed about a bucket, for the commit subject.
+
+    `put_bucket` replaces the whole bucket, so the write itself does not say whether this was
+    a rename, a re-target or a drag. "bucket: yarden fun-money" was the same line for all of
+    them, which made the history unreadable exactly when someone was trying to find what
+    broke. Comparing against the previous version is the only place that information exists.
+
+    Several things can change at once — renaming while dragging into another group — so this
+    lists all of them rather than picking one and quietly dropping the rest.
+    """
+    if before is None:
+        return f"create {after.name}"
+
+    changes: list[str] = []
+    if before.name != after.name:
+        changes.append(f"rename {before.name} → {after.name}")
+    if before.group != after.group:
+        changes.append(f"move {after.name} to {after.group or 'no group'}")
+    if before.target != after.target:
+        changes.append(f"target {after.name} {_describe_target(after.target)}")
+    if before.archived != after.archived:
+        changes.append(f"{'archive' if after.archived else 'restore'} {after.name}")
+    if not changes and before.order != after.order:
+        changes.append(f"reorder {after.name}")
+
+    return ", ".join(changes) or f"update {after.name}"
+
+
+def describe_list_change(before: list[str], after: list[str], noun: str) -> str:
+    """Added and removed names for any list written wholesale (rules, members, recurrences).
+
+    All three are replaced as a unit, so without a diff the subject can only report a count —
+    "rules: update defaults" was literally the same string every time.
+    """
+    added = [name for name in after if name not in before]
+    removed = [name for name in before if name not in after]
+
+    parts = []
+    if added:
+        parts.append(f"added {', '.join(added)}")
+    if removed:
+        parts.append(f"removed {', '.join(removed)}")
+    if not parts:
+        parts.append("reordered" if before != after else "edited")
+
+    return f"{len(after)} {noun}{'' if len(after) == 1 else 's'} ({'; '.join(parts)})"
 
 
 def note_path(entry_id: str) -> str:
@@ -250,6 +308,8 @@ class BudgetStore:
         )
 
     def put_bucket(self, person: str, bucket: Bucket, actor: Actor) -> str:
+        before = next((b for b in self.buckets(person) if b.id == bucket.id), None)
+
         def mutate() -> list[str]:
             buckets = [b for b in self.buckets(person) if b.id != bucket.id]
             buckets.append(bucket)
@@ -259,11 +319,18 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"bucket: {person} {bucket.id}",
+            subject=f"bucket: {describe_bucket_change(before, bucket)} ({person})",
             trailers={"Person": person},
         )
 
     def assign(self, person: str, month: str, bucket: str, amount: Decimal, actor: Actor) -> str:
+        # Both read before the write, because the subject describes a change and neither the
+        # old figure nor the bucket's name survives it.
+        name = next((b.name for b in self.buckets(person) if b.id == bucket), bucket)
+        was: Decimal = (yamlio.load(self.repo.read(assignments_path(person, month))) or {}).get(
+            bucket, ZERO
+        )
+
         def mutate() -> list[str]:
             path = assignments_path(person, month)
             current: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
@@ -277,11 +344,13 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"assign: {person} {bucket} {amount:.2f} for {month}",
+            subject=f"assign: {name} {was:.2f} → {amount:.2f} for {month} ({person})",
             trailers={"Person": person, "Month": month},
         )
 
     def put_scheduled(self, items: list[Scheduled], actor: Actor) -> str:
+        before = [item.name for item in self.scheduled()]
+
         def mutate() -> list[str]:
             if items:
                 self.repo.write(
@@ -297,8 +366,10 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"scheduled: {len(items)} recurring "
-            f"{'entry' if len(items) == 1 else 'entries'}",
+            subject=(
+                "scheduled: "
+                f"{describe_list_change(before, [i.name for i in items], 'recurring entry')}"
+            ),
             trailers={},
         )
 
@@ -380,7 +451,10 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"note: {'update' if text.strip() else 'remove'} {entry_id}",
+            subject=(
+                f"note: {'update' if text.strip() else 'remove'} on "
+                f"{found[0].payee if (found := self.find_entry(entry_id)) else entry_id}"
+            ),
             trailers={"Entry-Id": entry_id},
         )
 
@@ -460,6 +534,8 @@ class BudgetStore:
         )
 
     def put_members(self, budget: Budget, actor: Actor) -> str:
+        before = [member.name for member in self.budget().members]
+
         def mutate() -> list[str]:
             self.repo.write(
                 "budget.yaml", yamlio.dump(budget.model_dump(mode="python", exclude_none=True))
@@ -469,11 +545,16 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"members: {len(budget.members)} in {budget.name}",
+            subject=(
+                "members: "
+                f"{describe_list_change(before, [m.name for m in budget.members], 'member')}"
+            ),
             trailers={},
         )
 
     def put_rules(self, rules: list[Rule], actor: Actor) -> str:
+        before = [rule.id for rule in self.rules()]
+
         def mutate() -> list[str]:
             self.repo.write(
                 "rules.yaml",
@@ -481,7 +562,12 @@ class BudgetStore:
             )
             return ["rules.yaml"]
 
-        return self._commit(mutate, actor=actor, subject="rules: update defaults", trailers={})
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"rules: {describe_list_change(before, [r.id for r in rules], 'split rule')}",
+            trailers={},
+        )
 
     # ---- internals ------------------------------------------------------------------
 

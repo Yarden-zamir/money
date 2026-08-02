@@ -155,6 +155,42 @@ app undoing what you just did — so it samples the row order continuously from 
 the writes settle and fails if the order is ever wrong. Against the un-fixed code the row
 sits in its original place for about half a second.
 
+## History
+
+Rows open in place. A subject says what someone meant to do; the patch says what happened,
+and for YAML-shaped data it reads well enough to be the answer rather than a debugging aid —
+an assignment is one number changing on one line. A change that something later reverted is
+struck through and labelled, derived from the feed itself, since a revert names what it undid.
+
+Three actions on an open row: undo it, open the commit on GitHub — the data really is a git
+repo, so the commit really does have a page — and copy the commit id.
+
+The diff is pinned `dir="ltr"` and scrolls in its own box. It is code: reflowing it to the
+page direction would move the leading +/- to the far side of every line.
+
+Subjects are **clamped to two lines, never truncated to one**. A subject is an English-shaped
+string, so in a Hebrew page a single-line ellipsis eats its *beginning* — `assign: מכולת`
+disappears and `0 → 2000.00 for 2026-08` is what survives, which is the half that says
+nothing.
+
+## Mixed Scripts
+
+A subject is a template plus a name someone chose, so Hebrew lands mid-sentence among
+numbers. The bidi algorithm then resolves the neutrals *between* them — spaces, the arrow — to
+the Hebrew run's direction and lays the numbers out right to left: `מכולת 0.00 → 2000.00`
+renders as `2000.00 → 0.00 מכולת`. Same characters, assignment reversed.
+
+`components/Bidi.tsx` wraps each right-to-left run in `<bdi>`, which makes the run opaque to
+the algorithm while still laying it out correctly inside. Two details matter and both are
+tested:
+
+- **digits count as left-to-right, not neutral** — an amount following a Hebrew name has to
+  stay *outside* the isolate, or it ends up laid out within it and reads backwards;
+- **neutrals enclosed by right-to-left text stay inside it** — splitting `בית עסק` at its
+  space would isolate each word separately, and two isolated boxes in an English sentence are
+  placed left to right, reversing a Hebrew phrase while looking character-for-character
+  correct.
+
 ## Reordering
 
 Buckets carry an `order`, written per bucket rather than as a list, so two people reordering

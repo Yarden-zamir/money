@@ -4125,6 +4125,96 @@
         }
       }
     },
+    "/api/v1/budgets/{budget}/history/{sha}": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "What one change actually did",
+        "description": "The diff, so \"what did this change\" has an answer that is not a guess.\n\nA subject line names what someone meant to do. The patch is what actually happened, and\nfor a data model stored as YAML it reads well enough to be the answer rather than a\ndebugging aid \u2014 an assignment is one number changing on one line.\n\nWhether it can still be undone is answered here rather than left to the client, because\nit needs the whole log: a change that something later reverted is no longer applied, and\noffering to undo it again would revert the revert.",
+        "operationId": "getHistoryDetail",
+        "parameters": [
+          {
+            "name": "sha",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "history show",
+          "args": [
+            "sha"
+          ]
+        }
+      }
+    },
     "/api/v1/budgets/{budget}/history/undo": {
       "post": {
         "tags": [
@@ -5900,6 +5990,141 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoryDetail": {
+        "properties": {
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person",
+            "description": "Whose buckets or assignments moved"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          },
+          "mine": {
+            "type": "boolean",
+            "title": "Mine"
+          },
+          "reverts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverts",
+            "description": "Sha this change undid, if any"
+          },
+          "reverted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By",
+            "description": "Sha that undid this change; set means it is no longer applied"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryFileChange"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "diff": {
+            "type": "string",
+            "title": "Diff",
+            "description": "Unified patch, possibly truncated"
+          },
+          "diff_truncated": {
+            "type": "boolean",
+            "title": "Diff Truncated"
+          },
+          "can_undo": {
+            "type": "boolean",
+            "title": "Can Undo",
+            "description": "False when it is already undone, or you have read-only access"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sha",
+          "subject",
+          "kind",
+          "author",
+          "actor",
+          "date",
+          "entry_id",
+          "mine",
+          "files",
+          "diff",
+          "diff_truncated",
+          "can_undo"
+        ],
+        "title": "HistoryDetail",
+        "description": "One change, in enough detail to decide whether to undo it."
+      },
       "HistoryEvent": {
         "properties": {
           "sha": {
@@ -5975,6 +6200,37 @@
           "mine"
         ],
         "title": "HistoryEvent"
+      },
+      "HistoryFileChange": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "added, modified or removed"
+          },
+          "added": {
+            "type": "integer",
+            "title": "Added",
+            "description": "Lines added"
+          },
+          "removed": {
+            "type": "integer",
+            "title": "Removed",
+            "description": "Lines removed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "status",
+          "added",
+          "removed"
+        ],
+        "title": "HistoryFileChange"
       },
       "HistoryList": {
         "properties": {

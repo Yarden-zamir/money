@@ -762,6 +762,88 @@ export type HttpValidationError = {
 };
 
 /**
+ * HistoryDetail
+ *
+ * One change, in enough detail to decide whether to undo it.
+ */
+export type HistoryDetail = {
+    /**
+     * Sha
+     */
+    sha: string;
+    /**
+     * Subject
+     */
+    subject: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Author
+     */
+    author: string;
+    /**
+     * Actor
+     */
+    actor: string | null;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Entry Id
+     */
+    entry_id: string | null;
+    /**
+     * Person
+     *
+     * Whose buckets or assignments moved
+     */
+    person?: string | null;
+    /**
+     * Month
+     */
+    month?: string | null;
+    /**
+     * Mine
+     */
+    mine: boolean;
+    /**
+     * Reverts
+     *
+     * Sha this change undid, if any
+     */
+    reverts?: string | null;
+    /**
+     * Reverted By
+     *
+     * Sha that undid this change; set means it is no longer applied
+     */
+    reverted_by?: string | null;
+    /**
+     * Files
+     */
+    files: Array<HistoryFileChange>;
+    /**
+     * Diff
+     *
+     * Unified patch, possibly truncated
+     */
+    diff: string;
+    /**
+     * Diff Truncated
+     */
+    diff_truncated: boolean;
+    /**
+     * Can Undo
+     *
+     * False when it is already undone, or you have read-only access
+     */
+    can_undo: boolean;
+};
+
+/**
  * HistoryEvent
  */
 export type HistoryEvent = {
@@ -807,6 +889,34 @@ export type HistoryEvent = {
      * Sha this change undid, if any
      */
     reverts?: string | null;
+};
+
+/**
+ * HistoryFileChange
+ */
+export type HistoryFileChange = {
+    /**
+     * Path
+     */
+    path: string;
+    /**
+     * Status
+     *
+     * added, modified or removed
+     */
+    status: string;
+    /**
+     * Added
+     *
+     * Lines added
+     */
+    added: number;
+    /**
+     * Removed
+     *
+     * Lines removed
+     */
+    removed: number;
 };
 
 /**
@@ -3650,6 +3760,46 @@ export type GetHistoryResponses = {
 };
 
 export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
+
+export type GetHistoryDetailData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Sha
+         */
+        sha: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/history/{sha}';
+};
+
+export type GetHistoryDetailErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetHistoryDetailError = GetHistoryDetailErrors[keyof GetHistoryDetailErrors];
+
+export type GetHistoryDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: HistoryDetail;
+};
+
+export type GetHistoryDetailResponse = GetHistoryDetailResponses[keyof GetHistoryDetailResponses];
 
 export type UndoChangeData = {
     body?: never;

@@ -28,6 +28,8 @@ budget_app = typer.Typer(no_args_is_help=True, help="budget commands")
 
 entry_app = typer.Typer(no_args_is_help=True, help="entry commands")
 
+history_app = typer.Typer(no_args_is_help=True, help="history commands")
+
 key_app = typer.Typer(no_args_is_help=True, help="key commands")
 
 member_app = typer.Typer(no_args_is_help=True, help="member commands")
@@ -569,6 +571,24 @@ def entry_suggest(
     )
 
 
+@history_app.command("show", help='What one change actually did')
+def history_show(
+    sha: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/history/{sha}",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @key_app.command("create", help='Create an API key')
 def key_create(
     name: Annotated[str, typer.Argument(help='')],
@@ -889,6 +909,7 @@ def register(app: typer.Typer) -> None:
     app.add_typer(bucket_app, name="bucket")
     app.add_typer(budget_app, name="budget")
     app.add_typer(entry_app, name="entry")
+    app.add_typer(history_app, name="history")
     app.add_typer(key_app, name="key")
     app.add_typer(member_app, name="member")
     app.add_typer(month_app, name="month")

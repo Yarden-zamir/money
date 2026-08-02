@@ -139,12 +139,33 @@ const historyFeed = {
   undoable: "aaaaaaa1",
   events: [
     { sha: "aaaaaaa1c0ffee", subject: "entry: add שופרסל דיל 284.51 ILS", kind: "entry", author: "Yarden", actor: "dev", date: "2026-08-02T09:12:00Z", entry_id: null, mine: true },
-    { sha: "bbbbbbb2c0ffee", subject: "assign: yarden groceries 2000.00 for 2026-08", kind: "assignment", author: "Yarden", actor: "dev", date: "2026-08-01T20:03:00Z", entry_id: null, mine: true },
-    { sha: "ccccccc3c0ffee", subject: "bucket: yarden savings", kind: "bucket", author: "Dana", actor: "dana-example", date: "2026-07-30T11:40:00Z", entry_id: null, mine: false },
+    { sha: "bbbbbbb2c0ffee", subject: "assign: מכולת 0.00 → 2000.00 for 2026-08 (yarden)", kind: "assignment", author: "Yarden", actor: "dev", date: "2026-08-01T20:03:00Z", entry_id: null, mine: true },
+    { sha: "ccccccc3c0ffee", subject: "bucket: rename חסכון → חסכונות, move חסכונות to Goals (yarden)", kind: "bucket", author: "Dana", actor: "dana-example", date: "2026-07-30T11:40:00Z", entry_id: null, mine: false },
+    { sha: "ddddddd4c0ffee", subject: "revert \"assign: בילויים 0.00 → 400.00 for 2026-07 (yarden)\"", kind: "undo", author: "Yarden", actor: "dev", date: "2026-07-29T18:02:00Z", entry_id: null, mine: true, reverts: "eeeeeee5c0ffee" },
+    { sha: "eeeeeee5c0ffee", subject: "assign: בילויים 0.00 → 400.00 for 2026-07 (yarden)", kind: "assignment", author: "Yarden", actor: "dev", date: "2026-07-29T18:00:00Z", entry_id: null, mine: true },
   ],
 };
 
+const historyDetail = {
+  sha: "bbbbbbb2c0ffee", subject: "assign: מכולת 0.00 → 2000.00 for 2026-08 (yarden)",
+  kind: "assignment", author: "Yarden", actor: "dev", date: "2026-08-01T20:03:00Z",
+  entry_id: null, person: "yarden", month: "2026-08", mine: true,
+  reverts: null, reverted_by: null, diff_truncated: false, can_undo: true,
+  files: [{ path: "people/yarden/assignments/2026-08.yaml", status: "modified", added: 1, removed: 1 }],
+  diff: [
+    "diff --git a/people/yarden/assignments/2026-08.yaml b/people/yarden/assignments/2026-08.yaml",
+    "index 4e3b5b9..0284f57 100644",
+    "--- a/people/yarden/assignments/2026-08.yaml",
+    "+++ b/people/yarden/assignments/2026-08.yaml",
+    "@@ -1,2 +1,2 @@",
+    " fun-money: 400.00",
+    "-groceries: 0.00",
+    "+groceries: 2000.00",
+  ].join("\n"),
+};
+
 const ROUTES = [
+  [/\/history\/[0-9a-f]{7,}/, () => historyDetail],
   [/\/history/, () => historyFeed],
   [/\/suggest/, () => ({ payee: null, amount: null, bucket: null, shares: [], items: [], place_name: null, confidence: 0, basis: "none", reason: "Nothing similar yet.", sample_size: 0 })],
   [/\/entries\/payees/, () => []],
@@ -254,6 +275,13 @@ for (const [device, viewport] of VIEWPORTS) {
         fullPage: true,
       });
     }
+
+    // History rows only show what a change did once opened, so the closed list is not the
+    // screen worth reviewing.
+    await page.goto(`http://localhost:${PORT}/history`, { waitUntil: "networkidle" });
+    await page.locator("[aria-expanded]").nth(1).click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-history-open.png`), fullPage: true });
 
     // The quick-add dialog is reachable from every screen, so it gets its own shot.
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });

@@ -16,7 +16,14 @@ from fastapi import APIRouter, Depends, Query
 
 from money.api.deps import BudgetContext, budget_context, writable
 from money.api.errors import ApiError, not_found
-from money.api.schemas import HistoryEvent, HistoryPage, UndoResult
+from money.api.schemas import (
+    HistoryDetail,
+    HistoryEvent,
+    HistoryFileChange,
+    HistoryPage,
+    UndoResult,
+)
+from money.store.gitrepo import GitError
 from money.store.store import DataError
 
 router = APIRouter(prefix="/budgets/{budget}/history", tags=["history"])
@@ -124,6 +131,66 @@ def get_history(
         for commit in commits
     ]
     return HistoryPage(events=events, undoable=undoable, redoable=redoable)
+
+
+@router.get(
+    "/{sha}",
+    operation_id="getHistoryDetail",
+    response_model=HistoryDetail,
+    summary="What one change actually did",
+    openapi_extra={"x-cli": {"command": "history show", "args": ["sha"]}},
+)
+def get_history_detail(
+    sha: str,
+    context: Annotated[BudgetContext, Depends(budget_context)],
+) -> HistoryDetail:
+    """The diff, so "what did this change" has an answer that is not a guess.
+
+    A subject line names what someone meant to do. The patch is what actually happened, and
+    for a data model stored as YAML it reads well enough to be the answer rather than a
+    debugging aid — an assignment is one number changing on one line.
+
+    Whether it can still be undone is answered here rather than left to the client, because
+    it needs the whole log: a change that something later reverted is no longer applied, and
+    offering to undo it again would revert the revert.
+    """
+    commits = context.store.repo.log(limit=500)
+    target = next((commit for commit in commits if commit.sha.startswith(sha)), None)
+    if target is None:
+        raise not_found(f"commit {sha}")
+
+    reverted_by = next(
+        (c.sha for c in commits if c.trailers.get("Reverts", "").startswith(target.sha[:40])),
+        None,
+    )
+
+    try:
+        files = context.store.repo.changed_files(target.sha)
+        diff, truncated = context.store.repo.diff(target.sha)
+    except GitError as exc:  # a tag or a commit with no parent has nothing to diff against
+        raise ApiError("no_diff", f"cannot read the change in {sha}: {exc}", status=409) from exc
+
+    return HistoryDetail(
+        sha=target.sha,
+        subject=target.subject,
+        kind=_kind_of(target.subject),
+        author=target.author_name,
+        actor=target.trailers.get("Actor"),
+        date=target.date,
+        entry_id=target.trailers.get("Entry-Id"),
+        person=target.trailers.get("Person"),
+        month=target.trailers.get("Month"),
+        mine=target.trailers.get("Actor") == context.actor.login,
+        reverts=target.trailers.get("Reverts"),
+        reverted_by=reverted_by,
+        files=[
+            HistoryFileChange(path=path, status=status, added=added, removed=removed)
+            for path, status, added, removed in files
+        ],
+        diff=diff,
+        diff_truncated=truncated,
+        can_undo=context.can_write and reverted_by is None,
+    )
 
 
 @router.post(

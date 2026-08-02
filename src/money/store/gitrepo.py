@@ -291,6 +291,53 @@ class GitRepo:
         )
         return result.stdout if result.returncode == 0 else None
 
+    def changed_files(self, sha: str) -> list[tuple[str, str, int, int]]:
+        """(path, status, lines added, lines removed) for one commit.
+
+        Two formats because git will not emit both in one pass: `--name-status` says whether
+        a file appeared or vanished, `--numstat` says how much of it moved. The status letter
+        is the useful half — "removed" and "modified" look identical in a line count.
+        """
+        statuses: dict[str, str] = {}
+        for line in self._run(
+            "show", "--format=", "--name-status", "-m", "--first-parent", sha
+        ).splitlines():
+            letter, _, path = line.partition("\t")
+            if path:
+                statuses[path] = {"A": "added", "D": "removed"}.get(letter[:1], "modified")
+
+        changes: list[tuple[str, str, int, int]] = []
+        for line in self._run(
+            "show", "--format=", "--numstat", "-m", "--first-parent", sha
+        ).splitlines():
+            added, _, rest = line.partition("\t")
+            removed, _, path = rest.partition("\t")
+            if not path:
+                continue
+            # git writes "-" for binary files, which have no meaningful line count.
+            changes.append(
+                (
+                    path,
+                    statuses.get(path, "modified"),
+                    int(added) if added.isdigit() else 0,
+                    int(removed) if removed.isdigit() else 0,
+                )
+            )
+        return changes
+
+    def diff(self, sha: str, max_lines: int = 400) -> tuple[str, bool]:
+        """The patch for one commit, and whether it was cut short.
+
+        Truncated rather than streamed: this is read by a person expanding a row, and a diff
+        longer than a few hundred lines is one they will scroll past rather than read. The
+        flag exists so the UI can say so instead of silently showing a partial change.
+        """
+        text = self._run("show", "--format=", "--patch", "-m", "--first-parent", sha)
+        lines = text.splitlines()
+        if len(lines) <= max_lines:
+            return text, False
+        return "\n".join(lines[:max_lines]), True
+
     def files_at(self, sha: str, prefix: str) -> list[str]:
         output = self._run("ls-tree", "-r", "--name-only", sha, "--", prefix)
         return sorted(line for line in output.splitlines() if line)

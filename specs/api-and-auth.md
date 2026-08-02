@@ -99,6 +99,7 @@ GET    /github/repos                         repos you could connect, flagged fo
 GET    /github/users?q=                      autocomplete a GitHub login before inviting
 
 GET    /budgets/{budget}/history             every change, newest first
+GET    /budgets/{budget}/history/{sha}       one change: files, patch, whether it can be undone
 POST   /budgets/{budget}/history/undo        revert; defaults to your last un-reverted change
 POST   /budgets/{budget}/history/redo        re-apply what your last undo reversed
 
@@ -180,6 +181,39 @@ offered only while your last change was an undo.
 
 A revert that will not apply cleanly is refused rather than discarding the later work built
 on it.
+
+`GET /history/{sha}` answers what a change actually did: the files it touched with line
+counts, the patch, and whether it is still applied. Two things are decided server-side
+because both need the whole log rather than one commit — `reverted_by`, which names the
+commit that undid this one, and `can_undo`, which is false once something has. Offering undo
+on an already-reverted change would revert the revert, which is redo wearing the wrong label.
+
+The patch is truncated at 400 lines with a flag, rather than streamed. It is read by a person
+expanding a row; a longer diff is one they will scroll past, and the flag lets the client say
+so instead of silently showing half a change.
+
+## Commit Subjects
+
+A subject is the only description a change ever gets, written once into git at the moment of
+the write. Nothing later can recover what it failed to say, so each one is built by comparing
+against the previous state rather than restating the request:
+
+- **buckets** — `put_bucket` replaces the whole bucket, so the write itself cannot say whether
+  it was a rename, a re-target or a drag. `bucket: yarden fun-money` was the same line for all
+  of them. It now reads `bucket: rename Fun money → Bilui, move Bilui to Goals (yarden)`, and
+  lists every change rather than picking one, because renaming while dragging is a single
+  write.
+- **assignments** — the bucket's *name* and the figure it moved from, both read before the
+  write destroys them: `assign: Groceries 0.00 → 2000.00 for 2026-08 (yarden)`.
+- **rules, members and recurring entries** — all replaced as a unit, so the subject names what
+  was added or removed: `rules: 2 split rules (added coffee)`. A same-length list with the
+  same names is reported as reordered or edited, which is otherwise indistinguishable from
+  nothing happening.
+- **notes** — the entry's payee, not its ULID.
+
+Subjects carry no bidi control characters. Laying out a mixed-script line is the client's
+job; the repo is meant to read on its own terms, and a commit message full of invisible
+control characters is a worse artefact than one that needs a client to lay it out.
 
 ## Errors
 

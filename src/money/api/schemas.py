@@ -276,6 +276,38 @@ class HistoryEvent(BaseModel):
     reverts: str | None = Field(default=None, description="Sha this change undid, if any")
 
 
+class HistoryFileChange(BaseModel):
+    path: str
+    status: str = Field(description="added, modified or removed")
+    added: int = Field(description="Lines added")
+    removed: int = Field(description="Lines removed")
+
+
+class HistoryDetail(BaseModel):
+    """One change, in enough detail to decide whether to undo it."""
+
+    sha: str
+    subject: str
+    kind: str
+    author: str
+    actor: str | None
+    date: str
+    entry_id: str | None
+    person: str | None = Field(default=None, description="Whose buckets or assignments moved")
+    month: str | None = None
+    mine: bool
+    reverts: str | None = Field(default=None, description="Sha this change undid, if any")
+    reverted_by: str | None = Field(
+        default=None, description="Sha that undid this change; set means it is no longer applied"
+    )
+    files: list[HistoryFileChange]
+    diff: str = Field(description="Unified patch, possibly truncated")
+    diff_truncated: bool
+    can_undo: bool = Field(
+        description="False when it is already undone, or you have read-only access"
+    )
+
+
 class HistoryPage(BaseModel):
     events: list[HistoryEvent]
     undoable: str | None = Field(description="What undo would revert, if anything")

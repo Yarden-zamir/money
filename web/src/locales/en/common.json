@@ -269,9 +269,22 @@
     "title": "History",
     "hint": "Every change, newest first. Assignments appear alongside entries.",
     "undo": "Undo",
-    "undone": "Undone: {{what}}",
+    "undone": "undone",
     "redo": "Redo",
-    "redone": "Redone: {{what}}"
+    "redone": "Redone: {{what}}",
+    "openHint": "Every change, newest first. Open one to see exactly what it did.",
+    "undoThis": "Undo this change",
+    "alreadyUndone": "Already undone.",
+    "cannotUndo": "You have read-only access to this budget.",
+    "onGitHub": "View on GitHub",
+    "copySha": "Copy commit id",
+    "copied": "Copied",
+    "truncated": "Diff shortened. The full change is on GitHub.",
+    "status": {
+      "added": "added",
+      "modified": "changed",
+      "removed": "removed"
+    }
   },
   "shortcuts": {
     "help": "Keyboard shortcuts",

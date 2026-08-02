@@ -34,6 +34,20 @@ REPLACEMENTS = {
 }
 
 
+COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
+
+
+def code_of(path: Path) -> str:
+    """Source with comments stripped.
+
+    These checks look for physical direction utilities in class names, and a class name only
+    means anything in code. Prose about direction — "right-to-left", "left-to-right" — matches
+    the same pattern, so scanning comments makes accurate documentation fail the very check it
+    is describing.
+    """
+    return COMMENT.sub(" ", path.read_text(encoding="utf-8"))
+
+
 def app_sources() -> list[Path]:
     """Hand-written sources only. The generated API client is not ours to style."""
     return [
@@ -45,7 +59,7 @@ def app_sources() -> list[Path]:
 
 @pytest.mark.parametrize("path", app_sources(), ids=lambda p: p.name)
 def test_no_physical_direction_classes(path: Path) -> None:
-    matches = PHYSICAL.findall(path.read_text(encoding="utf-8"))
+    matches = PHYSICAL.findall(code_of(path))
     assert not matches, (
         f"{path.name} uses physical direction utilities {sorted(set(matches))}. "
         f"Use logical ones instead: {REPLACEMENTS}"
@@ -77,6 +91,32 @@ def test_the_formatter_isolates_amounts() -> None:
     assert "\u2068" in source, "missing FIRST STRONG ISOLATE in formatMoney"
     assert "\u2069" in source, "missing POP DIRECTIONAL ISOLATE in formatMoney"
     assert "\u2066" not in source, "LEFT-TO-RIGHT ISOLATE overrides the locale's own marks"
+
+
+def test_mixed_script_text_is_isolated_by_one_component() -> None:
+    """Server-built strings mix a template with a name someone chose, so they mix scripts.
+
+    Without isolating the right-to-left runs, the neutral characters between them are resolved
+    to the Hebrew direction and the numbers around them lay out backwards: "מכולת 0.00 →
+    2000.00" renders as "2000.00 → 0.00 מכולת" — the same characters, the assignment
+    reversed. `<bdi>` is what stops it, and rendering such a string as a bare interpolation
+    silently reintroduces the bug, so the component must stay the only path.
+    """
+    source = (WEB_SRC / "components" / "Bidi.tsx").read_text(encoding="utf-8")
+    assert "<bdi>" in source, "Bidi must isolate right-to-left runs in a <bdi> element"
+
+    history = code_of(WEB_SRC / "features" / "HistoryScreen.tsx")
+    assert "text={event.subject}" in history, "history subjects must render through <Bidi>"
+    assert ">{event.subject}<" not in history, (
+        "a subject rendered as bare text is not isolated, whatever else the file does"
+    )
+
+
+def test_the_diff_view_is_forced_left_to_right() -> None:
+    """A patch is code. Reflowing it to the page direction makes it unreadable, and the
+    leading +/- would move to the far side of each line."""
+    history = code_of(WEB_SRC / "features" / "HistoryScreen.tsx")
+    assert 'dir="ltr"' in history, "the diff block must pin its own direction"
 
 
 def test_fixed_width_fields_opt_out_of_full_width() -> None:
