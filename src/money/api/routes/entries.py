@@ -29,7 +29,7 @@ from money.api.schemas import (
     SplitPreview,
 )
 from money.domain.amounts import ZERO
-from money.domain.models import Entry, EntryKind, Share
+from money.domain.models import Entry, EntryKind, LineItem, Share
 from money.domain.rules import first_match, shares_from_rule
 from money.store.store import new_id
 
@@ -44,6 +44,15 @@ def _resolve_shares(
     Returns the shares and the id of the rule that produced them, which is recorded on the
     entry as an audit trail.
     """
+    # Lines that carry their own split are the most specific thing the caller said, so they
+    # decide the entry's split rather than being checked against a separately supplied one.
+    if body.items and all(item.shares for item in body.items):
+        return [
+            Share(person=share.person, amount=share.amount, bucket=share.bucket or body.bucket)
+            for item in body.items
+            for share in (item.shares or [])
+        ], None
+
     if body.shares:
         shares = [
             Share(person=s.person, amount=s.amount, bucket=s.bucket or body.bucket)
@@ -115,6 +124,18 @@ def create_entry(
         note=body.note,
         tags=body.tags,
         rule=rule_id,
+        items=[
+            LineItem(
+                label=item.label,
+                amount=item.amount,
+                quantity=item.quantity,
+                shares=[
+                    Share(person=s.person, amount=s.amount, bucket=s.bucket or body.bucket)
+                    for s in (item.shares or [])
+                ],
+            )
+            for item in (body.items or [])
+        ],
     )
     sha = context.store.add_entry(entry, context.actor)
     return EntryResponse(entry=entry, commit=sha)
@@ -256,6 +277,11 @@ def update_entry(
     changes = body.model_dump(exclude_unset=True, exclude_none=True)
     if "shares" in changes:
         changes["shares"] = [Share(**s) for s in changes["shares"]]
+    if "items" in changes:
+        changes["items"] = [
+            LineItem(**{**item, "shares": [Share(**s) for s in (item.get("shares") or [])]})
+            for item in changes["items"]
+        ]
 
     # Rebuilding through the model re-runs the balance checks, so an edit that leaves paid_by
     # and shares disagreeing is rejected here rather than written to the ledger.

@@ -330,6 +330,35 @@ class BudgetStore:
             trailers={"Entry-Id": entry.id, "Scheduled": scheduled_id},
         )
 
+    def revert(self, sha: str, actor: Actor) -> str:
+        """Undo one commit by committing its inverse.
+
+        Goes through the same lock, rebase and push path as every other write, because an
+        undo racing a concurrent edit is exactly as dangerous as two edits racing.
+        """
+        with write_lock(self.repo):
+            self.repo.ensure_clone(actor.token)
+            try:
+                new_sha = self.repo.revert(
+                    sha,
+                    actor.token,
+                    f"revert: {sha[:7]}\n\nActor: {actor.login}\nReverts: {sha}\n",
+                )
+            except Exception as exc:
+                # A revert that does not apply cleanly means the change has been built on
+                # since. Undoing it blindly would silently discard the later work.
+                raise DataError(
+                    f"cannot undo {sha[:7]} cleanly — later changes depend on it"
+                ) from exc
+
+            try:
+                self.repo.push(actor.token)
+            except PushRejected:
+                self.repo.rebase_onto_remote(actor.token)
+                self.repo.push(actor.token)
+                new_sha = self.repo.head_sha()
+            return new_sha
+
     def put_note(self, entry_id: str, text: str, actor: Actor) -> str:
         def mutate() -> list[str]:
             if text.strip():

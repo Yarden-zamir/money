@@ -30,9 +30,11 @@ from money.api.routes import (
     budgets,
     entries,
     github_routes,
+    history,
     me,
     rules,
     scheduled,
+    suggest_routes,
 )
 from money.store.store import DataError
 
@@ -91,6 +93,8 @@ def create_app() -> FastAPI:
         github_routes.router,
         github_routes.collaborators,
         scheduled.router,
+        history.router,
+        suggest_routes.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
 

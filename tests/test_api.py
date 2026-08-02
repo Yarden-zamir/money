@@ -184,6 +184,76 @@ class TestEntries:
         assert client.get("/api/v1/budgets/joint/entries?payee=שופרסל").json()["total"] == 1
 
 
+class TestReceipts:
+    def test_a_receipt_records_its_lines(self, client: TestClient) -> None:
+        entry = post_entry(
+            client,
+            amount="-120.00",
+            payee="שופרסל דיל",
+            date="2026-07-14",
+            items=[
+                {"label": "חלב", "amount": "-20.00"},
+                {"label": "יין", "amount": "-100.00"},
+            ],
+        )["entry"]
+        assert [item["label"] for item in entry["items"]] == ["חלב", "יין"]
+
+    def test_lines_must_sum_to_the_entry(self, client: TestClient) -> None:
+        """Otherwise the receipt describes a different purchase from the one recorded."""
+        response = client.post(
+            "/api/v1/budgets/joint/entries",
+            json={
+                "amount": "-120.00",
+                "payee": "שופרסל דיל",
+                "items": [{"label": "חלב", "amount": "-20.00"}],
+            },
+        )
+        assert response.status_code == 422
+        assert "items sum to -20.00" in response.json()["error"]["message"]
+
+    def test_a_line_can_go_to_a_different_bucket(self, client: TestClient) -> None:
+        """A supermarket run is groceries and a bottle of wine; the entry split cannot say so."""
+        entry = post_entry(
+            client,
+            amount="-120.00",
+            payee="שופרסל דיל",
+            date="2026-07-14",
+            items=[
+                {
+                    "label": "חלב",
+                    "amount": "-20.00",
+                    "shares": [{"person": "yarden", "amount": "-20.00", "bucket": "groceries"}],
+                },
+                {
+                    "label": "יין",
+                    "amount": "-100.00",
+                    "shares": [{"person": "yarden", "amount": "-100.00", "bucket": "fun-money"}],
+                },
+            ],
+        )["entry"]
+
+        by_bucket = {share["bucket"]: share["amount"] for share in entry["shares"]}
+        assert by_bucket == {"groceries": "-20.00", "fun-money": "-100.00"}
+
+    def test_splitting_only_some_lines_is_refused(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/v1/budgets/joint/entries",
+            json={
+                "amount": "-120.00",
+                "payee": "שופרסל דיל",
+                "items": [
+                    {
+                        "label": "חלב",
+                        "amount": "-20.00",
+                        "shares": [{"person": "yarden", "amount": "-20.00", "bucket": "groceries"}],
+                    },
+                    {"label": "יין", "amount": "-100.00"},
+                ],
+            },
+        )
+        assert response.status_code == 422
+
+
 class TestPayeeSuggestions:
     def test_a_literal_path_is_not_matched_as_an_entry_id(self, client: TestClient) -> None:
         """/entries/payees must not be routed to /entries/{entry_id}.

@@ -24,6 +24,15 @@ class ShareInput(BaseModel):
     bucket: str | None = None
 
 
+class LineItemInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(min_length=1, max_length=200)
+    amount: Decimal
+    quantity: Decimal | None = None
+    shares: list[ShareInput] | None = None
+
+
 class EntryCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -44,6 +53,9 @@ class EntryCreate(BaseModel):
     )
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
+    items: list[LineItemInput] | None = Field(
+        default=None, description="Receipt lines; must sum to the entry amount"
+    )
 
 
 class EntryUpdate(BaseModel):
@@ -54,6 +66,7 @@ class EntryUpdate(BaseModel):
     date: DateType | None = None
     paid_by: dict[str, Decimal] | None = None
     shares: list[ShareInput] | None = None
+    items: list[LineItemInput] | None = None
     note: str | None = None
     tags: list[str] | None = None
 
@@ -199,6 +212,48 @@ class PayeeSuggestion(BaseModel):
     amount: Decimal | None = Field(description="Typical amount: the mode, else the most recent")
     bucket: str | None = Field(description="Bucket most often used for this payee")
     basis: str = Field(description="Which rule produced the suggestion, for the explanation")
+
+
+class HistoryEvent(BaseModel):
+    sha: str
+    subject: str
+    kind: str = Field(description="entry, assignment, bucket, rules, members, note, undo")
+    author: str
+    actor: str | None
+    date: str
+    entry_id: str | None
+    mine: bool = Field(description="You made this change")
+
+
+class HistoryPage(BaseModel):
+    events: list[HistoryEvent]
+    undoable: str | None = Field(description="Sha of your most recent change, if any")
+
+
+class UndoResult(BaseModel):
+    undone_sha: str
+    undone_subject: str = Field(description="What was reverted, for the confirmation")
+    commit: str
+    can_redo: bool
+
+
+class NearbyPlaceResponse(BaseModel):
+    id: str
+    name: str
+    kind: str | None
+
+
+class SuggestionResponse(BaseModel):
+    payee: str | None
+    amount: Decimal | None
+    bucket: str | None
+    shares: list[ShareInput]
+    items: list[LineItemInput]
+    place_name: str | None
+    confidence: float
+    basis: str = Field(description="payee, place, time or none")
+    reason: str = Field(description="Why this was suggested; shown on hover")
+    sample_size: int
 
 
 class RepoOption(BaseModel):

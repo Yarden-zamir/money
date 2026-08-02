@@ -252,6 +252,49 @@ class GitRepo:
                 raise PushRejected(["push"], exc.returncode, exc.stderr) from exc
             raise
 
+    def revert(self, sha: str, token: str, message: str) -> str:
+        """Undo a commit by recording the inverse of it as a new commit.
+
+        A revert rather than a reset: the original change stays in history, so an undo is
+        itself auditable and can be undone in turn. Rewriting history would make an undo
+        invisible, which is the opposite of what a shared ledger needs.
+        """
+        self._run(
+            "-c",
+            "user.name=money",
+            "-c",
+            "user.email=money@yarden-zamir.com",
+            "revert",
+            "--no-edit",
+            "--no-commit",
+            sha,
+        )
+        self._run(
+            "-c",
+            "user.name=money",
+            "-c",
+            "user.email=money@yarden-zamir.com",
+            "commit",
+            "--message",
+            message,
+        )
+        return self.head_sha()
+
+    def show_at(self, sha: str, path: str) -> str | None:
+        """A file's contents as of a commit, or None if it did not exist then."""
+        result = subprocess.run(  # noqa: S603 - fixed executable, no shell
+            ["git", "-C", str(self.path), "show", f"{sha}:{path}"],
+            capture_output=True,
+            text=True,
+            env=self._env(None),
+            timeout=30,
+        )
+        return result.stdout if result.returncode == 0 else None
+
+    def files_at(self, sha: str, prefix: str) -> list[str]:
+        output = self._run("ls-tree", "-r", "--name-only", sha, "--", prefix)
+        return sorted(line for line in output.splitlines() if line)
+
     def rebase_onto_remote(self, token: str) -> None:
         self._run("fetch", "origin", self.branch, token=token)
         self._run("rebase", f"origin/{self.branch}")

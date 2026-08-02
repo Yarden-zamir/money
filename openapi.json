@@ -3863,6 +3863,428 @@
           ]
         }
       }
+    },
+    "/api/v1/budgets/{budget}/history": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "Everything that has changed, newest first",
+        "description": "One feed for every change, whichever file it touched.\n\nAssignments show up next to entries because they are the same kind of event to the person\nreading \u2014 money moved \u2014 even though one lives in a ledger file and the other in a map.",
+        "operationId": "getHistory",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "history"
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/history/undo": {
+      "post": {
+        "tags": [
+          "history"
+        ],
+        "summary": "Undo a change you made",
+        "description": "Revert a commit, defaulting to your own most recent one.\n\nScoped to your own changes: in a shared budget, silently reversing your partner's work\nfrom your phone is the failure worth designing against. Reverting someone else's change\nis still possible by naming its sha explicitly, which makes it a deliberate act.",
+        "operationId": "undoChange",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "sha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sha"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UndoResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "undo"
+        }
+      }
+    },
+    "/api/v1/places/nearby": {
+      "get": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Venues around a point",
+        "description": "Names the shop someone is standing in, so the first visit does not need typing.\n\nProxied rather than called from the browser, so the API key stays on the server. Returns\nan empty list rather than an error when the lookup fails \u2014 a places outage should not\nstop anyone recording an expense.",
+        "operationId": "nearbyPlaces",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lon"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NearbyPlaceResponse"
+                  },
+                  "title": "Response Nearbyplaces"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/suggest": {
+      "get": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "A guessed entry, with its reasoning",
+        "description": "What this person probably about to record, drawn only from this budget's own history.\n\nEvery field the caller already knows narrows the pool the rest is drawn from, so filling\nin the payee improves the amount and the split rather than being ignored.",
+        "operationId": "suggestEntry",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "payee",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payee"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "entry suggest"
+        }
+      }
     }
   },
   "components": {
@@ -4176,6 +4598,12 @@
             "type": "boolean",
             "title": "Archived",
             "default": false
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order",
+            "description": "Sort position within its group; ties fall back to name",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -4224,6 +4652,12 @@
             "type": "boolean",
             "title": "Archived",
             "default": false
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order",
+            "description": "Sort position within its group; ties fall back to name",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -4699,6 +5133,24 @@
               }
             ],
             "title": "Rule"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Receipt lines; must sum to the entry amount"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Place"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -4831,6 +5283,21 @@
             },
             "type": "array",
             "title": "Tags"
+          },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LineItemInput-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items",
+            "description": "Receipt lines; must sum to the entry amount"
           }
         },
         "additionalProperties": false,
@@ -4966,6 +5433,20 @@
             ],
             "title": "Shares"
           },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LineItemInput-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items"
+          },
           "note": {
             "anyOf": [
               {
@@ -5009,6 +5490,70 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoryEvent": {
+        "properties": {
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "entry, assignment, bucket, rules, members, note, undo"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "mine": {
+            "type": "boolean",
+            "title": "Mine",
+            "description": "You made this change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sha",
+          "subject",
+          "kind",
+          "author",
+          "actor",
+          "date",
+          "entry_id",
+          "mine"
+        ],
+        "title": "HistoryEvent"
+      },
       "HistoryList": {
         "properties": {
           "commits": {
@@ -5024,6 +5569,35 @@
           "commits"
         ],
         "title": "HistoryList"
+      },
+      "HistoryPage": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "undoable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undoable",
+            "description": "Sha of your most recent change, if any"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events",
+          "undoable"
+        ],
+        "title": "HistoryPage"
       },
       "InviteRequest": {
         "properties": {
@@ -5089,6 +5663,154 @@
           "person"
         ],
         "title": "InviteResponse"
+      },
+      "LineItem": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/Share-Output"
+            },
+            "type": "array",
+            "title": "Shares"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "LineItem",
+        "description": "One line on a receipt.\n\nA receipt is one payment but several things bought, and they do not always belong in the\nsame envelope or to the same person \u2014 a supermarket run is groceries and a bottle of wine.\nSplitting the *entry* cannot express that, because the entry's split is about the total.\n\nA line carries its own shares when it needs to. When it does not, it simply belongs to\nwhatever the entry as a whole decided."
+      },
+      "LineItemInput-Input": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShareInput-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "LineItemInput"
+      },
+      "LineItemInput-Output": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShareInput-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "LineItemInput"
       },
       "Match-Input": {
         "properties": {
@@ -5347,6 +6069,36 @@
         ],
         "title": "MoveRequest"
       },
+      "NearbyPlaceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "NearbyPlaceResponse"
+      },
       "NoteBody": {
         "properties": {
           "text": {
@@ -5438,6 +6190,54 @@
           "basis"
         ],
         "title": "PayeeSuggestion"
+      },
+      "Place": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "Place",
+        "description": "Where a payment happened.\n\nCoordinates are committed to the budget repo, which is a deliberate choice: it makes the\nsuggestions work on every device and survive clearing a browser. It also means the repo\nholds a durable, shared record of where you have been \u2014 see specs/data-model.md."
       },
       "PostRequest": {
         "properties": {
@@ -6195,6 +6995,101 @@
         ],
         "title": "SplitPreview"
       },
+      "SuggestionResponse": {
+        "properties": {
+          "payee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payee"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "bucket": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucket"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/ShareInput-Output"
+            },
+            "type": "array",
+            "title": "Shares"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LineItemInput-Output"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "place_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Name"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis",
+            "description": "payee, place, time or none"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Why this was suggested; shown on hover"
+          },
+          "sample_size": {
+            "type": "integer",
+            "title": "Sample Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payee",
+          "amount",
+          "bucket",
+          "shares",
+          "items",
+          "place_name",
+          "confidence",
+          "basis",
+          "reason",
+          "sample_size"
+        ],
+        "title": "SuggestionResponse"
+      },
       "Target-Input": {
         "properties": {
           "kind": {
@@ -6275,6 +7170,35 @@
           "kind"
         ],
         "title": "Target"
+      },
+      "UndoResult": {
+        "properties": {
+          "undone_sha": {
+            "type": "string",
+            "title": "Undone Sha"
+          },
+          "undone_subject": {
+            "type": "string",
+            "title": "Undone Subject",
+            "description": "What was reverted, for the confirmation"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          },
+          "can_redo": {
+            "type": "boolean",
+            "title": "Can Redo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "undone_sha",
+          "undone_subject",
+          "commit",
+          "can_redo"
+        ],
+        "title": "UndoResult"
       },
       "UserOption": {
         "properties": {

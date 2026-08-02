@@ -83,6 +83,24 @@ def balance(
     )
 
 
+@_root.command("history", help='Everything that has changed, newest first')
+def history(
+    limit: Annotated[int | None, typer.Option("--limit", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/history",
+            query={"limit": limit},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @_root.command("month", help='Envelope view for a month')
 def month(
     month: Annotated[str, typer.Argument(help='')],
@@ -122,6 +140,24 @@ def settle(
             f"/budgets/{resolve_budget(budget)}/settle",
             query={},
             body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@_root.command("undo", help='Undo a change you made')
+def undo(
+    sha: Annotated[str | None, typer.Option("--sha", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/history/undo",
+            query={"sha": sha},
+            body=None,
         ),
         as_json=json_out,
         table=None,
@@ -219,11 +255,12 @@ def bucket_set(
     group: Annotated[str | None, typer.Option("--group", help='')] = None,
     target: Annotated[str | None, typer.Option("--target", help='')] = None,
     archived: Annotated[bool, typer.Option("--archived", help='')] = False,
+    order: Annotated[int | None, typer.Option("--order", help='Sort position within its group; ties fall back to name')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"name": name, "id": id_, "group": group, "target": target, "archived": archived}
+    body = {"name": name, "id": id_, "group": group, "target": target, "archived": archived, "order": order}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -433,6 +470,27 @@ def entry_preview(
             f"/budgets/{resolve_budget(budget)}/entries/preview",
             query={},
             body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@entry_app.command("suggest", help='A guessed entry, with its reasoning')
+def entry_suggest(
+    payee: Annotated[str | None, typer.Option("--payee", help='')] = None,
+    lat: Annotated[str | None, typer.Option("--lat", help='')] = None,
+    lon: Annotated[str | None, typer.Option("--lon", help='')] = None,
+    at: Annotated[str | None, typer.Option("--at", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/suggest",
+            query={"payee": payee, "lat": lat, "lon": lon, "at": at},
+            body=None,
         ),
         as_json=json_out,
         table=None,

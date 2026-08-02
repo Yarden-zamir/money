@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Optional. Absent means every read goes to git and GitHub, which is correct but slower.
     redis_url: str | None = None
 
+    # Optional. Without it, a place has to be named by hand the first time.
+    google_cloud_api_key: str = ""
+
     dev_mode: bool = Field(default=False, description="Bypass GitHub auth with a fake user")
 
     @property

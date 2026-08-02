@@ -49,6 +49,54 @@ class Share(Base):
         return parse_amount(value)  # type: ignore[arg-type]
 
 
+class LineItem(Base):
+    """One line on a receipt.
+
+    A receipt is one payment but several things bought, and they do not always belong in the
+    same envelope or to the same person — a supermarket run is groceries and a bottle of wine.
+    Splitting the *entry* cannot express that, because the entry's split is about the total.
+
+    A line carries its own shares when it needs to. When it does not, it simply belongs to
+    whatever the entry as a whole decided.
+    """
+
+    label: str = Field(min_length=1, max_length=200)
+    amount: Decimal
+    quantity: Decimal | None = None
+    shares: list[Share] = Field(default_factory=list)
+
+    @field_validator("amount", "quantity", mode="before")
+    @classmethod
+    def _parse(cls, value: object) -> Decimal | None:
+        return None if value is None else parse_amount(value)  # type: ignore[arg-type]
+
+    @model_validator(mode="after")
+    def _shares_match_the_line(self) -> Self:
+        if self.shares:
+            total = sum((share.amount for share in self.shares), start=ZERO)
+            if total != self.amount:
+                raise ValueError(
+                    f"line {self.label!r}: shares sum to {format_amount(total)}, "
+                    f"line is {format_amount(self.amount)}"
+                )
+        return self
+
+
+class Place(Base):
+    """Where a payment happened.
+
+    Coordinates are committed to the budget repo, which is a deliberate choice: it makes the
+    suggestions work on every device and survive clearing a browser. It also means the repo
+    holds a durable, shared record of where you have been — see specs/data-model.md.
+    """
+
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    name: str | None = Field(default=None, max_length=200)
+    # Whatever the places provider calls this venue, so a rename upstream does not fork it.
+    provider_id: str | None = Field(default=None, max_length=200)
+
+
 class Entry(Base):
     id: str = Field(pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")  # ULID
     kind: EntryKind = EntryKind.EXPENSE
@@ -61,6 +109,10 @@ class Entry(Base):
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
     rule: str | None = None
+    items: list[LineItem] = Field(
+        default_factory=list, description="Receipt lines; must sum to the entry amount"
+    )
+    place: Place | None = None
 
     @field_validator("amount", mode="before")
     @classmethod
@@ -98,6 +150,34 @@ class Entry(Base):
                 f"entry amount is {format_amount(self.amount)}"
             )
 
+        # A receipt has to add up to what was paid, or the lines are describing a different
+        # purchase from the one the ledger records.
+        if self.items:
+            lines = sum((item.amount for item in self.items), start=ZERO)
+            if lines != self.amount:
+                raise ValueError(
+                    f"entry {self.id}: items sum to {format_amount(lines)}, "
+                    f"entry amount is {format_amount(self.amount)}"
+                )
+
+            # When lines carry their own splits they become the detail behind the entry's
+            # split, so the two must agree per person and bucket. Letting them drift would
+            # give one number on the ledger and a different one on the receipt, and nothing
+            # would say which was right.
+            detailed = [item for item in self.items if item.shares]
+            if detailed:
+                if len(detailed) != len(self.items):
+                    raise ValueError(
+                        f"entry {self.id}: split some lines and not others — either every "
+                        f"line carries a split or none do"
+                    )
+                if _by_person_and_bucket(
+                    [share for item in self.items for share in item.shares]
+                ) != _by_person_and_bucket(self.shares):
+                    raise ValueError(
+                        f"entry {self.id}: the line splits do not add up to the entry's split"
+                    )
+
         if self.kind is EntryKind.EXPENSE:
             missing = [s.person for s in self.shares if s.bucket is None]
             if missing:
@@ -119,6 +199,15 @@ class Entry(Base):
         return self.date.strftime("%Y-%m")
 
 
+def _by_person_and_bucket(shares: list[Share]) -> dict[tuple[str, str | None], Decimal]:
+    """Totals per (person, bucket), so two splits can be compared regardless of ordering."""
+    totals: dict[tuple[str, str | None], Decimal] = {}
+    for share in shares:
+        key = (share.person, share.bucket)
+        totals[key] = totals.get(key, ZERO) + share.amount
+    return {key: value for key, value in totals.items() if value != ZERO}
+
+
 class Target(Base):
     kind: str = Field(pattern=r"^(monthly|by_date|none)$")
     amount: Decimal | None = None
@@ -136,6 +225,10 @@ class Bucket(Base):
     group: str | None = None
     target: Target | None = None
     archived: bool = False
+    order: int = Field(
+        default=0,
+        description="Sort position within its group; ties fall back to name",
+    )
 
 
 class Member(Base):
