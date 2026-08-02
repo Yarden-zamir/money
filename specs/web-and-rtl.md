@@ -134,8 +134,26 @@ it was dropped. Correctness comes from the rollback: the previous snapshot is re
 failure and the query is invalidated on settle, so **an optimistic value is never allowed to
 become the truth**.
 
-`cancelQueries` runs before each patch, so an in-flight refetch cannot land afterwards and
-revert what was just shown.
+`cancelQueries` runs before each patch, so a refetch already in flight cannot land afterwards
+and revert what was just shown. That is necessary but not sufficient, and two further rules
+exist because without them a reorder visibly undid itself:
+
+**Invalidate when the writes are done, not once per write.** A drag fires one write per
+bucket whose position changed and they run concurrently. Invalidating per write let the first
+one to finish trigger a refetch while its siblings were still in flight — the server answered
+with a half-applied order, because each write is its own commit, and that overwrote the rest.
+Every mutation now settles through `lastWriteWins`, which invalidates only when no other
+write is still running.
+
+**Polling pauses while anything is being written.** A git write takes long enough for a poll
+to start during it, read the state from before the write, and land after it. `cancelQueries`
+does not cover that case: the problem is the poll that starts *later* and finishes *first*.
+
+`pnpm check:reorder` is the regression test, and it asserts the stronger contract. Ending up
+in the right place is not enough — a revert that heals on the next poll still reads as the
+app undoing what you just did — so it samples the row order continuously from the click until
+the writes settle and fails if the order is ever wrong. Against the un-fixed code the row
+sits in its original place for about half a second.
 
 ## Reordering
 

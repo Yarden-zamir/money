@@ -15,7 +15,15 @@ const queryClient = new QueryClient({
       // A shared budget changes under you: the other person adds an entry from their phone
       // and this screen should show it without a reload. Polling is cheap because the server
       // caches every read against the commit sha — an unchanged budget is a Redis hit.
-      refetchInterval: 10_000,
+      //
+      // Paused while anything is being written. A write goes to git — commit, rebase, push —
+      // which takes long enough for a poll to start during it, read the state from *before*
+      // the write, and land afterwards, overwriting what the person just did. Cancelling
+      // in-flight refetches when a mutation starts does not cover this: the problem is the
+      // poll that starts later and finishes first.
+      // The return type is annotated because this closure reads `queryClient` while
+      // `queryClient` is still being defined, and inference would otherwise be circular.
+      refetchInterval: (): number | false => (queryClient.isMutating() > 0 ? false : 10_000),
       // Only while the tab is visible. Polling a backgrounded tab spends the other person's
       // rate limit for a screen nobody is looking at.
       refetchIntervalInBackground: false,

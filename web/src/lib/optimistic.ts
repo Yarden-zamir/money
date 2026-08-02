@@ -27,6 +27,25 @@ export function optimistic<TData>(
     onError: (_error: unknown, _variables: unknown, context?: { previous?: TData }) => {
       if (context?.previous !== undefined) client.setQueryData<TData>(key, context.previous);
     },
-    onSettled: () => client.invalidateQueries({ queryKey: key }),
+    onSettled: lastWriteWins(client, key),
+  };
+}
+
+/**
+ * Invalidate only once every write has finished — not once per write.
+ *
+ * Invalidating on settle is what stops an optimistic value becoming the truth, and with one
+ * write at a time it is correct. But a drag between groups fires one write per bucket whose
+ * position changed, and they run concurrently. The first to finish would invalidate while
+ * its siblings were still in flight; the refetch then returns a server state containing only
+ * that one write and overwrites the rest — a reorder visibly undoing itself.
+ *
+ * `isMutating()` still counts the mutation that is currently settling, so `1` means "no
+ * others left". Whichever write finishes last does the invalidating, and it sees them all.
+ */
+export function lastWriteWins(client: QueryClient, key?: readonly unknown[]) {
+  return () => {
+    if (client.isMutating() > 1) return;
+    void client.invalidateQueries(key ? { queryKey: key } : undefined);
   };
 }

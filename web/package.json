@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "generate:api": "openapi-ts",
-    "generate:check": "openapi-ts && git diff --exit-code src/api"
+    "generate:check": "openapi-ts && git diff --exit-code src/api",
+    "check:reorder": "node tools/reorder-check.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

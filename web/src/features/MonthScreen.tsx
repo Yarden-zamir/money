@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { lastWriteWins } from "@/lib/optimistic";
+
 import {
   assignToBucketMutation,
   autoAssignMutation,
@@ -52,7 +54,10 @@ export function MonthScreen() {
   const queryClient = useQueryClient();
   const put = useMutation({
     ...putBucketMutation(),
-    onSuccess: () => void queryClient.invalidateQueries(),
+    // A drag fires this once per bucket whose position changed, all at once. Invalidating
+    // per write let the first one to land wipe out the others while they were still in
+    // flight, which is a reorder undoing itself on screen.
+    onSettled: lastWriteWins(queryClient),
   });
 
   /**
@@ -344,7 +349,7 @@ function MonthActions({
 
   const auto = useMutation({
     ...autoAssignMutation(),
-    onSuccess: () => void queryClient.invalidateQueries(),
+    onSettled: lastWriteWins(queryClient),
   });
 
   const STRATEGIES = [
@@ -403,8 +408,8 @@ function MoveMoney({
 
   const move = useMutation({
     ...moveMoneyMutation(),
+    onSettled: lastWriteWins(queryClient),
     onSuccess: () => {
-      void queryClient.invalidateQueries();
       onDone();
     },
   });
@@ -588,7 +593,7 @@ function BucketRow({
     onError: (_error, _variables, context) => {
       if (context?.previous) queryClient.setQueryData(monthKey, context.previous);
     },
-    onSettled: () => void queryClient.invalidateQueries(),
+    onSettled: lastWriteWins(queryClient),
   });
 
   const available = Number(bucket.available);
@@ -614,6 +619,10 @@ function BucketRow({
     // The severity edge marks the one state that needs acting on. It is not decoration —
     // rows that are fine carry no edge at all.
     <div
+      // Names the row for tests. Reordering is the part of this screen that has regressed
+      // most often, and asserting it needs the DOM order of buckets to be readable without
+      // depending on a translated label.
+      data-bucket={bucket.bucket}
       // Draggable only once the handle is pressed. A permanently draggable row containing an
       // input cannot be clicked into or selected in — the browser starts a drag instead.
       draggable={canWrite && armed}
@@ -811,8 +820,8 @@ function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
 
   const create = useMutation({
     ...putBucketMutation(),
+    onSettled: lastWriteWins(queryClient),
     onSuccess: () => {
-      void queryClient.invalidateQueries();
       onDone();
     },
   });
@@ -909,8 +918,8 @@ function EditBucket({
 
   const save = useMutation({
     ...putBucketMutation(),
+    onSettled: lastWriteWins(queryClient),
     onSuccess: () => {
-      void queryClient.invalidateQueries();
       onDone();
     },
   });
@@ -993,9 +1002,9 @@ function CloseMonth({ budget, month }: { budget: string; month: string }) {
   const queryClient = useQueryClient();
   const state = useQuery(getMonthCloseOptions({ path: { budget, month } }));
 
-  const invalidate = () => void queryClient.invalidateQueries();
-  const close = useMutation({ ...closeMonthMutation(), onSuccess: invalidate });
-  const reopen = useMutation({ ...reopenMonthMutation(), onSuccess: invalidate });
+  const invalidate = lastWriteWins(queryClient);
+  const close = useMutation({ ...closeMonthMutation(), onSettled: invalidate });
+  const reopen = useMutation({ ...reopenMonthMutation(), onSettled: invalidate });
 
   if (state.isPending || state.isError) return null;
   const closed = state.data.closed;
