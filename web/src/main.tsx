@@ -12,10 +12,17 @@ import "./index.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Budget data changes when a person adds an entry, not continuously, so refetching on
-      // window focus is noise. Mutations invalidate what they touched instead.
-      refetchOnWindowFocus: false,
-      staleTime: 30_000,
+      // A shared budget changes under you: the other person adds an entry from their phone
+      // and this screen should show it without a reload. Polling is cheap because the server
+      // caches every read against the commit sha — an unchanged budget is a Redis hit.
+      refetchInterval: 10_000,
+      // Only while the tab is visible. Polling a backgrounded tab spends the other person's
+      // rate limit for a screen nobody is looking at.
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      // Short enough that returning to a screen shows current data, long enough that moving
+      // between tabs does not refetch on every click.
+      staleTime: 5_000,
       retry: 1,
     },
   },

@@ -9,11 +9,12 @@ import {
   closeMonthMutation,
   getMonthCloseOptions,
   getMonthOptions,
+  getMonthQueryKey,
   listBucketsOptions,
   putBucketMutation,
   reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type { BucketState } from "@/api/types.gen";
+import type { BucketState, MonthResponse } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
 import { Icon } from "@/components/Icon";
 import { useCountUp } from "@/lib/useCountUp";
@@ -37,6 +38,7 @@ export function MonthScreen() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const query = useQuery({
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
@@ -54,41 +56,87 @@ export function MonthScreen() {
   });
 
   /**
-   * Persist a new order for one group.
+   * Move a bucket, possibly into a different group.
    *
-   * Order is stored per bucket rather than as a list, so two people reordering different
-   * groups at once do not overwrite each other — each writes only the buckets it moved.
+   * Order is stored per bucket rather than as a list, so this writes only the buckets whose
+   * position or group actually changed — two people rearranging different groups at once do
+   * not overwrite each other.
+   *
+   * Dropping onto a row puts the bucket at that row's position *and* adopts that row's
+   * group, which is what makes dragging between groups work without a separate gesture.
    */
-  const reorder = (ids: string[]) => {
-    if (!budget) return;
-    ids.forEach((id, index) => {
-      const existing = (buckets.data ?? []).find((item) => item.id === id);
-      if (!existing || existing.order === index) return;
-      put.mutate({
-        path: { budget: budget.slug, bucket_id: id },
-        body: { ...existing, order: index },
+  const applyMove = (draggedId: string, targetGroup: string, beforeId: string | null) => {
+    if (!budget || draggedId === beforeId) return;
+
+    const byId = new Map((buckets.data ?? []).map((item) => [item.id, item]));
+    const byGroup = new Map<string, string[]>();
+    for (const bucket of view.buckets) {
+      const key = bucket.group ?? "";
+      byGroup.set(key, [...(byGroup.get(key) ?? []), bucket.bucket]);
+    }
+
+    // Lift the dragged bucket out of wherever it currently sits before re-inserting it, so
+    // a move within its own group does not leave a duplicate behind.
+    for (const [name, ids] of byGroup) {
+      byGroup.set(
+        name,
+        ids.filter((id) => id !== draggedId),
+      );
+    }
+
+    const target = byGroup.get(targetGroup) ?? [];
+    const at = beforeId ? target.indexOf(beforeId) : target.length;
+    target.splice(at < 0 ? target.length : at, 0, draggedId);
+    byGroup.set(targetGroup, target);
+
+    // Reorder the cached month first so the row lands where it was dropped, rather than
+    // snapping back until several writes have made the round trip.
+    const order = [...byGroup.entries()].flatMap(([name, ids]) =>
+      ids.map((id) => ({ id, group: name })),
+    );
+    const monthKey = getMonthQueryKey({ path: { budget: budget.slug, month } });
+    const cached = queryClient.getQueryData<MonthResponse>(monthKey);
+    if (cached) {
+      const byBucket = new Map(cached.buckets.map((bucket) => [bucket.bucket, bucket]));
+      queryClient.setQueryData<MonthResponse>(monthKey, {
+        ...cached,
+        buckets: order
+          .map(({ id, group: name }) => {
+            const existing = byBucket.get(id);
+            return existing ? { ...existing, group: name || null } : null;
+          })
+          .filter((bucket): bucket is BucketState => bucket !== null),
       });
-    });
+    }
+
+    for (const [name, ids] of byGroup) {
+      void name;
+      ids.forEach((id, index) => {
+        const existing = byId.get(id);
+        if (!existing) return;
+
+        const nextGroup = id === draggedId ? targetGroup || null : existing.group;
+        if (existing.order === index && existing.group === nextGroup) return;
+
+        put.mutate({
+          path: { budget: budget.slug, bucket_id: id },
+          body: { ...existing, group: nextGroup, order: index },
+        });
+      });
+    }
   };
 
-  const move = (group: BucketState[], id: string, delta: number) => {
-    const ids = group.map((bucket) => bucket.bucket);
+  /** The keyboard equivalent: nudge one place within the same group. */
+  const nudge = (group: string, id: string, delta: number) => {
+    const ids = view.buckets
+      .filter((bucket) => (bucket.group ?? "") === group)
+      .map((bucket) => bucket.bucket);
     const from = ids.indexOf(id);
     const to = from + delta;
     if (from < 0 || to < 0 || to >= ids.length) return;
-    ids.splice(to, 0, ...ids.splice(from, 1));
-    reorder(ids);
-  };
 
-  const drop = (group: BucketState[], onto: string) => {
-    if (!dragging || dragging === onto) return;
-    const ids = group.map((bucket) => bucket.bucket);
-    const from = ids.indexOf(dragging);
-    const to = ids.indexOf(onto);
-    if (from < 0 || to < 0) return;
-    ids.splice(to, 0, ...ids.splice(from, 1));
-    reorder(ids);
-    setDragging(null);
+    const without = ids.filter((each) => each !== id);
+    applyMove(id, group, without[to] ?? null);
   };
 
   // putBucket replaces the whole bucket, so an inline edit of one field has to merge into
@@ -199,7 +247,19 @@ export function MonthScreen() {
           {[...groups.entries()].map(([group, buckets_]) => (
             <div key={group}>
               {group && (
-                <div className="flex items-baseline gap-2 bg-sunken px-4 py-1.5">
+                <div
+                  onDragOver={(event) => {
+                    if (dragging) event.preventDefault();
+                  }}
+                  onDrop={() => {
+                    if (dragging) applyMove(dragging, group, null);
+                    setDragging(null);
+                    setDropTarget(null);
+                  }}
+                  className={`flex items-baseline gap-2 bg-sunken px-4 py-1.5 ${
+                    dragging ? "outline-1 outline-dashed outline-brand/40" : ""
+                  }`}
+                >
                   <span className="eyebrow">{group}</span>
                   {/* A group subtotal: the question "can this category cover the rest of the
                       month" is about the group, not any single envelope in it. */}
@@ -226,10 +286,19 @@ export function MonthScreen() {
                   onRename={(name) => patchBucket(bucket.bucket, { name })}
                   onRetarget={(value) => patchBucket(bucket.bucket, { target: value })}
                   dragging={dragging === bucket.bucket}
+                  dropBefore={dropTarget === bucket.bucket && dragging !== bucket.bucket}
                   onDragStart={() => setDragging(bucket.bucket)}
-                  onDragEnd={() => setDragging(null)}
-                  onDropOn={() => drop(buckets_, bucket.bucket)}
-                  onMove={(delta) => move(buckets_, bucket.bucket, delta)}
+                  onDragEnd={() => {
+                    setDragging(null);
+                    setDropTarget(null);
+                  }}
+                  onDragOverRow={() => setDropTarget(bucket.bucket)}
+                  onDropOn={() => {
+                    if (dragging) applyMove(dragging, group, bucket.bucket);
+                    setDragging(null);
+                    setDropTarget(null);
+                  }}
+                  onMove={(delta) => nudge(group, bucket.bucket, delta)}
                 />
               ))}
             </div>
@@ -436,6 +505,33 @@ function Stat({
   );
 }
 
+/** Patch one bucket's figures in the cached month, so the row moves before the server does. */
+function patchMonth(view: MonthResponse, bucketId: string, assigned: number): MonthResponse {
+  return {
+    ...view,
+    buckets: view.buckets.map((bucket) => {
+      if (bucket.bucket !== bucketId) return bucket;
+      // Available shifts by the same delta as assigned: the money came from somewhere.
+      const delta = assigned - Number(bucket.assigned);
+      return {
+        ...bucket,
+        assigned: assigned.toFixed(2),
+        available: (Number(bucket.available) + delta).toFixed(2),
+      };
+    }),
+    assigned: (
+      Number(view.assigned) +
+      (assigned -
+        Number(view.buckets.find((bucket) => bucket.bucket === bucketId)?.assigned ?? 0))
+    ).toFixed(2),
+    ready_to_assign: (
+      Number(view.ready_to_assign) -
+      (assigned -
+        Number(view.buckets.find((bucket) => bucket.bucket === bucketId)?.assigned ?? 0))
+    ).toFixed(2),
+  };
+}
+
 function BucketRow({
   bucket,
   currency,
@@ -446,8 +542,10 @@ function BucketRow({
   onRename,
   onRetarget,
   dragging,
+  dropBefore,
   onDragStart,
   onDragEnd,
+  onDragOverRow,
   onDropOn,
   onMove,
 }: {
@@ -460,17 +558,37 @@ function BucketRow({
   onRename: (name: string) => void;
   onRetarget: (target: string) => void;
   dragging: boolean;
+  dropBefore: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onDragOverRow: () => void;
   onDropOn: () => void;
   onMove: (delta: number) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [armed, setArmed] = useState(false);
 
+  const monthKey = getMonthQueryKey({ path: { budget, month } });
   const assign = useMutation({
     ...assignToBucketMutation(),
-    onSuccess: () => void queryClient.invalidateQueries(),
+    // The figure moves on keypress; the request confirms it and the rollback undoes it if
+    // the server disagrees, so an optimistic value never becomes the truth.
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: monthKey });
+      const previous = queryClient.getQueryData<MonthResponse>(monthKey);
+      if (previous) {
+        queryClient.setQueryData<MonthResponse>(
+          monthKey,
+          patchMonth(previous, bucket.bucket, Number(variables.body.amount)),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(monthKey, context.previous);
+    },
+    onSettled: () => void queryClient.invalidateQueries(),
   });
 
   const available = Number(bucket.available);
@@ -496,14 +614,35 @@ function BucketRow({
     // The severity edge marks the one state that needs acting on. It is not decoration —
     // rows that are fine carry no edge at all.
     <div
-      draggable={canWrite}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={(event) => canWrite && event.preventDefault()}
-      onDrop={onDropOn}
+      // Draggable only once the handle is pressed. A permanently draggable row containing an
+      // input cannot be clicked into or selected in — the browser starts a drag instead.
+      draggable={canWrite && armed}
+      onDragStart={(event) => {
+        // Firefox refuses to start a drag without payload, and without an explicit effect
+        // the cursor never shows a move affordance.
+        event.dataTransfer.setData("text/plain", bucket.bucket);
+        event.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnd={() => {
+        setArmed(false);
+        onDragEnd();
+      }}
+      onDragOver={(event) => {
+        if (!canWrite) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        onDragOverRow();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropOn();
+      }}
       className={`border-b border-line px-4 py-2.5 last:border-b-0 ${
         available < 0 ? "border-s-2 border-s-negative" : ""
-      } ${dragging ? "opacity-40" : ""}`}
+      } ${dragging ? "opacity-40" : ""} ${
+        dropBefore ? "border-t-2 border-t-brand" : ""
+      }`}
     >
       <div className="flex items-center gap-3">
         {canWrite && (
@@ -512,7 +651,9 @@ function BucketRow({
                 controls — reordering must not be reachable by pointer only. */}
             <span
               aria-hidden
-              className="drag-handle cursor-grab text-ink-muted active:cursor-grabbing"
+              onMouseDown={() => setArmed(true)}
+              onMouseUp={() => setArmed(false)}
+              className="drag-handle cursor-grab touch-none text-ink-muted active:cursor-grabbing"
               title={t("month.reorder")}
             >
               <Icon name="drag" className="size-4" />

@@ -121,10 +121,36 @@ Bare letters never fire while a field is focused. This app is mostly typing, and
 that triggers an action mid-word is worse than no shortcut. Combinations with the command key
 still work while typing, because those cannot happen by accident.
 
+## Freshness and instant feedback
+
+Queries poll every 10 seconds, but only while the tab is visible — polling a backgrounded tab
+spends the other person's rate limit for a screen nobody is looking at. Polling is affordable
+because the server caches every read against the commit sha, so an unchanged budget is a
+Redis hit rather than a walk of the ledger.
+
+Writes go to git — a commit, a rebase, a push — which is fast but never instant. Assigning
+and reordering patch the cache first so the number moves on keypress and the row lands where
+it was dropped. Correctness comes from the rollback: the previous snapshot is restored on
+failure and the query is invalidated on settle, so **an optimistic value is never allowed to
+become the truth**.
+
+`cancelQueries` runs before each patch, so an in-flight refetch cannot land afterwards and
+revert what was just shown.
+
 ## Reordering
 
 Buckets carry an `order`, written per bucket rather than as a list, so two people reordering
 different groups at once do not overwrite each other — each writes only what it moved.
+
+A row is draggable only while its handle is held. A permanently draggable row containing an
+input cannot be clicked into or selected in — the browser starts a drag instead — which is
+why the first attempt at this did not work at all.
+
+`dataTransfer` is always set: Firefox refuses to start a drag without a payload, and without
+an explicit `effectAllowed` the cursor never shows a move affordance.
+
+Dropping onto a row adopts that row's group as well as its position, so dragging between
+groups needs no separate gesture. Dropping onto a group header appends to it.
 
 Dragging is a pointer gesture, so every draggable row also carries up/down buttons. They are
 hover-revealed on a mouse and **always visible on touch**, where hover does not exist and
