@@ -292,5 +292,17 @@
     "undo": "Undo your last change",
     "note": "Letter shortcuts pause while you are typing in a field.",
     "redo": "Redo"
+  },
+  "place": {
+    "set": "Add a location",
+    "change": "Change",
+    "aPoint": "A point on the map",
+    "pickHint": "Drag the pin or tap the map. Pick a venue below to snap to it.",
+    "search": "Search for a place",
+    "searchPlaceholder": "Search by name…",
+    "name": "What to call it",
+    "namePlaceholder": "Name this location (optional)",
+    "use": "Use this location",
+    "useDevice": "Where I am now"
   }
 }

@@ -226,6 +226,32 @@ weight is the framework and the generated client, not the screens. Revisit if a 
 its own heavy dependency — a map or a chart library — which is exactly the case splitting is
 for.
 
+## Choosing A Location
+
+The device fix answers "where am I now", which is right at a till and wrong for everything
+else. The picker is the manual path: drag the pin, tap the map, or choose a venue to snap to
+it — and what gets recorded is the *venue's* position, not the phone's.
+
+**Tiles come from OpenStreetMap; names come from Google.** They are different problems.
+Drawing a map needs no key and OSM does it well; naming venues in Israel is where OSM was
+judged inadequate, and Google Places answers that through our own backend — the only way it
+can, since the key must never reach a browser. A Google Maps JS map was therefore never an
+option.
+
+🟠 OSM's tile policy asks that heavy use go elsewhere. A household budget is nowhere near
+that. If this ever has many users the fix is a paid tile host — a URL and a key, not a
+rewrite, because Leaflet does not care where a tile came from.
+
+Leaflet is lazy-loaded (45kB gzipped, plus its stylesheet) because most entries never open the
+map. This is the case the load-time section names as worth splitting for, and the only one in
+the app that qualifies.
+
+Two implementation details that are bugs if forgotten: Leaflet's default marker resolves three
+PNGs relative to its stylesheet and renders as a broken image once bundled, so the pin is a
+styled `div` instead; and a map created in a container that has not been laid out measures
+itself as zero and draws one grey tile, so it re-measures after the first paint. The map is
+pinned `dir="ltr"` — Leaflet positions tiles and controls in physical coordinates.
+
 ## Mixed Scripts
 
 A subject is a template plus a name someone chose, so Hebrew lands mid-sentence among

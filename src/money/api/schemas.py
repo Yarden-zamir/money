@@ -327,6 +327,9 @@ class NearbyPlaceResponse(BaseModel):
     id: str
     name: str
     kind: str | None
+    lat: float
+    lon: float
+    address: str | None = None
 
 
 class SuggestionResponse(BaseModel):

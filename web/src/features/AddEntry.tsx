@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -13,6 +13,13 @@ import { Icon } from "@/components/Icon";
 import { PayeeField } from "./PayeeField";
 import { ReceiptEditor, type ReceiptLine } from "./ReceiptEditor";
 import { useCoords, useNearbyPlaces, useSuggestion } from "./useSuggestion";
+import type { PickedPlace } from "./LocationPicker";
+
+// Leaflet and its stylesheet are the app's one genuinely heavy dependency, and most entries
+// never open the map. Split out so it is downloaded when someone asks for it.
+const LocationPicker = lazy(() =>
+  import("./LocationPicker").then((m) => ({ default: m.LocationPicker })),
+);
 import { SplitEditor, evenSplit, type PaidRow, type ShareRow } from "./SplitEditor";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
@@ -68,7 +75,8 @@ export function AddEntry({
     });
 
   const [items, setItems] = useState<ReceiptLine[]>([]);
-  const [place, setPlace] = useState<{ name: string; provider_id?: string } | null>(null);
+  const [place, setPlace] = useState<PickedPlace | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const { coords } = useCoords(true);
   const nearby = useNearbyPlaces(coords);
@@ -114,7 +122,14 @@ export function AddEntry({
   useEffect(() => {
     if (place || !nearby.data?.length) return;
     const closest = nearby.data[0];
-    if (closest) setPlace({ name: closest.name, provider_id: closest.id });
+    if (closest) {
+      setPlace({
+        lat: closest.lat,
+        lon: closest.lon,
+        name: closest.name,
+        provider_id: closest.id,
+      });
+    }
   }, [nearby.data, place]);
 
   const buckets = useQuery({
@@ -141,11 +156,13 @@ export function AddEntry({
 
   const body = () => ({
     amount: signed(amount),
-    ...(place && coords
+    // The place's own coordinates, not the device's. Picking "the café across the road"
+    // used to record the pavement this phone was standing on.
+    ...(place
       ? {
           place: {
-            lat: coords.lat,
-            lon: coords.lon,
+            lat: place.lat,
+            lon: place.lon,
             name: place.name,
             provider_id: place.provider_id ?? null,
           },
@@ -395,19 +412,55 @@ export function AddEntry({
         )}
       </div>
 
-      {place && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted">
-          <Icon name="target" className="size-3.5" />
-          {t("entries.at", { place: place.name })}
+      {/* Location is opt-in detail, so it sits below the fields rather than among them. The
+          map only loads when asked for — it is the one screen with a heavy dependency. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
+        {place ? (
+          <>
+            <Icon name="target" className="size-3.5" />
+            <span>{place.name ?? t("place.aPoint")}</span>
+            <button
+              type="button"
+              className="text-brand underline underline-offset-2"
+              onClick={() => setPicking(true)}
+            >
+              {t("place.change")}
+            </button>
+            <button
+              type="button"
+              aria-label={t("common.cancel")}
+              className="hover:text-negative"
+              onClick={() => setPlace(null)}
+            >
+              <Icon name="close" className="size-3" />
+            </button>
+          </>
+        ) : (
           <button
             type="button"
-            aria-label={t("common.cancel")}
-            className="hover:text-negative"
-            onClick={() => setPlace(null)}
+            className="inline-flex items-center gap-1.5 text-brand underline underline-offset-2"
+            onClick={() => setPicking(true)}
           >
-            <Icon name="close" className="size-3" />
+            <Icon name="target" className="size-3.5" />
+            {t("place.set")}
           </button>
-        </p>
+        )}
+      </div>
+
+      {picking && (
+        <div className="mt-3">
+          <Suspense fallback={<p className="text-xs text-ink-muted">{t("common.loading")}</p>}>
+            <LocationPicker
+              coords={coords}
+              initial={place}
+              onPick={(picked) => {
+                setPlace(picked);
+                setPicking(false);
+              }}
+              onCancel={() => setPicking(false)}
+            />
+          </Suspense>
+        </div>
       )}
 
       <ReceiptEditor

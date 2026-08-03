@@ -173,6 +173,11 @@ const ROUTES = [
   [/\/budgets\/joint\/scheduled/, () => scheduled],
   [/\/github\/repos/, () => repos],
   [/\/github\/users/, () => []],
+  [/\/places\/(nearby|search)/, () => [
+    { id: "p1", name: "קפה גרג", kind: "cafe", lat: 32.0709, lon: 34.7803, address: "דיזנגוף 100, תל אביב" },
+    { id: "p2", name: "שופרסל דיל", kind: "supermarket", lat: 32.0715, lon: 34.7791, address: "אבן גבירול 30, תל אביב" },
+    { id: "p3", name: "Landwer", kind: "cafe", lat: 32.0702, lon: 34.7815, address: "רוטשילד 12, תל אביב" },
+  ]],
   [/\/budgets\/joint\/collaborators/, () => collaborators],
   [/\/api\/v1\/me\/keys$/, () => []],
   [/\/api\/v1\/me$/, () => me],
@@ -288,6 +293,14 @@ for (const [device, viewport] of VIEWPORTS) {
     await page.getByRole("button", { name: /add entry|הוספת תנועה/i }).first().click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(OUT, `${device}-${language}-quickadd.png`) });
+
+    // The map is lazy-loaded and pulls real tiles, so give it a moment to settle.
+    const setLocation = page.getByRole("button", { name: /Add a location|הוספת מיקום|Change|שינוי/ });
+    if (await setLocation.count()) {
+      await setLocation.first().click();
+      await page.waitForTimeout(2500);
+      await page.screenshot({ path: join(OUT, `${device}-${language}-location.png`) });
+    }
     await context.close();
   }
 }

@@ -43,8 +43,38 @@ def nearby_places(
     an empty list rather than an error when the lookup fails — a places outage should not
     stop anyone recording an expense.
     """
-    found = places.nearby(config.google_cloud_api_key, lat, lon)
-    return [NearbyPlaceResponse(id=p.id, name=p.name, kind=p.kind) for p in found]
+    return _as_responses(places.nearby(config.google_cloud_api_key, lat, lon))
+
+
+def _as_responses(found: list[places.NearbyPlace]) -> list[NearbyPlaceResponse]:
+    return [
+        NearbyPlaceResponse(
+            id=p.id, name=p.name, kind=p.kind, lat=p.lat, lon=p.lon, address=p.address
+        )
+        for p in found
+    ]
+
+
+@router.get(
+    "/places/search",
+    operation_id="searchPlaces",
+    response_model=list[NearbyPlaceResponse],
+    summary="Find a venue by name",
+)
+def search_places(
+    _: Annotated[CurrentUser, Depends(current_user)],
+    config: Annotated[Settings, Depends(get_settings)],
+    q: Annotated[str, Query(min_length=1, max_length=200)],
+    lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    lon: Annotated[float | None, Query(ge=-180, le=180)] = None,
+) -> list[NearbyPlaceResponse]:
+    """Naming a place you are not standing in.
+
+    Nearby covers the common case — the shop you are in right now — but not recording
+    yesterday's lunch, or anywhere you have already left. Coordinates bias the ranking when
+    they are known and are simply omitted when they are not.
+    """
+    return _as_responses(places.search(config.google_cloud_api_key, q, lat, lon))
 
 
 @router.get(

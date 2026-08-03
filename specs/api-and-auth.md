@@ -98,6 +98,9 @@ POST   /budgets/{budget}/invite              invite to the data repo AND add as 
 GET    /github/repos                         repos you could connect, flagged for budget.yaml
 GET    /github/users?q=                      autocomplete a GitHub login before inviting
 
+GET    /places/nearby?lat=&lon=              venues around a point
+GET    /places/search?q=&lat=&lon=           find a venue by name, ranked near you
+
 GET    /budgets/{budget}/history             every change, newest first
 GET    /budgets/{budget}/history/{sha}       one change: files, patch, whether it can be undone
 POST   /budgets/{budget}/history/undo        revert; defaults to your last un-reverted change
@@ -143,6 +146,22 @@ created, because GitHub answers 204 when the person already had access.
 
 Both `/github` routes proxy GitHub with the **caller's own token**, so they can only ever
 surface what that person can already see. Neither uses a shared credential.
+
+## Places
+
+Proxied so the Google key never reaches a browser, where it could be lifted from the network
+tab and spent by anyone. Both routes return the venue's **own coordinates**: a place is where
+the place is, and recording the device's position instead filed "the café across the road"
+against the pavement outside.
+
+`nearby` answers "what am I standing in". `search` covers everything else — yesterday's lunch,
+a shop already left — and only *biases* towards the caller's position rather than restricting
+to it, so somewhere across town is still findable. Coordinates are omitted entirely when
+unknown.
+
+A place with no name or no position is dropped rather than defaulted; an unnamed pin at 0,0 is
+worse than one fewer suggestion. A failed lookup returns an empty list, never an error: a
+Places outage must not stop anyone recording an expense.
 
 ## Starting And Joining
 

@@ -18,6 +18,13 @@ import httpx
 logger = logging.getLogger(__name__)
 
 ENDPOINT = "https://places.googleapis.com/v1/places:searchNearby"
+SEARCH_ENDPOINT = "https://places.googleapis.com/v1/places:searchText"
+
+# Places bills per field group, so this asks for exactly what a picker needs: what it is
+# called, where it is, and enough of an address to tell two branches apart.
+FIELD_MASK = (
+    "places.id,places.displayName,places.primaryType,places.location,places.formattedAddress"
+)
 
 # Wide enough to catch the shop you are standing in when GPS is a little off indoors, narrow
 # enough that a high street does not return every café on it.
@@ -29,6 +36,11 @@ class NearbyPlace:
     id: str
     name: str
     kind: str | None
+    # Where the venue is, which is not where the phone is. Picking "the café across the road"
+    # should record the café, and without this the entry recorded the pavement outside.
+    lat: float
+    lon: float
+    address: str | None = None
 
 
 class PlacesError(RuntimeError):
@@ -49,7 +61,7 @@ def nearby(api_key: str, lat: float, lon: float, limit: int = 8) -> list[NearbyP
             ENDPOINT,
             headers={
                 "X-Goog-Api-Key": api_key,
-                "X-Goog-FieldMask": "places.id,places.displayName,places.primaryType",
+                "X-Goog-FieldMask": FIELD_MASK,
                 "Content-Type": "application/json",
             },
             json={
@@ -73,13 +85,70 @@ def nearby(api_key: str, lat: float, lon: float, limit: int = 8) -> list[NearbyP
         logger.warning("places lookup returned %s: %s", response.status_code, response.text[:200])
         return []
 
-    found = response.json().get("places", [])
-    return [
-        NearbyPlace(
-            id=place.get("id", ""),
-            name=(place.get("displayName") or {}).get("text", ""),
-            kind=place.get("primaryType"),
+    return _parse(response.json().get("places", []))
+
+
+def search(api_key: str, query: str, lat: float | None, lon: float | None) -> list[NearbyPlace]:
+    """Find a venue by name.
+
+    Nearby answers "what am I standing in", which is the common case but not the only one:
+    recording yesterday's lunch, or a shop you have left, needs naming a place you are not at.
+    Coordinates are still passed when known so results near the person rank first — Places
+    biases towards the circle rather than restricting to it, so somewhere across town is still
+    findable.
+    """
+    if not api_key or not query.strip():
+        return []
+
+    body: dict = {"textQuery": query.strip(), "maxResultCount": 8}
+    if lat is not None and lon is not None:
+        body["locationBias"] = {
+            "circle": {"center": {"latitude": lat, "longitude": lon}, "radius": 20_000.0}
+        }
+
+    try:
+        response = httpx.post(
+            SEARCH_ENDPOINT,
+            headers={
+                "X-Goog-Api-Key": api_key,
+                "X-Goog-FieldMask": FIELD_MASK,
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=8.0,
         )
-        for place in found
-        if (place.get("displayName") or {}).get("text")
-    ]
+    except httpx.RequestError as exc:
+        logger.warning("places search failed: %s", exc)
+        return []
+
+    if response.status_code != 200:
+        logger.warning("places search returned %s: %s", response.status_code, response.text[:200])
+        return []
+
+    return _parse(response.json().get("places", []))
+
+
+def _parse(found: list[dict]) -> list[NearbyPlace]:
+    """Both endpoints answer with the same shape, so they share the parsing.
+
+    A place with no name or no position is dropped rather than defaulted: an unnamed pin at
+    0,0 in the Gulf of Guinea is worse than one fewer suggestion.
+    """
+    places_out: list[NearbyPlace] = []
+    for place in found:
+        name = (place.get("displayName") or {}).get("text", "")
+        location = place.get("location") or {}
+        lat, lon = location.get("latitude"), location.get("longitude")
+        if not name or lat is None or lon is None:
+            continue
+        places_out.append(
+            NearbyPlace(
+                id=place.get("id", ""),
+                name=name,
+                kind=place.get("primaryType"),
+                lat=float(lat),
+                lon=float(lon),
+                address=place.get("formattedAddress"),
+            )
+        )
+    return places_out

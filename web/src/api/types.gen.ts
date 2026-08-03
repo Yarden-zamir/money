@@ -1226,6 +1226,18 @@ export type NearbyPlaceResponse = {
      * Kind
      */
     kind: string | null;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+    /**
+     * Address
+     */
+    address?: string | null;
 };
 
 /**
@@ -3919,6 +3931,52 @@ export type NearbyPlacesResponses = {
 };
 
 export type NearbyPlacesResponse = NearbyPlacesResponses[keyof NearbyPlacesResponses];
+
+export type SearchPlacesData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query: {
+        /**
+         * Q
+         */
+        q: string;
+        /**
+         * Lat
+         */
+        lat?: number | null;
+        /**
+         * Lon
+         */
+        lon?: number | null;
+    };
+    url: '/api/v1/places/search';
+};
+
+export type SearchPlacesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchPlacesError = SearchPlacesErrors[keyof SearchPlacesErrors];
+
+export type SearchPlacesResponses = {
+    /**
+     * Response Searchplaces
+     *
+     * Successful Response
+     */
+    200: Array<NearbyPlaceResponse>;
+};
+
+export type SearchPlacesResponse = SearchPlacesResponses[keyof SearchPlacesResponses];
 
 export type SuggestEntryData = {
     body?: never;
