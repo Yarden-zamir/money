@@ -16,7 +16,7 @@ import pytest
 
 from money.domain.models import Bucket, Entry
 from money.store import yamlio
-from money.store.gitrepo import GitRepo
+from money.store.gitrepo import GitRepo, _fetched_at
 from money.store.store import Actor, BudgetStore, DataError, new_id
 
 D = Decimal
@@ -400,3 +400,76 @@ class TestBuckets:
         store.assign("yarden", "2026-07", "fun-money", D("0.00"), ACTOR)
 
         assert store.assignments("yarden") == {"2026-07": {}}
+
+
+class TestFetchWindow:
+    """`git fetch` is a network round trip and was the whole cost of a page load.
+
+    It ran on every read: about 0.9s against GitHub, against 40ms to read and validate an
+    entire budget. One screen issues three reads at once, so a single page load paid for it
+    three times over — and again on every ten-second poll.
+    """
+
+    @staticmethod
+    def count_fetches(repo: GitRepo, monkeypatch: pytest.MonkeyPatch) -> list[int]:
+        """Counts real `git fetch` invocations, not calls to ensure_clone."""
+        fetches = [0]
+        original = GitRepo._run
+
+        def counting(self: GitRepo, *args: str, **kwargs: object):
+            if args and args[0] == "fetch":
+                fetches[0] += 1
+            return original(self, *args, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(GitRepo, "_run", counting)
+        return fetches
+
+    def test_reads_within_the_window_share_one_fetch(
+        self, store: BudgetStore, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The fixture already fetched while cloning, which would otherwise make all three
+        # reads below free and hide whether the first one still pays.
+        _fetched_at.pop(store.repo.path, None)
+        fetches = self.count_fetches(store.repo, monkeypatch)
+
+        for _ in range(3):  # the budget list, the month, the buckets
+            store.repo.ensure_clone(ACTOR.token, max_age=60.0)
+
+        assert fetches[0] == 1, "three reads in one burst must cost one round trip"
+
+    def test_a_read_with_no_window_always_fetches(
+        self, store: BudgetStore, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """max_age defaults to 0, so nothing opts into staleness by accident."""
+        fetches = self.count_fetches(store.repo, monkeypatch)
+
+        for _ in range(3):
+            store.repo.ensure_clone(ACTOR.token)
+
+        assert fetches[0] == 3
+
+    def test_writes_always_fetch_however_recent_the_last_read(
+        self, store: BudgetStore, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A commit is rebased onto the remote, so it has to see the real remote state.
+
+        Letting a write reuse a clone from moments ago would rebase onto a stale base and
+        push work that silently drops whatever landed in between.
+        """
+        store.repo.ensure_clone(ACTOR.token, max_age=60.0)
+        fetches = self.count_fetches(store.repo, monkeypatch)
+
+        store.put_bucket("yarden", Bucket(id="fun", name="Fun"), ACTOR)
+
+        assert fetches[0] >= 1, "a write must not reuse a recently fetched clone"
+
+    def test_a_write_does_not_deadlock_on_its_own_lock(self, store: BudgetStore) -> None:
+        """`write_lock` holds the per-clone lock and `ensure_clone` takes it again.
+
+        The lock has to be reentrant. With a plain Lock this hangs forever on every single
+        write rather than failing, which is the worst way for it to be wrong.
+        """
+        store.put_bucket("yarden", Bucket(id="fun", name="Fun"), ACTOR)
+        store.put_bucket("yarden", Bucket(id="food", name="Food"), ACTOR)
+
+        assert {bucket.id for bucket in store.buckets("yarden")} == {"fun", "food"}

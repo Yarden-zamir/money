@@ -44,7 +44,7 @@ from money.domain.amounts import ZERO
 from money.domain.derive import month_view, net_positions, settle_up, shift_month
 from money.domain.models import Bucket, Budget, Entry, EntryKind, Member, Share
 from money.domain.starter import starter_buckets
-from money.store.gitrepo import GitRepo
+from money.store.gitrepo import READ_MAX_AGE, GitRepo
 from money.store.store import Actor, BudgetStore, DataError, new_id
 
 router = APIRouter(tags=["budgets"])
@@ -79,7 +79,7 @@ def list_budgets(
             remote=f"https://github.com/{link.repo}.git",
             branch=config.data_branch,
         )
-        repo.ensure_clone(token)
+        repo.ensure_clone(token, max_age=READ_MAX_AGE)
         budget = BudgetStore(repo).budget()
 
         summaries.append(
@@ -128,6 +128,9 @@ def connect_budget(
         remote=f"https://github.com/{body.repo}.git",
         branch=config.data_branch,
     )
+    # Fetched fresh, unlike the read paths: someone typically pushes budget.yaml and connects
+    # it seconds later, and a clone from moments ago would not have it yet. This happens once
+    # per budget, so the round trip is worth paying for.
     repo.ensure_clone(token)
     budget = BudgetStore(repo).budget()  # raises if budget.yaml is missing or invalid
 

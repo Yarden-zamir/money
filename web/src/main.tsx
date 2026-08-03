@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 
+import { getMeOptions, listBudgetsOptions } from "@/api/@tanstack/react-query.gen";
+import { prefetchRoute } from "@/lib/prefetch";
 import App from "./App";
 import "./lib/client";
 import "./lib/i18n";
@@ -35,6 +37,29 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Start the first screen's requests before React has rendered anything.
+ *
+ * The app used to discover what to fetch in three serial steps: `/me` decided whether to
+ * render at all, `/budgets` decided which budget, and only then did the month screen ask for
+ * a month. Three round trips deep before the first number appears — and the middle one is
+ * only needed to learn a slug this browser already knows, because choosing a budget writes it
+ * to localStorage.
+ *
+ * So on any visit after the first, all three go out at once. `/me` and `/budgets` are
+ * independent: firing `/budgets` while signed out costs one 401 that touches no git, which is
+ * a much better trade than a round trip on every load. A stale slug costs one 404 and the app
+ * falls back to whatever `/budgets` returns, exactly as it did before.
+ */
+function warmFirstScreen() {
+  void queryClient.prefetchQuery(getMeOptions());
+  void queryClient.prefetchQuery(listBudgetsOptions());
+
+  const slug = localStorage.getItem("money.budget");
+  if (slug) prefetchRoute(queryClient, window.location.pathname, slug);
+}
+warmFirstScreen();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root element");

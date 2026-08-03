@@ -202,6 +202,30 @@ string, so in a Hebrew page a single-line ellipsis eats its *beginning* — `ass
 disappears and `0 → 2000.00 for 2026-08` is what survives, which is the half that says
 nothing.
 
+## First Load
+
+The app used to discover what to fetch in three serial steps: `/me` decided whether to render
+at all, `/budgets` decided which budget, and only then did the month screen ask for a month.
+Three round trips deep before the first number — and the middle one only existed to learn a
+slug the browser already had, because choosing a budget writes it to localStorage.
+
+`main.tsx` now fires all of it before React renders. `/me` and `/budgets` are independent, so
+they go together; firing `/budgets` while signed out costs one 401 that touches no git, which
+beats a round trip on every load. A stale slug costs one 404 and the app falls back to
+whatever `/budgets` returns. Measured with `pnpm check:load`, which charges 900ms for any
+request that would hit git:
+
+| | before | after |
+|---|---|---|
+| returning visitor | 2544ms, 3 waves | 1583ms, 2 waves |
+| first-ever visit | 2525ms, 3 waves | unchanged — there is no slug to know yet |
+
+Route-level code splitting was tried and **reverted**: the screens are small, so it moved
+about 4kB gzipped and no measurable time, while adding `lazy`/`Suspense` to every route. The
+weight is the framework and the generated client, not the screens. Revisit if a screen grows
+its own heavy dependency — a map or a chart library — which is exactly the case splitting is
+for.
+
 ## Mixed Scripts
 
 A subject is a template plus a name someone chose, so Hebrew lands mid-sentence among

@@ -42,6 +42,37 @@ cannot file anything under. The seeded set (`money.domain.starter`) is a handful
 across four groups, with no targets — a target is a claim about what that person intends to
 spend, and guessing it would put a number on screen nobody chose.
 
+## Reading Is Not Fetching
+
+The local clone is a cache. `ensure_clone(token, max_age)` decides whether it is worth a
+network round trip to GitHub to refresh it, and that decision was the app's entire load time:
+
+| | cost |
+|---|---|
+| `git fetch` to GitHub | ~0.9s |
+| reading and validating a whole budget | ~0.04s |
+
+Every read fetched, and one screen issues three reads at once — the budget list, the month,
+the buckets — so a single page load paid for that round trip three times, and again on every
+ten-second poll. The Redis cache never touched it, because its key *is* the commit sha and
+you need the fetch to learn the sha.
+
+Reads now accept a clone up to `READ_MAX_AGE` (3s) old. That is chosen against the poll
+interval rather than as cache tuning: it collapses the burst one screen makes into a single
+fetch while still fetching on every poll, so somebody else's change appears exactly as quickly
+as before. Raising it past the poll interval would start delaying other people's changes,
+which is the one thing polling exists to do.
+
+**Writes always fetch.** A commit is rebased onto the remote, so it has to be looking at the
+real remote state rather than a recent memory of it; reusing a clone from moments ago would
+rebase onto a stale base and push work that silently drops whatever landed in between.
+Connecting a budget also fetches fresh, because people push `budget.yaml` and connect it
+seconds later.
+
+The per-clone lock is **reentrant**: a write holds it across the whole read-modify-write and
+calls `ensure_clone` inside, which takes the same lock to stop concurrent fetches. With a
+plain lock that is a deadlock on every write.
+
 ## Entries
 
 An entry is one real-world event. Every entry answers two independent questions:

@@ -15,7 +15,7 @@ from money.api.cache import Cache
 from money.api.config import Settings, settings
 from money.api.errors import ApiError, forbidden, not_found
 from money.api.github import AccessCache
-from money.store.gitrepo import GitRepo
+from money.store.gitrepo import READ_MAX_AGE, GitRepo
 from money.store.store import Actor, BudgetStore
 
 # Process-wide, because the cache and clone locks must be shared across requests.
@@ -150,7 +150,9 @@ def budget_context(
         remote=f"https://github.com/{link.repo}.git",
         branch=config.data_branch,
     )
-    repo.ensure_clone(token)
+    # A read, so it may use a clone fetched moments ago rather than pay for another
+    # round trip to GitHub. Writes go through the store, which always fetches.
+    repo.ensure_clone(token, max_age=READ_MAX_AGE)
 
     return BudgetContext(
         slug=link.slug,

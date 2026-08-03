@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import subprocess
 import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -20,7 +21,11 @@ from pathlib import Path
 
 # One lock per clone. Writes are read-modify-write on a shared working tree, so two requests
 # touching the same budget must not interleave.
-_locks: dict[Path, threading.Lock] = {}
+#
+# Reentrant, because a write holds this lock for the whole read-modify-write and calls
+# `ensure_clone` inside it — which takes the same lock to stop concurrent fetches. With a
+# plain Lock that is a deadlock on every write, not an occasional one.
+_locks: dict[Path, threading.RLock] = {}
 _locks_guard = threading.Lock()
 
 # Supplies the push credential over stdin-free config instead of embedding it in the remote
@@ -49,9 +54,26 @@ class Commit:
     trailers: dict[str, str]
 
 
-def lock_for(path: Path) -> threading.Lock:
+def lock_for(path: Path) -> threading.RLock:
     with _locks_guard:
-        return _locks.setdefault(path, threading.Lock())
+        return _locks.setdefault(path, threading.RLock())
+
+
+# When each clone was last fetched, so a burst of reads shares one round trip to GitHub.
+# In memory rather than in Redis: it guards a local directory, so it is per-process by
+# nature — another process has its own clone and must make its own decision about it.
+_fetched_at: dict[Path, float] = {}
+
+
+# How stale a clone may be before a read pays for a fetch.
+#
+# Chosen against the ten-second poll rather than as a cache tuning: one screen issues three
+# reads at once, so this collapses that burst into a single fetch, while still fetching on
+# every poll. Somebody else's change therefore appears just as quickly as it did before.
+#
+# Raising this past the poll interval would start delaying other people's changes, which is
+# the one thing polling exists to do — revisit only if the poll interval changes.
+READ_MAX_AGE = 3.0
 
 
 class GitRepo:
@@ -107,19 +129,41 @@ class GitRepo:
 
     # ---- lifecycle ------------------------------------------------------------------
 
-    def ensure_clone(self, token: str) -> None:
+    def ensure_clone(self, token: str, max_age: float = 0.0) -> None:
         """Clone if missing, then make sure the branch exists and is current.
 
         The clone is a cache, not a source of truth: if the directory is missing or not a
         git repo, it is simply recreated.
-        """
-        if not (self.path / ".git").is_dir():
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            _clone(self.remote, self.path, token)
 
-        self._run("remote", "set-url", "origin", self.remote)
-        self._run("fetch", "--prune", "--tags", "--force", "origin", token=token)
-        self._checkout_branch(token)
+        `max_age` is how stale the local clone may be before the fetch is worth paying for.
+        The fetch is a network round trip to GitHub and costs about 0.9s, which dominated
+        everything else the server did — reading and validating a whole budget takes 40ms by
+        comparison. One screen issues three reads at once (the budget list, the month, the
+        buckets), so without a window a single page load paid for that round trip three
+        times, and again on every ten-second poll.
+
+        Writes pass 0 and always fetch: a commit is rebased onto the remote, so it has to be
+        looking at the real remote state rather than a recent memory of it.
+        """
+        fresh_enough = max_age > 0 and time.monotonic() - _fetched_at.get(self.path, 0) < max_age
+        if fresh_enough and (self.path / ".git").is_dir():
+            return
+
+        # One fetch per repo at a time. Without this, the three reads a screen makes arrive
+        # together, all see a stale clone, and all fetch — which is the cost this is meant to
+        # remove, and concurrent fetches into one directory contend on git's own index lock.
+        with lock_for(self.path):
+            if max_age > 0 and time.monotonic() - _fetched_at.get(self.path, 0) < max_age:
+                return  # someone else fetched while this call was waiting for the lock
+
+            if not (self.path / ".git").is_dir():
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                _clone(self.remote, self.path, token)
+
+            self._run("remote", "set-url", "origin", self.remote)
+            self._run("fetch", "--prune", "--tags", "--force", "origin", token=token)
+            self._checkout_branch(token)
+            _fetched_at[self.path] = time.monotonic()
 
     def _checkout_branch(self, token: str) -> None:
         """Check out the data branch, creating it from the default branch if it is new.
