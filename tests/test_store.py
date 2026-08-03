@@ -8,6 +8,7 @@ survives a round trip, and that a preview branch is created from main without to
 from __future__ import annotations
 
 import subprocess
+import time
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -436,6 +437,23 @@ class TestFetchWindow:
             store.repo.ensure_clone(ACTOR.token, max_age=60.0)
 
         assert fetches[0] == 1, "three reads in one burst must cost one round trip"
+
+    def test_a_clone_never_fetched_this_process_is_not_treated_as_fresh(
+        self, store: BudgetStore, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A restart onto a clone left on disk must still fetch before serving it.
+
+        `time.monotonic()` counts from boot, so a sentinel of 0 for "never fetched" reads as
+        "fetched at boot" — which on a machine that started moments ago is seconds, not never.
+        This reproduces that on any machine by asking for a window longer than the process has
+        been alive, which is what a fresh CI runner did by accident.
+        """
+        _fetched_at.pop(store.repo.path, None)
+        fetches = self.count_fetches(store.repo, monkeypatch)
+
+        store.repo.ensure_clone(ACTOR.token, max_age=time.monotonic() + 3600)
+
+        assert fetches[0] == 1, "a clone this process has never fetched is not fresh"
 
     def test_a_read_with_no_window_always_fetches(
         self, store: BudgetStore, monkeypatch: pytest.MonkeyPatch

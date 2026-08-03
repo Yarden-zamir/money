@@ -73,6 +73,12 @@ The per-clone lock is **reentrant**: a write holds it across the whole read-modi
 calls `ensure_clone` inside, which takes the same lock to stop concurrent fetches. With a
 plain lock that is a deadlock on every write.
 
+"Never fetched" is `None`, not a timestamp of 0. `time.monotonic()` counts from boot, so on a
+machine that started moments ago 0 reads as "fetched at boot" — seconds, not never — and a
+container restarting onto a clone left on disk would serve it without fetching once. A
+long-running developer machine can never reproduce that; a fresh CI runner did it by
+accident.
+
 ## Entries
 
 An entry is one real-world event. Every entry answers two independent questions:

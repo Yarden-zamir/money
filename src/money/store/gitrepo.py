@@ -145,15 +145,14 @@ class GitRepo:
         Writes pass 0 and always fetch: a commit is rebased onto the remote, so it has to be
         looking at the real remote state rather than a recent memory of it.
         """
-        fresh_enough = max_age > 0 and time.monotonic() - _fetched_at.get(self.path, 0) < max_age
-        if fresh_enough and (self.path / ".git").is_dir():
+        if self._fetched_recently(max_age) and (self.path / ".git").is_dir():
             return
 
         # One fetch per repo at a time. Without this, the three reads a screen makes arrive
         # together, all see a stale clone, and all fetch — which is the cost this is meant to
         # remove, and concurrent fetches into one directory contend on git's own index lock.
         with lock_for(self.path):
-            if max_age > 0 and time.monotonic() - _fetched_at.get(self.path, 0) < max_age:
+            if self._fetched_recently(max_age):
                 return  # someone else fetched while this call was waiting for the lock
 
             if not (self.path / ".git").is_dir():
@@ -164,6 +163,18 @@ class GitRepo:
             self._run("fetch", "--prune", "--tags", "--force", "origin", token=token)
             self._checkout_branch(token)
             _fetched_at[self.path] = time.monotonic()
+
+    def _fetched_recently(self, max_age: float) -> bool:
+        """Whether this clone was refreshed inside the window.
+
+        "Never fetched" has to be `None`, not a sentinel of 0. `time.monotonic()` counts from
+        boot, so on a machine that started moments ago it returns a small number — and 0 then
+        reads as "fetched at boot", which is seconds rather than never. A container restarting
+        onto a persistent clone would serve whatever was on disk before the restart without
+        fetching once. CI caught this on a fresh runner; a long-running laptop never would.
+        """
+        last = _fetched_at.get(self.path)
+        return max_age > 0 and last is not None and time.monotonic() - last < max_age
 
     def _checkout_branch(self, token: str) -> None:
         """Check out the data branch, creating it from the default branch if it is new.
