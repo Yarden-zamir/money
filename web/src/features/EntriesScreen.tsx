@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   deleteEntryMutation,
@@ -10,7 +10,8 @@ import {
 import type { BudgetSummary, Entry } from "@/api/types.gen";
 import { Card, Select } from "@/components/Form";
 import { Money } from "@/components/Money";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { currentMonth, formatDate, formatMonth, shiftMonth } from "@/lib/format";
 import { EntryDetail } from "./EntryDetail";
 import { useBudget } from "./useBudget";
@@ -29,6 +30,9 @@ export function EntriesScreen() {
       query: { ...(month ? { month } : {}), ...(bucket ? { bucket } : {}) },
     }),
     enabled: Boolean(budget),
+    // Changing month or bucket filters the same list. Emptying the screen between the two
+    // makes filtering feel like a fetch rather than a filter.
+    placeholderData: keepPreviousData,
   });
 
   // Bucket ids are what an entry stores, but they are not what anyone calls them. The list
@@ -38,8 +42,8 @@ export function EntriesScreen() {
     enabled: Boolean(budget),
   });
 
-  if (budgetPending || entries.isPending) return <Loading />;
   if (entries.isError || !budget) return <ErrorState onRetry={() => void entries.refetch()} />;
+  if (budgetPending || entries.isPending) return <ListSkeleton />;
 
   const names = new Map((buckets.data ?? []).map((item) => [item.id, item.name]));
   const months = Array.from({ length: RECENT_MONTHS }, (_, index) =>

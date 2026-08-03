@@ -12,7 +12,8 @@ import {
 import type { BudgetSummary, ScheduledInput } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
 import { Money } from "@/components/Money";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { formatDate } from "@/lib/format";
 import { useBudget } from "./useBudget";
 
@@ -28,7 +29,7 @@ const CADENCES = ["monthly", "weekly", "yearly"] as const;
 export function ScheduledScreen() {
   const { budget, isPending } = useBudget();
 
-  if (isPending) return <Loading />;
+  if (isPending) return <ListSkeleton rows={4} />;
   if (!budget) return <ErrorState />;
 
   return (
@@ -49,7 +50,7 @@ function Due({ budget }: { budget: BudgetSummary }) {
     onSuccess: () => void queryClient.invalidateQueries(),
   });
 
-  if (due.isPending) return <Loading />;
+  if (due.isPending) return <ListSkeleton rows={4} />;
   if (due.isError) return <ErrorState onRetry={() => void due.refetch()} />;
 
   const items = due.data.due;
@@ -131,7 +132,7 @@ function Templates({ budget }: { budget: BudgetSummary }) {
     },
   });
 
-  if (scheduled.isPending) return <Loading />;
+  if (scheduled.isPending) return <ListSkeleton rows={4} />;
   if (scheduled.isError) return <ErrorState onRetry={() => void scheduled.refetch()} />;
 
   const rows: ScheduledInput[] = draft ?? scheduled.data;

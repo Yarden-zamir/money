@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 
 import { Icon } from "@/components/Icon";
 import { Select } from "@/components/Form";
+import { useBudget } from "@/features/useBudget";
 import { UndoButton } from "@/features/UndoButton";
 import { LANGUAGES, type Language } from "@/lib/i18n";
+import { prefetchRoute } from "@/lib/prefetch";
 
 /**
  * Two navigations, one source of truth.
@@ -39,6 +42,16 @@ export function Layout({
   navigation?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const { budget } = useBudget();
+
+  // Warms whatever the tab is about to need, using time that is already being spent: the
+  // pointer travelling to the tab, or a finger resting on it before the click registers.
+  const warm = (path: string) => ({
+    onMouseEnter: () => prefetchRoute(queryClient, path, budget?.slug ?? ""),
+    onFocus: () => prefetchRoute(queryClient, path, budget?.slug ?? ""),
+    onPointerDown: () => prefetchRoute(queryClient, path, budget?.slug ?? ""),
+  });
 
   return (
     <div className="min-h-dvh">
@@ -53,6 +66,7 @@ export function Layout({
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
+                {...warm(item.to)}
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-1.5 text-sm transition ${
                     isActive
@@ -111,6 +125,7 @@ export function Layout({
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              {...warm(item.to)}
               className={({ isActive }) =>
                 `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition ${
                   isActive ? "text-brand" : "text-ink-muted"

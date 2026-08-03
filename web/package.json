@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "generate:api": "openapi-ts",
     "generate:check": "openapi-ts && git diff --exit-code src/api",
-    "check:reorder": "node tools/reorder-check.mjs"
+    "check:reorder": "node tools/reorder-check.mjs",
+    "check:speed": "node tools/speed-check.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

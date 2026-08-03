@@ -155,6 +155,35 @@ app undoing what you just did — so it samples the row order continuously from 
 the writes settle and fails if the order is ever wrong. Against the un-fixed code the row
 sits in its original place for about half a second.
 
+## Waiting
+
+Three rules, because a wait that is *shown* badly reads as slower than it is.
+
+**Nothing blanks a screen it is already showing.** Stepping to another month or changing an
+entries filter keeps the current data on screen (`placeholderData: keepPreviousData`) and dims
+it while the next arrives — dimmed because the figures no longer match the month named above
+them, and a stale number presented as current is worse than a wait. Before this, a sub-second
+fetch destroyed and rebuilt the ledger, which reads as a page load; measured at 275ms of empty
+screen per step.
+
+**A first load is a skeleton, not the word "Loading…".** `components/Skeleton.tsx` renders
+blocks in the shape of what is coming — the right number of rows, in the right columns — so
+the wait reads as the same screen filling in rather than a different screen. The chrome that
+does not depend on the query (headings, the month stepper) renders immediately around it.
+
+**Tabs prefetch on approach.** Hovering, focusing or pressing a nav item starts that screen's
+queries (`lib/prefetch.ts`). The gap between deciding to click and clicking is dead time that
+already exists and is usually longer than the request. `onPointerDown` is what covers touch,
+where there is no hover but a finger still rests on the target before the click fires.
+
+`pnpm check:speed` measures both claims against a stub with 350ms of latency — roughly a
+git-backed read on a cache miss — because "feels faster" is not something to assert:
+
+| | without | with |
+|---|---|---|
+| month step, ledger empty | 275ms | 0ms |
+| tab switch after hover | 838ms | 46ms |
+
 ## History
 
 Rows open in place. A subject says what someone meant to do; the patch says what happened,

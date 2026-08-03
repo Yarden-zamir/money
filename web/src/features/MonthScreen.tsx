@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { Bar, LedgerSkeleton, SummarySkeleton } from "@/components/Skeleton";
 import { lastWriteWins } from "@/lib/optimistic";
 
 import {
@@ -21,7 +22,7 @@ import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/co
 import { Icon } from "@/components/Icon";
 import { useCountUp } from "@/lib/useCountUp";
 import { Money } from "@/components/Money";
-import { ErrorState, Loading } from "@/components/States";
+import { ErrorState } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
 import { InlineEdit } from "@/components/InlineEdit";
 import { useBudget } from "./useBudget";
@@ -45,6 +46,10 @@ export function MonthScreen() {
   const query = useQuery({
     ...getMonthOptions({ path: { budget: budget?.slug ?? "", month } }),
     enabled: Boolean(budget),
+    // Stepping to another month keeps the one on screen until the new one arrives. Blanking
+    // the whole ledger to the word "Loading…" made a 100ms fetch feel like a page load, and
+    // it destroys the scroll position on the way back.
+    placeholderData: keepPreviousData,
   });
   const buckets = useQuery({
     ...listBucketsOptions({ path: { budget: budget?.slug ?? "" } }),
@@ -170,8 +175,20 @@ export function MonthScreen() {
     });
   };
 
-  if (budgetPending || query.isPending) return <Loading />;
   if (query.isError || !budget) return <ErrorState onRetry={() => void query.refetch()} />;
+  if (budgetPending || query.isPending) {
+    return (
+      <section className="space-y-4" aria-busy>
+        <header className="flex items-center gap-0.5">
+          <Bar className="h-9 w-9 rounded-lg" />
+          <Bar className="h-5 w-40" />
+          <Bar className="h-9 w-9 rounded-lg" />
+        </header>
+        <SummarySkeleton />
+        <LedgerSkeleton />
+      </section>
+    );
+  }
 
   const view = query.data;
   const overspent = view.buckets.filter((bucket) => Number(bucket.available) < 0);
@@ -183,7 +200,13 @@ export function MonthScreen() {
   }
 
   return (
-    <section className="space-y-4">
+    // While the next month is loading the previous one stays on screen. Dimmed, because the
+    // figures below no longer match the month named above them, and a stale number presented
+    // as current is worse than a wait.
+    <section
+      className={`space-y-4 transition-opacity ${query.isPlaceholderData ? "opacity-60" : ""}`}
+      aria-busy={query.isPlaceholderData}
+    >
       <header className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-0.5">
           {/* ‹ and › are Bidi-Mirrored: the text engine flips them in RTL, so they must not

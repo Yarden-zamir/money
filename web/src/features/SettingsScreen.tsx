@@ -12,7 +12,8 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { BudgetSummary, Member } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input } from "@/components/Form";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { Link } from "react-router-dom";
 
 import { Icon } from "@/components/Icon";
@@ -149,7 +150,7 @@ function Members({ budget }: { budget: BudgetSummary }) {
     },
   });
 
-  if (members.isPending) return <Loading />;
+  if (members.isPending) return <ListSkeleton rows={3} />;
   if (members.isError) return <ErrorState onRetry={() => void members.refetch()} />;
 
   const rows = draft ?? members.data;
@@ -263,7 +264,7 @@ function ApiKeys() {
   });
   const revoke = useMutation({ ...deleteApiKeyMutation(), onSuccess: invalidate });
 
-  if (keys.isPending) return <Loading />;
+  if (keys.isPending) return <ListSkeleton rows={3} />;
   if (keys.isError) return <ErrorState onRetry={() => void keys.refetch()} />;
 
   return (

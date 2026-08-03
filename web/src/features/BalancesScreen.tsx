@@ -5,7 +5,8 @@ import { getBalancesOptions, settleUpMutation } from "@/api/@tanstack/react-quer
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Card, FormError } from "@/components/Form";
 import { Money } from "@/components/Money";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { useBudget } from "./useBudget";
 
 export function BalancesScreen() {
@@ -17,8 +18,8 @@ export function BalancesScreen() {
     enabled: Boolean(budget),
   });
 
-  if (budgetPending || query.isPending) return <Loading />;
   if (query.isError || !budget) return <ErrorState onRetry={() => void query.refetch()} />;
+  if (budgetPending || query.isPending) return <ListSkeleton rows={3} />;
 
   const { balances, settle_up: settlements, currency } = query.data;
   const mine = balances.find((balance) => balance.person === budget.me);

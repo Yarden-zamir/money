@@ -11,7 +11,8 @@ import type { BudgetSummary, HistoryEvent } from "@/api/types.gen";
 import { Bidi } from "@/components/Bidi";
 import { Button, Card, FormError } from "@/components/Form";
 import { Icon } from "@/components/Icon";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { lastWriteWins } from "@/lib/optimistic";
 import { useBudget } from "./useBudget";
 
@@ -48,8 +49,18 @@ export function HistoryScreen() {
     enabled: Boolean(budget),
   });
 
-  if (isPending || history.isPending) return <Loading />;
   if (history.isError || !budget) return <ErrorState onRetry={() => void history.refetch()} />;
+  if (isPending || history.isPending) {
+    return (
+      <section className="space-y-4">
+        <div>
+          <h1 className="text-lg font-semibold">{t("history.title")}</h1>
+          <p className="text-sm text-ink-muted">{t("history.openHint")}</p>
+        </div>
+        <ListSkeleton rows={8} />
+      </section>
+    );
+  }
 
   // Which changes are no longer applied. Derived from the feed rather than fetched, because
   // a revert names what it undid — so the list already contains the answer for every row.

@@ -9,7 +9,8 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketOutput, Member, RuleInput } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
-import { ErrorState, Loading } from "@/components/States";
+import { ListSkeleton } from "@/components/Skeleton";
+import { ErrorState } from "@/components/States";
 import { useBudget } from "./useBudget";
 
 /**
@@ -41,7 +42,7 @@ export function RulesScreen() {
     },
   });
 
-  if (budgetPending || rules.isPending) return <Loading />;
+  if (budgetPending || rules.isPending) return <ListSkeleton rows={4} />;
   if (rules.isError || !budget) return <ErrorState onRetry={() => void rules.refetch()} />;
 
   const rows: RuleInput[] = draft ?? rules.data;
