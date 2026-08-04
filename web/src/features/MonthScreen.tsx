@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Bar, LedgerSkeleton, SummarySkeleton } from "@/components/Skeleton";
+import { BAR_TONES, bucketBar } from "@/lib/bucket";
 import { lastWriteWins } from "@/lib/optimistic";
 
 import {
@@ -627,20 +628,7 @@ function BucketRow({
   const target = bucket.target === null ? null : Number(bucket.target);
   const assigned = Number(bucket.assigned);
 
-  const basis = target ?? assigned;
-  const spent = Math.abs(Number(bucket.activity));
-  const percent = basis > 0 ? Math.min(100, Math.round((spent / basis) * 100)) : 0;
-
-  // Four states: overspent, emptied exactly on plan (a paid bill — neither good nor bad),
-  // running low, and healthy.
-  const tone =
-    available < 0
-      ? "bg-negative"
-      : available === 0
-        ? "bg-ink-muted/40"
-        : basis > 0 && available < basis * 0.1
-          ? "bg-warning"
-          : "bg-positive";
+  const { percent, tone } = bucketBar(available, Number(bucket.activity));
 
   return (
     // The severity edge marks the one state that needs acting on. It is not decoration —
@@ -772,7 +760,7 @@ function BucketRow({
 
       <div className="mt-2 flex items-center gap-3">
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
-          <div className={`h-full ${tone}`} style={{ width: `${percent}%` }} />
+          <div className={`h-full ${BAR_TONES[tone]}`} style={{ width: `${percent}%` }} />
         </div>
         {/* Only shown when acting on it would change something. */}
         {canWrite && target !== null && assigned < target && (

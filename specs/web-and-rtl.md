@@ -90,6 +90,17 @@ The subject is a household ledger, not a fintech dashboard, and the palette says
   only distinguishes states that need attention — overspent, nearly empty, or emptied exactly
   on plan, which is a paid bill and neither a warning nor a success.
 
+  Length is measured against what the envelope actually **held**, which is `available + spent`
+  — available is what remains after the spending, so adding it back gives the total. Dividing
+  by `target ?? assigned` instead was wrong three ways, and `pnpm check:bars` pins all of them:
+  `assigned` is only *this month's* figure while `available` carries over, so an envelope
+  funded last month and spent from this month rendered empty; `target` is what you meant to
+  put in rather than what is there, so a bucket holding 3000 against a 1000 target filled
+  completely with a third still available; and an overspend with nothing assigned produced a
+  red bar of **zero width**, hiding the one state that needs acting on. "Nearly empty" is
+  measured against the same total, so a small envelope is not permanently amber for being
+  small.
+
 ## Icons
 
 SVG on a 24-unit square viewBox, never text glyphs. A glyph sits on a text baseline rather
