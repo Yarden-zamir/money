@@ -715,9 +715,7 @@ class TestReorderingBuckets:
         )
         assert response.status_code == 404
 
-    def test_repeating_an_order_already_in_effect_writes_nothing(
-        self, client: TestClient
-    ) -> None:
+    def test_repeating_an_order_already_in_effect_writes_nothing(self, client: TestClient) -> None:
         """A drag that ends where it started must not add a commit saying so.
 
         Applied twice, not once: seeded buckets carry no explicit position and fall back to
