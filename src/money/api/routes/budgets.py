@@ -38,6 +38,7 @@ from money.api.schemas import (
     MonthClose,
     MonthResponse,
     MoveRequest,
+    ReorderRequest,
     SettleRequest,
 )
 from money.domain.amounts import ZERO
@@ -616,6 +617,39 @@ def move_money(
         context.actor,
     )
     return get_month(context=context, month=month, person=who)
+
+
+@router.put(
+    "/budgets/{budget}/buckets/order",
+    operation_id="reorderBuckets",
+    response_model=list[Bucket],
+    summary="Move buckets into a new order, in one commit",
+    openapi_extra={"x-cli": {"command": "bucket reorder"}},
+)
+def reorder_buckets(
+    body: ReorderRequest,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> list[Bucket]:
+    """One drag, one commit.
+
+    A drag can shift every bucket it passes, and they all live in one file — so doing it a
+    bucket at a time meant N requests, each a full fetch, commit and push, all rewriting the
+    same file. Beyond being slow, it made the reorder non-atomic: a failure partway left a
+    half-applied order, and the intermediate states were briefly visible to anyone else.
+
+    It cannot create, delete, rename or retarget a bucket. Position is the only thing a drag
+    means, and a wholesale replace would let a client holding a stale list undo somebody
+    else's rename in passing.
+    """
+    who = person_for(context, context.actor.login)
+    try:
+        context.store.reorder_buckets(
+            who, [(item.bucket, item.group) for item in body.order], context.actor
+        )
+    except DataError as exc:
+        raise not_found(str(exc)) from exc
+
+    return context.store.buckets(who)
 
 
 @router.put(

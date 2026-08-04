@@ -107,6 +107,13 @@ def describe_bucket_change(before: Bucket | None, after: Bucket) -> str:
     return ", ".join(changes) or f"update {after.name}"
 
 
+def _describe_names(names: list[str], limit: int = 3) -> str:
+    """A few names, then a count. Subjects are one line, and the diff shows the rest."""
+    shown = names[:limit]
+    rest = len(names) - len(shown)
+    return ", ".join(shown) + (f" and {rest} more" if rest else "")
+
+
 def _describe_assignment(
     amounts: dict[str, Decimal],
     before: dict[str, Decimal],
@@ -126,9 +133,7 @@ def _describe_assignment(
         bucket = changed[0]
         return f"{names.get(bucket, bucket)} {before.get(bucket, ZERO):.2f} → {amounts[bucket]:.2f}"
 
-    shown = [names.get(bucket, bucket) for bucket in changed[:3]]
-    rest = len(changed) - len(shown)
-    return ", ".join(shown) + (f" and {rest} more" if rest else "")
+    return _describe_names([names.get(bucket, bucket) for bucket in changed])
 
 
 def describe_list_change(before: list[str], after: list[str], noun: str) -> str:
@@ -344,6 +349,58 @@ class BudgetStore:
             mutate,
             actor=actor,
             subject=f"bucket: {describe_bucket_change(before, bucket)} ({person})",
+            trailers={"Person": person},
+        )
+
+    def reorder_buckets(
+        self, person: str, order: list[tuple[str, str | None]], actor: Actor
+    ) -> str:
+        """Put buckets in a given sequence of (id, group), in a single commit.
+
+        A drag can change the position of every bucket it passes, and all of a person's
+        buckets live in one file — so writing them one at a time meant N commits rewriting the
+        same file, each with its own fetch and push. It is the same shape auto-assign had.
+
+        Deliberately **cannot** create, delete, rename or retarget anything: it sets group and
+        position and nothing else. A wholesale replace would be more general, but it would also
+        let a client holding a stale list silently undo somebody else's rename, or drop a
+        bucket that entries still reference. Position is the only thing a drag means.
+
+        Buckets left out are untouched — archived ones are not on screen to be dragged, and
+        omitting them must not move them.
+        """
+        current = {bucket.id: bucket for bucket in self.buckets(person)}
+        unknown = [bucket_id for bucket_id, _ in order if bucket_id not in current]
+        if unknown:
+            raise DataError(f"no such bucket: {', '.join(sorted(unknown))}")
+
+        # Position is per group, so the index has to restart for each one rather than being
+        # the position in the flat list.
+        seen: dict[str | None, int] = {}
+        moved: dict[str, Bucket] = {}
+        for bucket_id, group in order:
+            index = seen.get(group, 0)
+            seen[group] = index + 1
+            moved[bucket_id] = current[bucket_id].model_copy(
+                update={"group": group, "order": index}
+            )
+
+        def mutate() -> list[str]:
+            self._write_buckets(person, [moved.get(b.id, b) for b in self.buckets(person)])
+            return [buckets_path(person)]
+
+        changed = [
+            current[bucket_id].name
+            for bucket_id, bucket in moved.items()
+            if current[bucket_id].group != bucket.group or current[bucket_id].order != bucket.order
+        ]
+        if not changed:
+            return self.repo.head_sha()  # nothing moved; not an error
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"bucket: reorder {_describe_names(changed)} ({person})",
             trailers={"Person": person},
         )
 

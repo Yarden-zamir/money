@@ -16,6 +16,7 @@ import {
   getMonthQueryKey,
   listBucketsOptions,
   putBucketMutation,
+  reorderBucketsMutation,
   reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketState, MonthResponse } from "@/api/types.gen";
@@ -58,6 +59,11 @@ export function MonthScreen() {
   });
 
   const queryClient = useQueryClient();
+  const reorder = useMutation({
+    ...reorderBucketsMutation(),
+    onSettled: lastWriteWins(queryClient),
+  });
+
   const put = useMutation({
     ...putBucketMutation(),
     // A drag fires this once per bucket whose position changed, all at once. Invalidating
@@ -120,21 +126,18 @@ export function MonthScreen() {
       });
     }
 
-    for (const [name, ids] of byGroup) {
-      void name;
-      ids.forEach((id, index) => {
-        const existing = byId.get(id);
-        if (!existing) return;
-
-        const nextGroup = id === draggedId ? targetGroup || null : existing.group;
-        if (existing.order === index && existing.group === nextGroup) return;
-
-        put.mutate({
-          path: { budget: budget.slug, bucket_id: id },
-          body: { ...existing, group: nextGroup, order: index },
-        });
-      });
-    }
+    // One request for the whole gesture. Sending a bucket at a time meant N writes to the
+    // same file, each with its own round trip, and a failure partway left a half-applied
+    // order. The server takes position from the sequence rather than from an index this
+    // client computes, so the only thing sent is the order actually on screen.
+    reorder.mutate({
+      path: { budget: budget.slug },
+      body: {
+        order: order
+          .filter(({ id }) => byId.has(id))
+          .map(({ id, group: name }) => ({ bucket: id, group: name || null })),
+      },
+    });
   };
 
   /** The keyboard equivalent: nudge one place within the same group. */

@@ -149,12 +149,15 @@ become the truth**.
 and revert what was just shown. That is necessary but not sufficient, and two further rules
 exist because without them a reorder visibly undid itself:
 
-**Invalidate when the writes are done, not once per write.** A drag fires one write per
-bucket whose position changed and they run concurrently. Invalidating per write let the first
-one to finish trigger a refetch while its siblings were still in flight — the server answered
-with a half-applied order, because each write is its own commit, and that overwrote the rest.
-Every mutation now settles through `lastWriteWins`, which invalidates only when no other
-write is still running.
+**Invalidate when the writes are done, not once per write.** Every mutation settles through
+`lastWriteWins`, which invalidates only when no other write is still running.
+
+That guard was written when a drag fired one request per bucket: invalidating per write let
+the first to finish trigger a refetch while its siblings were still in flight, and the server
+answered with a half-applied order that overwrote the rest. A drag is now a single request, so
+that particular case is gone — but the guard stays, because concurrent writes are still
+possible (two assign fields edited in quick succession) and it is the rule that makes them
+safe rather than a workaround for one screen.
 
 **Polling pauses while anything is being written.** A git write takes long enough for a poll
 to start during it, read the state from before the write, and land after it. `cancelQueries`

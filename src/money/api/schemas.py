@@ -125,6 +125,26 @@ class MonthResponse(BaseModel):
     buckets: list[BucketState]
 
 
+class BucketPosition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    bucket: str
+    group: str | None = None
+
+
+class ReorderRequest(BaseModel):
+    """The buckets a drag moved, in the order they should end up.
+
+    Position within a group is the index in this list, not a number the client sends: a client
+    computing its own indices can produce a sequence that disagrees with itself, and the order
+    it displays is the only thing it actually knows.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    order: list[BucketPosition] = Field(min_length=1)
+
+
 class AutoAssignRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

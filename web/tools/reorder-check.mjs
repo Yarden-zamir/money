@@ -50,6 +50,25 @@ const server = createServer(async (req, res) => {
   const path = (req.url ?? "/").split("?")[0];
   if (path.startsWith("/api/")) {
     let body = null;
+    if (req.method === "PUT" && path.endsWith("/buckets/order")) {
+      // The whole gesture is one request now: position comes from the sequence, so the
+      // server assigns order per group exactly as the real one does.
+      writes += 1;
+      inflight += 1;
+      const chunks = []; for await (const c of req) chunks.push(c);
+      const sent = JSON.parse(Buffer.concat(chunks).toString());
+      await new Promise((r) => setTimeout(r, 500));
+      const seen = {};
+      for (const { bucket, group } of sent.order) {
+        const index = seen[group] ?? 0;
+        seen[group] = index + 1;
+        buckets = buckets.map((b) => (b.id === bucket ? { ...b, group, order: index } : b));
+      }
+      served = [...buckets].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+      inflight -= 1;
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify(served));
+    }
     if (req.method === "PUT" && path.includes("/buckets/")) {
       writes += 1;
       inflight += 1;

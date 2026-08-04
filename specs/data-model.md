@@ -89,12 +89,27 @@ buckets was sixteen round trips — roughly fourteen seconds with the button gre
 eight commits in the log for one press. It also made the intermediate states real: `move`
 genuinely held money in neither envelope for a moment.
 
+The same holds for buckets: all of a person's live in one file, so a drag that shifts five of
+them is one commit through `reorder_buckets`, not five rewrites of the same file.
+
+That call deliberately **cannot** create, delete, rename or retarget anything — it sets group
+and position and nothing else. A wholesale replace would be more general and would also let a
+client holding a stale list undo somebody else's rename in passing, or drop a bucket that
+entries still reference. Position within a group comes from the *sequence* the client sends
+rather than an index it computes, because the displayed order is the only thing it actually
+knows. Buckets left out are untouched, so omitting archived ones cannot move them.
+
 The subject names one bucket precisely (`Groceries 0.00 → 1200.00`) and several by name and
 count (`Rent, Utilities, Transport and 2 more`), because a subject is one line and the diff
 already shows a line per bucket.
 
-Nothing is committed when nothing changed — an already-funded month writes no commit rather
-than an empty one.
+Nothing is committed when nothing changed — an already-funded month, or a drag that ends where
+it started, writes no commit rather than an empty one.
+
+**Nothing in the app writes per item any more.** Rules, members and recurrences were always
+replaced as a whole list; assignments and buckets now are too. What remains one-at-a-time is
+one-at-a-time by intent: an entry is a single event, and a due recurrence is posted only when
+a person confirms that particular charge.
 
 ## Entries
 

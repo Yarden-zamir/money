@@ -221,6 +221,20 @@ export type BucketOutput = {
 };
 
 /**
+ * BucketPosition
+ */
+export type BucketPosition = {
+    /**
+     * Bucket
+     */
+    bucket: string;
+    /**
+     * Group
+     */
+    group?: string | null;
+};
+
+/**
  * BucketState
  */
 export type BucketState = {
@@ -1400,6 +1414,22 @@ export type Recurrence = {
      * Every N periods; 2 with a monthly cadence is every other month
      */
     interval?: number;
+};
+
+/**
+ * ReorderRequest
+ *
+ * The buckets a drag moved, in the order they should end up.
+ *
+ * Position within a group is the index in this list, not a number the client sends: a client
+ * computing its own indices can produce a sequence that disagrees with itself, and the order
+ * it displays is the only thing it actually knows.
+ */
+export type ReorderRequest = {
+    /**
+     * Order
+     */
+    order: Array<BucketPosition>;
 };
 
 /**
@@ -2641,6 +2671,44 @@ export type MoveMoneyResponses = {
 };
 
 export type MoveMoneyResponse = MoveMoneyResponses[keyof MoveMoneyResponses];
+
+export type ReorderBucketsData = {
+    body: ReorderRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/buckets/order';
+};
+
+export type ReorderBucketsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReorderBucketsError = ReorderBucketsErrors[keyof ReorderBucketsErrors];
+
+export type ReorderBucketsResponses = {
+    /**
+     * Response Reorderbuckets
+     *
+     * Successful Response
+     */
+    200: Array<BucketOutput>;
+};
+
+export type ReorderBucketsResponse = ReorderBucketsResponses[keyof ReorderBucketsResponses];
 
 export type PutBucketData = {
     body: BucketInput;

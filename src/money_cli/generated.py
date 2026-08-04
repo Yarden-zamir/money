@@ -266,6 +266,27 @@ def bucket_list(
     )
 
 
+@bucket_app.command("reorder", help='Move buckets into a new order, in one commit')
+def bucket_reorder(
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "PUT",
+            f"/budgets/{resolve_budget(budget)}/buckets/order",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @bucket_app.command("set", help='Create or update one of your buckets')
 def bucket_set(
     bucket_id: Annotated[str, typer.Argument(help='')],

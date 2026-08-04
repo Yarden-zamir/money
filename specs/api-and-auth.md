@@ -79,6 +79,7 @@ GET    /budgets/{budget}/entries/{id}/note      long-form markdown note
 PUT    /budgets/{budget}/entries/{id}/note      write it; empty text removes the file
 
 GET    /budgets/{budget}/buckets                buckets for a person
+PUT    /budgets/{budget}/buckets/order          reposition several buckets in one commit
 PUT    /budgets/{budget}/buckets/{bucket}
 GET    /budgets/{budget}/months/{month}         full envelope view: assigned, activity, available
 PUT    /budgets/{budget}/months/{month}/assign  assign money to a bucket

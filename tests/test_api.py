@@ -626,3 +626,116 @@ class TestAssigningManyAtOnce:
         assert assigned["groceries"] == "300.00"
         assert assigned["fun-money"] == "200.00"
         assert self.commits(client) - before == 1
+
+
+class TestReorderingBuckets:
+    """A drag can shift every bucket it passes, and they all live in one file."""
+
+    def commits(self, client: TestClient) -> int:
+        page = client.get("/api/v1/budgets/joint/history", params={"limit": 200})
+        return len(page.json()["events"])
+
+    def order_of(self, client: TestClient) -> list[str]:
+        return [b["id"] for b in client.get("/api/v1/budgets/joint/buckets").json()]
+
+    def test_a_whole_reorder_is_one_commit(self, client: TestClient) -> None:
+        before = self.commits(client)
+
+        response = client.put(
+            "/api/v1/budgets/joint/buckets/order",
+            json={
+                "order": [
+                    {"bucket": "fun-money", "group": "Fun"},
+                    {"bucket": "groceries", "group": "Fun"},
+                ]
+            },
+        )
+        assert response.status_code == 200, response.text
+
+        assert self.order_of(client) == ["fun-money", "groceries"]
+        assert self.commits(client) - before == 1, "one gesture must be one commit"
+
+    def test_position_restarts_per_group(self, client: TestClient) -> None:
+        """Order is the index *within* a group, not in the flat list — otherwise the second
+        group starts at whatever number the first one ended on and sorts oddly."""
+        client.put(
+            "/api/v1/budgets/joint/buckets/order",
+            json={
+                "order": [
+                    {"bucket": "fun-money", "group": "A"},
+                    {"bucket": "groceries", "group": "B"},
+                ]
+            },
+        )
+        buckets = {b["id"]: b for b in client.get("/api/v1/budgets/joint/buckets").json()}
+        assert buckets["fun-money"]["order"] == 0
+        assert buckets["groceries"]["order"] == 0
+
+    def test_it_cannot_rename_or_retarget(self, client: TestClient) -> None:
+        """Position is the only thing a drag means. A wholesale replace would let a client
+        holding a stale list undo somebody else's rename in passing."""
+        client.put(
+            "/api/v1/budgets/joint/buckets/groceries",
+            json={
+                "id": "groceries",
+                "name": "Renamed",
+                "target": {"kind": "monthly", "amount": "50"},
+            },
+        )
+        client.put(
+            "/api/v1/budgets/joint/buckets/order",
+            json={"order": [{"bucket": "groceries", "group": "Elsewhere"}]},
+        )
+
+        groceries = next(
+            b for b in client.get("/api/v1/budgets/joint/buckets").json() if b["id"] == "groceries"
+        )
+        assert groceries["name"] == "Renamed"
+        assert groceries["target"]["amount"] == "50.00"
+        assert groceries["group"] == "Elsewhere"
+
+    def test_omitted_buckets_are_left_alone(self, client: TestClient) -> None:
+        """Archived buckets are not on screen to be dragged, so leaving them out of the list
+        must not move them."""
+        before = {b["id"]: b["group"] for b in client.get("/api/v1/budgets/joint/buckets").json()}
+
+        client.put(
+            "/api/v1/budgets/joint/buckets/order",
+            json={"order": [{"bucket": "groceries", "group": "Moved"}]},
+        )
+
+        after = {b["id"]: b["group"] for b in client.get("/api/v1/budgets/joint/buckets").json()}
+        assert after["fun-money"] == before["fun-money"]
+        assert set(after) == set(before), "nothing may be created or dropped"
+
+    def test_an_unknown_bucket_is_refused(self, client: TestClient) -> None:
+        response = client.put(
+            "/api/v1/budgets/joint/buckets/order",
+            json={"order": [{"bucket": "nope", "group": None}]},
+        )
+        assert response.status_code == 404
+
+    def test_repeating_an_order_already_in_effect_writes_nothing(
+        self, client: TestClient
+    ) -> None:
+        """A drag that ends where it started must not add a commit saying so.
+
+        Applied twice, not once: seeded buckets carry no explicit position and fall back to
+        sorting by name, so the *first* reorder genuinely changes the file by pinning them.
+        """
+        wanted = {
+            "order": [
+                {"bucket": "fun-money", "group": "Fun"},
+                {"bucket": "groceries", "group": "Fun"},
+            ]
+        }
+        client.put("/api/v1/budgets/joint/buckets/order", json=wanted)
+        before = self.commits(client)
+
+        client.put("/api/v1/budgets/joint/buckets/order", json=wanted)
+        assert self.commits(client) == before
+
+    def test_order_is_not_matched_as_a_bucket_id(self, client: TestClient) -> None:
+        """`/buckets/order` is declared before `/buckets/{bucket_id}`. Reversed, a reorder
+        would be read as an attempt to create a bucket literally called "order"."""
+        assert "order" not in self.order_of(client)
