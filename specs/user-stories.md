@@ -97,6 +97,10 @@ row would make it one tap to move a balance the wrong way.
 move more than the source holds. Editing two assignment figures instead means doing the
 arithmetic yourself and leaving the budget briefly wrong between the two saves.
 
+That is **one commit**, not two. It used to write each side separately, which meant the repo
+briefly held money taken from one envelope and not yet in the other — the exact state this
+story exists to avoid, made observable to anyone reading the history.
+
 ## 5. Where did the grocery money go?
 
 *The envelope is empty and it is the 20th.*

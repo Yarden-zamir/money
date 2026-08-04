@@ -79,6 +79,23 @@ container restarting onto a clone left on disk would serve it without fetching o
 long-running developer machine can never reproduce that; a fresh CI runner did it by
 accident.
 
+## One Decision, One Commit
+
+Every assignment for a person and a month lives in one file, so several envelopes changing
+together is a single write. `assign_many` is the only path; `assign` is a one-item call to it.
+
+Doing them separately was a fetch, commit and push *per bucket*. Auto-assign over eight
+buckets was sixteen round trips — roughly fourteen seconds with the button greyed out — and
+eight commits in the log for one press. It also made the intermediate states real: `move`
+genuinely held money in neither envelope for a moment.
+
+The subject names one bucket precisely (`Groceries 0.00 → 1200.00`) and several by name and
+count (`Rent, Utilities, Transport and 2 more`), because a subject is one line and the diff
+already shows a line per bucket.
+
+Nothing is committed when nothing changed — an already-funded month writes no commit rather
+than an empty one.
+
 ## Entries
 
 An entry is one real-world event. Every entry answers two independent questions:

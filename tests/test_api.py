@@ -556,3 +556,73 @@ class TestHealth:
 
     def test_readiness_reports_the_data_branch(self, client: TestClient) -> None:
         assert client.get("/readyz").json()["data_branch"] == "main"
+
+
+class TestAssigningManyAtOnce:
+    """Every assignment for a person and month lives in one file, so writing them one at a
+    time was a fetch, commit and push per bucket — eight buckets was about fourteen seconds
+    and eight commits for one button press."""
+
+    def commits(self, client: TestClient) -> int:
+        return len(
+            client.get("/api/v1/budgets/joint/history", params={"limit": 200}).json()["events"]
+        )
+
+    def test_auto_assign_writes_one_commit(self, client: TestClient) -> None:
+        client.put(
+            "/api/v1/budgets/joint/buckets/groceries",
+            json={
+                "id": "groceries",
+                "name": "מכולת",
+                "target": {"kind": "monthly", "amount": "1200"},
+            },
+        )
+        client.put(
+            "/api/v1/budgets/joint/buckets/fun-money",
+            json={
+                "id": "fun-money",
+                "name": "בילויים",
+                "target": {"kind": "monthly", "amount": "400"},
+            },
+        )
+        before = self.commits(client)
+
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-08/auto-assign", json={"strategy": "underfunded"}
+        )
+        assert response.status_code == 200, response.text
+
+        funded = {b["bucket"]: b["assigned"] for b in response.json()["buckets"]}
+        assert funded["groceries"] == "1200.00"
+        assert funded["fun-money"] == "400.00"
+        assert self.commits(client) - before == 1, "two buckets funded must be one commit"
+
+    def test_funding_nothing_writes_nothing(self, client: TestClient) -> None:
+        """No bucket has a target, so there is nothing to top up. It must not commit an
+        empty change just to have done something."""
+        before = self.commits(client)
+        client.post(
+            "/api/v1/budgets/joint/months/2026-08/auto-assign", json={"strategy": "underfunded"}
+        )
+        assert self.commits(client) == before
+
+    def test_moving_money_is_one_commit(self, client: TestClient) -> None:
+        """Both sides together. Two commits left money taken from one envelope and not yet in
+        the other — observable to anyone reading the repo, and the thing this endpoint exists
+        to prevent."""
+        client.put(
+            "/api/v1/budgets/joint/months/2026-08/assign",
+            json={"bucket": "groceries", "amount": "500.00"},
+        )
+        before = self.commits(client)
+
+        response = client.post(
+            "/api/v1/budgets/joint/months/2026-08/move",
+            json={"source": "groceries", "target": "fun-money", "amount": "200.00"},
+        )
+        assert response.status_code == 200, response.text
+
+        assigned = {b["bucket"]: b["assigned"] for b in response.json()["buckets"]}
+        assert assigned["groceries"] == "300.00"
+        assert assigned["fun-money"] == "200.00"
+        assert self.commits(client) - before == 1

@@ -107,6 +107,30 @@ def describe_bucket_change(before: Bucket | None, after: Bucket) -> str:
     return ", ".join(changes) or f"update {after.name}"
 
 
+def _describe_assignment(
+    amounts: dict[str, Decimal],
+    before: dict[str, Decimal],
+    names: dict[str, str],
+) -> str:
+    """A subject line for one or many envelopes changing at once.
+
+    One bucket keeps the precise form, because that is the common case and the figure it moved
+    from is the useful part. Several would run past any sensible subject length, so they are
+    named and counted — the diff is one line per bucket and the history view shows it.
+    """
+    changed = [b for b, amount in amounts.items() if amount != before.get(b, ZERO)]
+    if not changed:
+        return "no change"
+
+    if len(changed) == 1:
+        bucket = changed[0]
+        return f"{names.get(bucket, bucket)} {before.get(bucket, ZERO):.2f} → {amounts[bucket]:.2f}"
+
+    shown = [names.get(bucket, bucket) for bucket in changed[:3]]
+    rest = len(changed) - len(shown)
+    return ", ".join(shown) + (f" and {rest} more" if rest else "")
+
+
 def describe_list_change(before: list[str], after: list[str], noun: str) -> str:
     """Added and removed names for any list written wholesale (rules, members, recurrences).
 
@@ -324,27 +348,42 @@ class BudgetStore:
         )
 
     def assign(self, person: str, month: str, bucket: str, amount: Decimal, actor: Actor) -> str:
-        # Both read before the write, because the subject describes a change and neither the
-        # old figure nor the bucket's name survives it.
-        name = next((b.name for b in self.buckets(person) if b.id == bucket), bucket)
-        was: Decimal = (yamlio.load(self.repo.read(assignments_path(person, month))) or {}).get(
-            bucket, ZERO
-        )
+        return self.assign_many(person, month, {bucket: amount}, actor)
+
+    def assign_many(
+        self, person: str, month: str, amounts: dict[str, Decimal], actor: Actor
+    ) -> str:
+        """Set several envelopes for one month, in a single commit.
+
+        Every assignment for a person and month lives in one file, so writing them together is
+        not an optimisation with a trade-off — it is what the storage already looks like.
+        Doing them one at a time meant a full fetch, commit and push per bucket: auto-assign
+        over eight buckets was sixteen round trips, about fourteen seconds, and eight commits
+        in the log for one button press. It also left the budget briefly half-applied, which
+        matters most for `move` — taking from one envelope and giving to another is one
+        decision and must not be observable as two.
+        """
+        path = assignments_path(person, month)
+        # Read before the write: the subject describes a change, and neither the old figures
+        # nor the bucket names survive it.
+        names = {bucket.id: bucket.name for bucket in self.buckets(person)}
+        before: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
 
         def mutate() -> list[str]:
-            path = assignments_path(person, month)
             current: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
-            if amount == Decimal("0.00"):
-                current.pop(bucket, None)  # an empty envelope is absence, not a zero line
-            else:
-                current[bucket] = amount
+            for bucket_id, amount in amounts.items():
+                if amount == ZERO:
+                    current.pop(bucket_id, None)  # an empty envelope is absence, not a zero
+                else:
+                    current[bucket_id] = amount
             self.repo.write(path, yamlio.dump(dict(sorted(current.items()))))
             return [path]
 
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"assign: {name} {was:.2f} → {amount:.2f} for {month} ({person})",
+            subject=f"assign: {_describe_assignment(amounts, before, names)} "
+            f"for {month} ({person})",
             trailers={"Person": person, "Month": month},
         )
 

@@ -507,9 +507,16 @@ def auto_assign(
         person=who,
     )
 
-    for bucket_id, amount in sorted(targets.items()):
-        if amount != current.get(bucket_id, ZERO):
-            context.store.assign(who, month, bucket_id, amount, context.actor)
+    # One commit for the whole payday, not one per envelope. Writing them individually meant
+    # a fetch, commit and push each: eight buckets was sixteen round trips and about fourteen
+    # seconds, with the button greyed out and nothing on screen to say why.
+    changed = {
+        bucket_id: amount
+        for bucket_id, amount in sorted(targets.items())
+        if amount != current.get(bucket_id, ZERO)
+    }
+    if changed:
+        context.store.assign_many(who, month, changed, context.actor)
 
     return get_month(context=context, month=month, person=who)
 
@@ -595,12 +602,18 @@ def move_money(
             details={"available": f"{available.get(body.source, ZERO):.2f}"},
         )
 
+    # Both sides in one commit. Two commits left the budget genuinely wrong in between —
+    # money taken from one envelope and not yet in the other — which is exactly what this
+    # endpoint exists to avoid, and it was observable to anyone reading the repo.
     assigned = context.store.assignments(who).get(month, {})
-    context.store.assign(
-        who, month, body.source, assigned.get(body.source, ZERO) - body.amount, context.actor
-    )
-    context.store.assign(
-        who, month, body.target, assigned.get(body.target, ZERO) + body.amount, context.actor
+    context.store.assign_many(
+        who,
+        month,
+        {
+            body.source: assigned.get(body.source, ZERO) - body.amount,
+            body.target: assigned.get(body.target, ZERO) + body.amount,
+        },
+        context.actor,
     )
     return get_month(context=context, month=month, person=who)
 

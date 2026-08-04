@@ -57,7 +57,17 @@ export function Layout({
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line bg-card/85 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-2.5">
-          <span className="text-base font-bold tracking-tight">{t("app.name")}</span>
+          {/* The wordmark is the way back to the month screen, which is the convention
+              everywhere else and was the one obvious affordance the header lacked. */}
+          <NavLink
+            to="/"
+            end
+            {...warm("/")}
+            className="text-base font-bold tracking-tight transition hover:text-brand"
+            aria-label={t("nav.month")}
+          >
+            {t("app.name")}
+          </NavLink>
 
           {navigation && (
           <nav className="ms-4 hidden gap-1 sm:flex">
@@ -97,6 +107,7 @@ export function Layout({
             </NavLink>
             <Select
               fullWidth={false}
+              arrow={false}
               className="h-9 min-h-0 py-0 text-xs"
               value={i18n.language}
               onChange={(event) => void i18n.changeLanguage(event.target.value)}

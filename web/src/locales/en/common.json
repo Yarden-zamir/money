@@ -51,7 +51,8 @@
     "cover": "Cover this",
     "noTarget": "no target",
     "moreOptions": "More options",
-    "reorder": "Drag to reorder"
+    "reorder": "Drag to reorder",
+    "assigning": "Assigning…"
   },
   "entries": {
     "title": "Entries",

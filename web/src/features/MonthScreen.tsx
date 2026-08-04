@@ -393,7 +393,11 @@ function MonthActions({
             disabled={auto.isPending}
             onClick={() => auto.mutate({ path: { budget, month }, body: { strategy } })}
           >
-            {label}
+            {/* Named, not just disabled. This writes to git, so it is never instant, and a
+                greyed-out button with nothing else moving reads as a broken one. */}
+            {auto.isPending && auto.variables?.body.strategy === strategy
+              ? t("month.assigning")
+              : label}
           </Button>
         ))}
         <Button

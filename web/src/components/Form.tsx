@@ -50,8 +50,13 @@ export function Input({
 export function Select({
   className = "",
   fullWidth = true,
+  arrow = true,
   ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { fullWidth?: boolean }) {
+}: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  fullWidth?: boolean;
+  /** Off for controls whose purpose is obvious from their content, like the language picker. */
+  arrow?: boolean;
+}) {
   return (
     <span className={`relative inline-flex items-center ${fullWidth ? "w-full" : ""}`}>
       <select
@@ -64,12 +69,16 @@ export function Select({
         // inline-flex wrapper sizes to its content, and `w-full` there resolves against a
         // shrink-to-fit parent, so the reserved space for the arrow is dropped and the
         // chevron lands on top of the label.
-        className={`control appearance-none pe-9 ${fullWidth ? "w-full" : ""} ${className}`}
+        className={`control appearance-none ${arrow ? "pe-9" : ""} ${
+          fullWidth ? "w-full" : ""
+        } ${className}`}
       />
-      <Icon
-        name="chevronDown"
-        className="pointer-events-none absolute end-2.5 size-4 text-ink-muted"
-      />
+      {arrow && (
+        <Icon
+          name="chevronDown"
+          className="pointer-events-none absolute end-2.5 size-4 text-ink-muted"
+        />
+      )}
     </span>
   );
 }
