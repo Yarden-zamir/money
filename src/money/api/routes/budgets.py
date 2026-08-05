@@ -35,7 +35,6 @@ from money.api.schemas import (
     BudgetJoin,
     BudgetSummary,
     EntryResponse,
-    MonthClose,
     MonthResponse,
     MoveRequest,
     ReorderRequest,
@@ -411,55 +410,6 @@ def assign_to_bucket(
 
     context.store.assign(who, month, body.bucket, body.amount, context.actor)
     return get_month(context=context, month=month, person=who)
-
-
-@router.get(
-    "/budgets/{budget}/months/{month}/close",
-    operation_id="getMonthClose",
-    response_model=MonthClose,
-    summary="Is this month closed",
-)
-def get_month_close(
-    context: Annotated[BudgetContext, Depends(budget_context)],
-    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
-) -> MonthClose:
-    return MonthClose(month=month, closed=month in context.store.closed_months())
-
-
-@router.post(
-    "/budgets/{budget}/months/{month}/close",
-    operation_id="closeMonth",
-    response_model=MonthClose,
-    summary="Tag this month as closed",
-    openapi_extra={"x-cli": {"command": "month close", "args": ["month"]}},
-)
-def close_month(
-    context: Annotated[BudgetContext, Depends(writable)],
-    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
-) -> MonthClose:
-    """Records a git tag naming the commit the month ended on.
-
-    A tag rather than a field: it can be checked out to see the month exactly as it stood,
-    and it touches no file that a later edit would rewrite. Closing does not lock anything —
-    it is a bookmark, not a permission.
-    """
-    sha = context.store.close_month(month, context.actor)
-    return MonthClose(month=month, closed=True, commit=sha)
-
-
-@router.delete(
-    "/budgets/{budget}/months/{month}/close",
-    operation_id="reopenMonth",
-    response_model=MonthClose,
-    summary="Remove the close tag",
-    openapi_extra={"x-cli": {"command": "month reopen", "args": ["month"]}},
-)
-def reopen_month(
-    context: Annotated[BudgetContext, Depends(writable)],
-    month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
-) -> MonthClose:
-    context.store.reopen_month(month, context.actor)
-    return MonthClose(month=month, closed=False)
 
 
 @router.post(

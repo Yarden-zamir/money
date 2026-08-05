@@ -196,12 +196,6 @@ class NoteResponse(BaseModel):
     text: str
 
 
-class MonthClose(BaseModel):
-    month: Month
-    closed: bool
-    commit: str | None = None
-
-
 class BudgetSummary(BaseModel):
     slug: str
     name: str

@@ -160,10 +160,6 @@ def note_path(entry_id: str) -> str:
     return f"notes/{entry_id}.md"
 
 
-def close_tag(month: str) -> str:
-    return f"close/{month}"
-
-
 class BudgetStore:
     def __init__(self, repo: GitRepo, cache: Any | None = None) -> None:
         self.repo = repo
@@ -253,12 +249,6 @@ class BudgetStore:
         without picking it out of YAML.
         """
         return self.repo.read(note_path(entry_id))
-
-    def closed_months(self) -> list[str]:
-        """Months that have been closed, newest first."""
-        return sorted(
-            (tag.removeprefix("close/") for tag in self.repo.tags("close/")), reverse=True
-        )
 
     def schema_version(self) -> int:
         raw = self.repo.read(".money/schema-version")
@@ -553,27 +543,6 @@ class BudgetStore:
             ),
             trailers={"Entry-Id": entry_id},
         )
-
-    def close_month(self, month: str, actor: Actor) -> str:
-        """Tag the current state of a month.
-
-        A tag, not a flag in a file: it names a commit, so the month can be checked out
-        exactly as it stood, and it does not change any file that later edits would touch.
-        """
-        with write_lock(self.repo):
-            self.repo.ensure_clone(actor.token)
-            sha = self.repo.head_sha()
-            self.repo.tag(
-                close_tag(month),
-                f"close {month}\n\nActor: {actor.login}\n",
-                actor.token,
-            )
-            return sha
-
-    def reopen_month(self, month: str, actor: Actor) -> None:
-        with write_lock(self.repo):
-            self.repo.ensure_clone(actor.token)
-            self.repo.delete_tag(close_tag(month), actor.token)
 
     def initialize(self, budget: Budget, buckets: list[Bucket], actor: Actor) -> str:
         """Write `budget.yaml` and the first member's buckets into an empty repo.

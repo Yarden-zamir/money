@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, autoAssign, closeMonth, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, getMonthClose, inviteCollaborator, joinBudget, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reopenMonth, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, CloseMonthData, CloseMonthError, CloseMonthResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthCloseData, GetMonthCloseError, GetMonthCloseResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReopenMonthData, ReopenMonthError, ReopenMonthResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, assignToBucket, autoAssign, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -355,64 +355,6 @@ export const assignToBucketMutation = (options?: Partial<Options<AssignToBucketD
     const mutationOptions: UseMutationOptions<AssignToBucketResponse, AssignToBucketError, Options<AssignToBucketData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await assignToBucket({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Remove the close tag
- */
-export const reopenMonthMutation = (options?: Partial<Options<ReopenMonthData>>): UseMutationOptions<ReopenMonthResponse, ReopenMonthError, Options<ReopenMonthData>> => {
-    const mutationOptions: UseMutationOptions<ReopenMonthResponse, ReopenMonthError, Options<ReopenMonthData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await reopenMonth({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getMonthCloseQueryKey = (options: Options<GetMonthCloseData>) => createQueryKey('getMonthClose', options);
-
-/**
- * Is this month closed
- */
-export const getMonthCloseOptions = (options: Options<GetMonthCloseData>) => queryOptions<GetMonthCloseResponse, GetMonthCloseError, GetMonthCloseResponse, ReturnType<typeof getMonthCloseQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getMonthClose({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getMonthCloseQueryKey(options)
-});
-
-/**
- * Tag this month as closed
- *
- * Records a git tag naming the commit the month ended on.
- *
- * A tag rather than a field: it can be checked out to see the month exactly as it stood,
- * and it touches no file that a later edit would rewrite. Closing does not lock anything —
- * it is a bookmark, not a permission.
- */
-export const closeMonthMutation = (options?: Partial<Options<CloseMonthData>>): UseMutationOptions<CloseMonthResponse, CloseMonthError, Options<CloseMonthData>> => {
-    const mutationOptions: UseMutationOptions<CloseMonthResponse, CloseMonthError, Options<CloseMonthData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await closeMonth({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

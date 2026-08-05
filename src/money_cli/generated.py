@@ -34,8 +34,6 @@ key_app = typer.Typer(no_args_is_help=True, help="key commands")
 
 member_app = typer.Typer(no_args_is_help=True, help="member commands")
 
-month_app = typer.Typer(no_args_is_help=True, help="month commands")
-
 note_app = typer.Typer(no_args_is_help=True, help="note commands")
 
 rule_app = typer.Typer(no_args_is_help=True, help="rule commands")
@@ -728,42 +726,6 @@ def member_set(
     )
 
 
-@month_app.command("close", help='Tag this month as closed')
-def month_close(
-    month: Annotated[str, typer.Argument(help='')],
-    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
-) -> None:
-    emit(
-        request(
-            "POST",
-            f"/budgets/{resolve_budget(budget)}/months/{month}/close",
-            query={},
-            body=None,
-        ),
-        as_json=json_out,
-        table=None,
-    )
-
-
-@month_app.command("reopen", help='Remove the close tag')
-def month_reopen(
-    month: Annotated[str, typer.Argument(help='')],
-    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
-) -> None:
-    emit(
-        request(
-            "DELETE",
-            f"/budgets/{resolve_budget(budget)}/months/{month}/close",
-            query={},
-            body=None,
-        ),
-        as_json=json_out,
-        table=None,
-    )
-
-
 @note_app.command("set", help='Write the long-form note for an entry')
 def note_set(
     entry_id: Annotated[str, typer.Argument(help='')],
@@ -933,7 +895,6 @@ def register(app: typer.Typer) -> None:
     app.add_typer(history_app, name="history")
     app.add_typer(key_app, name="key")
     app.add_typer(member_app, name="member")
-    app.add_typer(month_app, name="month")
     app.add_typer(note_app, name="note")
     app.add_typer(rule_app, name="rule")
     app.add_typer(scheduled_app, name="scheduled")

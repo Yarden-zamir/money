@@ -3,7 +3,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import {
   getBalancesOptions,
   getHistoryOptions,
-  getMonthCloseOptions,
   getMonthOptions,
   listBucketsOptions,
   listEntriesOptions,
@@ -38,11 +37,6 @@ export function prefetchRoute(client: QueryClient, path: string, budget: string)
     case "/":
       void client.prefetchQuery(getMonthOptions({ path: { budget, month: currentMonth() } }));
       void client.prefetchQuery(listBucketsOptions({ path: { budget } }));
-      // The close-month state is asked for by a component that only mounts once the month has
-      // arrived, so leaving it out kept a second round trip behind the first.
-      void client.prefetchQuery(
-        getMonthCloseOptions({ path: { budget, month: currentMonth() } }),
-      );
       return;
     case "/entries":
       void client.prefetchQuery(

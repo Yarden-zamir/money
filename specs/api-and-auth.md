@@ -83,9 +83,6 @@ PUT    /budgets/{budget}/buckets/order          reposition several buckets in on
 PUT    /budgets/{budget}/buckets/{bucket}
 GET    /budgets/{budget}/months/{month}         full envelope view: assigned, activity, available
 PUT    /budgets/{budget}/months/{month}/assign  assign money to a bucket
-GET    /budgets/{budget}/months/{month}/close   is this month closed
-POST   /budgets/{budget}/months/{month}/close   tag the commit the month ended on
-DELETE /budgets/{budget}/months/{month}/close   remove the tag
 
 GET    /budgets/{budget}/balances            net positions and the suggested settle-up
 POST   /budgets/{budget}/settle              record a settlement between two people

@@ -340,31 +340,6 @@ class TestNotes:
         assert any(subject.startswith("note:") for subject in subjects)
 
 
-class TestMonthClose:
-    def test_closing_tags_the_current_commit(self, store: BudgetStore) -> None:
-        store.add_entry(coffee(), ACTOR)
-        sha = store.close_month("2026-07", ACTOR)
-
-        assert store.closed_months() == ["2026-07"]
-        assert sha == store.repo.head_sha()
-
-    def test_reopening_removes_the_tag(self, store: BudgetStore) -> None:
-        store.add_entry(coffee(), ACTOR)
-        store.close_month("2026-07", ACTOR)
-        store.reopen_month("2026-07", ACTOR)
-
-        assert store.closed_months() == []
-
-    def test_closing_does_not_lock_the_month(self, store: BudgetStore) -> None:
-        """A close is a bookmark, not a permission — the tag names a commit and nothing more."""
-        store.add_entry(coffee(), ACTOR)
-        store.close_month("2026-07", ACTOR)
-
-        later = coffee("01K9VYQ2N3X8R4T7B0M6D5C1FE").model_copy(update={"date": date(2026, 7, 28)})
-        store.add_entry(later, ACTOR)
-        assert len(store.entries_for_month("2026-07")) == 2
-
-
 class TestSchemaVersion:
     def test_the_marker_is_written_on_first_change(self, store: BudgetStore) -> None:
         assert store.repo.read(".money/schema-version") is None

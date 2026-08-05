@@ -321,10 +321,6 @@ Rounding sends the remaining agorot to the largest share, so splits always sum e
 
 - Entry history is `git log` scoped to the ledger file, filtered by `Entry-Id`. The API
   exposes it directly, so "what changed and who changed it" needs no audit table.
-- Closing a month is an annotated tag, `close/2026-07`, naming the commit the month ended on,
-  so it can be checked out exactly as it stood. It is a bookmark, not a lock: later edits to
-  a closed month are still allowed, because refusing them would mean the app deciding a
-  correction is illegitimate.
 - Writes take a per-repo lock, commit, then push. A rejected push is retried after
   `pull --rebase`. Ledger entries are kept sorted by `(date, id)` so two people appending on
   the same day produce a clean rebase instead of a conflict.

@@ -271,34 +271,6 @@ class GitRepo:
         )
         return self.head_sha()
 
-    def tags(self, prefix: str = "") -> list[str]:
-        output = self._run("tag", "--list", f"{prefix}*")
-        return sorted(line.strip() for line in output.splitlines() if line.strip())
-
-    def tag(self, name: str, message: str, token: str) -> None:
-        """Create an annotated tag and push it.
-
-        Annotated rather than lightweight so the tag carries who closed the month and when,
-        which is the whole reason for tagging instead of writing a `closed: true` field.
-        """
-        self._run(
-            "-c",
-            "user.name=money",
-            "-c",
-            "user.email=money@yarden-zamir.com",
-            "tag",
-            "--annotate",
-            "--force",
-            name,
-            "--message",
-            message,
-        )
-        self._run("push", "--force", "origin", f"refs/tags/{name}", token=token)
-
-    def delete_tag(self, name: str, token: str) -> None:
-        self._run("tag", "--delete", name, check=False)
-        self._run("push", "origin", f":refs/tags/{name}", token=token, check=False)
-
     def push(self, token: str) -> None:
         try:
             self._run("push", "origin", f"HEAD:{self.branch}", token=token)

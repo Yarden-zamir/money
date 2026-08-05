@@ -10,14 +10,11 @@ import {
   assignToBucketMutation,
   autoAssignMutation,
   moveMoneyMutation,
-  closeMonthMutation,
-  getMonthCloseOptions,
   getMonthOptions,
   getMonthQueryKey,
   listBucketsOptions,
   putBucketMutation,
   reorderBucketsMutation,
-  reopenMonthMutation,
 } from "@/api/@tanstack/react-query.gen";
 import type { BucketState, MonthResponse } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
@@ -232,7 +229,6 @@ export function MonthScreen() {
               {t("month.today")}
             </Button>
           )}
-          {budget.can_write && <CloseMonth budget={budget.slug} month={month} />}
         </div>
       </header>
 
@@ -1008,38 +1004,6 @@ function EditBucket({
       </form>
       <FormError error={save.error} />
     </Card>
-  );
-}
-
-/**
- * Closing a month tags the commit it ended on, so it can be checked out exactly as it stood.
- * It is a bookmark, not a lock — later edits to that month are still allowed.
- */
-function CloseMonth({ budget, month }: { budget: string; month: string }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const state = useQuery(getMonthCloseOptions({ path: { budget, month } }));
-
-  const invalidate = lastWriteWins(queryClient);
-  const close = useMutation({ ...closeMonthMutation(), onSettled: invalidate });
-  const reopen = useMutation({ ...reopenMonthMutation(), onSettled: invalidate });
-
-  if (state.isPending || state.isError) return null;
-  const closed = state.data.closed;
-
-  return (
-    <Button
-      variant={closed ? "quiet" : "ghost"}
-      className="min-h-9 px-3"
-      disabled={close.isPending || reopen.isPending}
-      onClick={() =>
-        closed
-          ? reopen.mutate({ path: { budget, month } })
-          : close.mutate({ path: { budget, month } })
-      }
-    >
-      {closed ? t("month.reopen") : t("month.close")}
-    </Button>
   );
 }
 
