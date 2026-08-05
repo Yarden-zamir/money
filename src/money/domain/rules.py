@@ -1,26 +1,28 @@
-"""Default split rules.
+"""Categorisation rules.
 
-Rules answer "when I add this entry, who bears it and out of which bucket?" so the common
-case — a shared coffee, the weekly groceries — is one line of input instead of a full split.
+A rule answers one question: "when I add this entry, which bucket does it belong in?" — so
+the weekly groceries need no bucket typed in. Who *bears* it is not a rule's business; that
+is the bucket's `split`, because it is a property of the category rather than of the payee.
+
+Splitting the two is what lets a household fund a bucket unevenly without that funding
+deciding whose expense it is. A rule that also carried a split had to be kept in step with
+the bucket, and nothing made them agree.
 
 First match wins, the same resolution order KitSHn uses for `.kitshn.yaml`, so the two
 configs behave the same way for someone who edits both.
 
-Rules apply **only** at creation time and only when the caller gives no explicit split. Editing
-a rule never rewrites existing entries: history stays what actually happened.
+Rules apply **only** at creation time and only when the caller gives no explicit split.
+Editing a rule never rewrites existing entries: history stays what actually happened.
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from money.domain.amounts import allocate
 from money.domain.models import BucketId, EntryKind, PersonId, Share
-
-Ratio = Annotated[Decimal, Field(ge=0, le=1)]
 
 
 class Match(BaseModel):
@@ -50,34 +52,7 @@ class Rule(BaseModel):
 
     id: str = Field(min_length=1, max_length=64)
     when: Match = Field(default_factory=Match)
-    split: dict[PersonId, Ratio]
-    bucket: dict[PersonId, BucketId] = Field(default_factory=dict)
-
-    @field_validator("split", mode="before")
-    @classmethod
-    def _decimalize(cls, value: object) -> object:
-        """YAML parses `0.5` as a float, so ratios arrive as floats and must be converted.
-
-        Going through `str` is exact for the short literals a human writes. Amounts get no
-        such tolerance — see `amounts.parse_amount`, which rejects floats outright — because
-        a ratio is a rounding input while an amount is the money itself.
-        """
-        if not isinstance(value, dict):
-            return value
-        return {person: Decimal(str(ratio)) for person, ratio in value.items()}
-
-    @model_validator(mode="after")
-    def _ratios_sum_to_one(self) -> Self:
-        if not self.split:
-            raise ValueError(f"rule {self.id}: split must name at least one person")
-        total = sum(self.split.values(), start=Decimal(0))
-        if total != Decimal(1):
-            raise ValueError(f"rule {self.id}: split ratios sum to {total}, must sum to 1")
-        unknown = set(self.bucket) - set(self.split)
-        if unknown:
-            named = ", ".join(sorted(unknown))
-            raise ValueError(f"rule {self.id}: bucket names people not in the split: {named}")
-        return self
+    bucket: BucketId = Field(description="Which bucket a matching entry belongs in")
 
 
 def first_match(
@@ -89,20 +64,25 @@ def first_match(
     return None
 
 
-def shares_from_rule(rule: Rule, amount: Decimal, kind: EntryKind) -> list[Share]:
-    """Turn a matched rule into shares that sum exactly to `amount`.
+def shares_from_split(
+    split: dict[str, Decimal], amount: Decimal, bucket: str | None, kind: EntryKind
+) -> list[Share]:
+    """Turn a bucket's split into shares that sum exactly to `amount`.
 
-    Non-expense kinds carry no bucket, so a rule's bucket map is ignored for them rather than
-    producing an entry that fails validation.
+    `allocate` distributes the remainder rather than rounding each share independently, so
+    three people splitting 10.00 get 3.34/3.33/3.33 and not a total of 9.99.
+
+    Non-expense kinds carry no bucket, so it is dropped for them rather than producing an
+    entry that fails validation.
     """
-    parts = allocate(amount, rule.split)
+    parts = allocate(amount, split)
     return [
         Share(
             person=person,
             amount=part,
-            bucket=rule.bucket.get(person) if kind is EntryKind.EXPENSE else None,
+            bucket=bucket if kind is EntryKind.EXPENSE else None,
         )
         for person, part in parts.items()
-        # A zero share is noise in the ledger; a person with a 0 ratio simply is not involved.
+        # A zero share is noise in the ledger; a person with a 0 share simply is not involved.
         if part != Decimal("0.00")
     ]

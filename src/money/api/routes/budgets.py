@@ -40,7 +40,7 @@ from money.api.schemas import (
     ReorderRequest,
     SettleRequest,
 )
-from money.domain.amounts import ZERO
+from money.domain.amounts import ZERO, allocate
 from money.domain.derive import month_view, net_positions, settle_up, shift_month
 from money.domain.models import Bucket, Budget, Entry, EntryKind, Member, Share
 from money.domain.starter import starter_buckets
@@ -369,7 +369,11 @@ def get_month(
     month: Annotated[str, Path(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")],
     person: str | None = None,
 ) -> MonthResponse:
-    """Defaults to the calling user's own envelopes, since buckets are per person."""
+    """Buckets are shared, so this returns every funder's standing in each of them.
+
+    `person` still decides whose ready-to-assign is reported, because income arrives to a
+    person and so does the money that has not been given a job yet.
+    """
     budget = context.store.budget()
     who = person or person_for(context, context.actor.login)
 
@@ -378,8 +382,9 @@ def get_month(
         month=month,
         start_month=budget.start_month,
         entries=context.store.all_entries(),
-        buckets=context.store.buckets(who),
-        assignments=context.store.assignments(who),
+        buckets=context.store.buckets(),
+        assignments=context.store.all_assignments(),
+        people=[member.person for member in budget.members],
     )
     return MonthResponse(
         person=view.person,
@@ -405,7 +410,7 @@ def assign_to_bucket(
     body: AssignRequest,
 ) -> MonthResponse:
     who = person_for(context, context.actor.login)
-    if not any(b.id == body.bucket for b in context.store.buckets(who)):
+    if not any(b.id == body.bucket for b in context.store.buckets()):
         raise not_found(f"bucket {body.bucket!r} for {who}")
 
     context.store.assign(who, month, body.bucket, body.amount, context.actor)
@@ -430,75 +435,129 @@ def auto_assign(
     Three strategies cover it: top every bucket up to its target, or repeat what was assigned
     or spent last month.
 
-    This deliberately does not stop when the money runs out. Ready-to-assign is allowed to go
-    negative, and the month view says so — refusing the assignment would leave the plan
+    A bucket's target belongs to the household, so filling it fills it **in the bucket's split
+    ratio** — four people at 25% each put in a quarter of the shortfall. Funding is otherwise
+    nobody's business but their own, which is why the other two strategies stay personal: what
+    *you* assigned or spent last month says nothing about what anyone else did.
+
+    This deliberately does not stop when the money runs out. Any funder's ready-to-assign is
+    allowed to go negative, and the month view says so — refusing would leave the plan
     half-applied and harder to reason about than an overcommitment you can see.
     """
     who = person_for(context, context.actor.login)
     previous = shift_month(month, -1)
+    budget = context.store.budget()
+    people = [member.person for member in budget.members]
 
-    buckets = {bucket.id: bucket for bucket in context.store.buckets(who) if not bucket.archived}
+    buckets = {bucket.id: bucket for bucket in context.store.buckets() if not bucket.archived}
     wanted = set(body.buckets) if body.buckets else set(buckets)
     unknown = wanted - set(buckets)
     if unknown:
         raise not_found(f"buckets {', '.join(sorted(unknown))}")
 
-    assignments = context.store.assignments(who)
-    current = assignments.get(month, {})
+    everyone = context.store.all_assignments()
     entries = context.store.all_entries()
 
-    targets = _auto_assign_amounts(
-        strategy=body.strategy,
-        wanted=wanted,
-        buckets=buckets,
-        current=current,
-        previous_assigned=assignments.get(previous, {}),
-        entries=entries,
-        previous_month=previous,
-        person=who,
-    )
+    if body.strategy == "underfunded":
+        funding = _fill_to_target(
+            wanted=wanted, buckets=buckets, assignments=everyone, month=month, people=people
+        )
+    else:
+        mine = everyone.get(who, {})
+        funding = {
+            who: _auto_assign_amounts(
+                strategy=body.strategy,
+                wanted=wanted,
+                previous_assigned=mine.get(previous, {}),
+                entries=entries,
+                previous_month=previous,
+                person=who,
+            )
+        }
 
-    # One commit for the whole payday, not one per envelope. Writing them individually meant
-    # a fetch, commit and push each: eight buckets was sixteen round trips and about fourteen
-    # seconds, with the button greyed out and nothing on screen to say why.
+    # One commit for the whole payday, not one per envelope or per person.
     changed = {
-        bucket_id: amount
-        for bucket_id, amount in sorted(targets.items())
-        if amount != current.get(bucket_id, ZERO)
+        person: {
+            bucket_id: amount
+            for bucket_id, amount in sorted(amounts.items())
+            if amount != everyone.get(person, {}).get(month, {}).get(bucket_id, ZERO)
+        }
+        for person, amounts in funding.items()
     }
+    changed = {person: amounts for person, amounts in changed.items() if amounts}
     if changed:
-        context.store.assign_many(who, month, changed, context.actor)
+        context.store.assign_across(changed, month, context.actor)
 
     return get_month(context=context, month=month, person=who)
+
+
+def _fill_to_target(
+    *,
+    wanted: set[str],
+    buckets: dict[str, Bucket],
+    assignments: dict[str, dict[str, dict[str, Decimal]]],
+    month: str,
+    people: list[str],
+) -> dict[str, dict[str, Decimal]]:
+    """Top every targeted bucket up to its target, shared out in the bucket's split ratio.
+
+    A target is what the *household* means to put into a category, so the shortfall is what
+    the household is short — and it is covered in the proportions everybody already agreed
+    bear its spending. Four people at 25% each cover a quarter.
+
+    Only the shortfall is shared out, not the target: someone who has already funded their
+    part should not be asked again because somebody else has not. That does mean a person who
+    over-funded subsidises the split of what remains, which is the same thing as agreeing to
+    cover a quarter of the category.
+
+    Nobody's funding is ever reduced. Someone who deliberately over-assigned should not have
+    it silently clawed back by a button labelled "fund".
+    """
+    funding: dict[str, dict[str, Decimal]] = {person: {} for person in people}
+
+    for bucket_id in sorted(wanted):
+        bucket = buckets[bucket_id]
+        target = bucket.target.amount if bucket.target and bucket.target.amount else None
+        if target is None:
+            continue  # nothing to top up towards
+
+        held = {
+            person: assignments.get(person, {}).get(month, {}).get(bucket_id, ZERO)
+            for person in people
+        }
+        shortfall = target - sum(held.values(), start=ZERO)
+        if shortfall <= ZERO:
+            continue  # already funded, by whoever
+
+        # allocate() distributes the remainder rather than rounding each share on its own, so
+        # three people covering 10.00 put in 3.34/3.33/3.33 and the target is actually met.
+        split = bucket.split_for(people)
+        for person, extra in allocate(shortfall, split).items():
+            if extra != ZERO:
+                funding[person][bucket_id] = held.get(person, ZERO) + extra
+
+    return {person: amounts for person, amounts in funding.items() if amounts}
 
 
 def _auto_assign_amounts(
     *,
     strategy: str,
     wanted: set[str],
-    buckets: dict[str, Bucket],
-    current: dict[str, Decimal],
     previous_assigned: dict[str, Decimal],
     entries: list[Entry],
     previous_month: str,
     person: str,
 ) -> dict[str, Decimal]:
-    """What each bucket should end up assigned, under one strategy."""
+    """What one person should end up having assigned, under a personal strategy.
+
+    Both of these look at what *this* person did last month, so they stay personal: nobody
+    else's history says anything about what you meant to put in.
+    """
     result: dict[str, Decimal] = {}
 
     for bucket_id in wanted:
-        bucket = buckets[bucket_id]
-        if strategy == "underfunded":
-            target = bucket.target.amount if bucket.target and bucket.target.amount else None
-            if target is None:
-                continue  # nothing to top up towards
-            # Top up to the target, never down: someone who deliberately over-assigned should
-            # not have it silently clawed back.
-            result[bucket_id] = max(target, current.get(bucket_id, ZERO))
-
-        elif strategy == "assigned_last_month":
+        if strategy == "assigned_last_month":
             result[bucket_id] = previous_assigned.get(bucket_id, ZERO)
-
         else:
             spent = sum(
                 (
@@ -539,7 +598,7 @@ def move_money(
     if body.source == body.target:
         raise ApiError("same_bucket", "pick two different buckets")
 
-    known = {bucket.id for bucket in context.store.buckets(who)}
+    known = {bucket.id for bucket in context.store.buckets()}
     for bucket_id in (body.source, body.target):
         if bucket_id not in known:
             raise not_found(f"bucket {bucket_id!r}")
@@ -591,15 +650,15 @@ def reorder_buckets(
     means, and a wholesale replace would let a client holding a stale list undo somebody
     else's rename in passing.
     """
-    who = person_for(context, context.actor.login)
+    person_for(context, context.actor.login)  # membership gates the write; buckets are shared
     try:
         context.store.reorder_buckets(
-            who, [(item.bucket, item.group) for item in body.order], context.actor
+            [(item.bucket, item.group) for item in body.order], context.actor
         )
     except DataError as exc:
         raise not_found(str(exc)) from exc
 
-    return context.store.buckets(who)
+    return context.store.buckets()
 
 
 @router.put(
@@ -617,8 +676,8 @@ def put_bucket(
     if body.id != bucket_id:
         raise ApiError("id_mismatch", f"body id {body.id!r} does not match path {bucket_id!r}")
 
-    who = person_for(context, context.actor.login)
-    context.store.put_bucket(who, body, context.actor)
+    person_for(context, context.actor.login)  # membership gates the write; buckets are shared
+    context.store.put_bucket(body, context.actor)
     return body
 
 
@@ -626,15 +685,18 @@ def put_bucket(
     "/budgets/{budget}/buckets",
     operation_id="listBuckets",
     response_model=list[Bucket],
-    summary="Buckets for a person",
-    openapi_extra={"x-cli": {"command": "bucket list", "aliases": {"person": "-p"}}},
+    summary="Every bucket in the budget",
+    openapi_extra={"x-cli": {"command": "bucket list"}},
 )
 def list_buckets(
     context: Annotated[BudgetContext, Depends(budget_context)],
-    person: str | None = None,
 ) -> list[Bucket]:
-    who = person or person_for(context, context.actor.login)
-    return context.store.buckets(who)
+    """Buckets are shared, so this no longer takes a person.
+
+    Each one carries the split that decides who bears its spending; how much any individual
+    has put in lives in the month view, not here.
+    """
+    return context.store.buckets()
 
 
 @router.get(

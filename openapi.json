@@ -822,7 +822,7 @@
           "budgets"
         ],
         "summary": "Envelope view for a month",
-        "description": "Defaults to the calling user's own envelopes, since buckets are per person.",
+        "description": "Buckets are shared, so this returns every funder's standing in each of them.\n\n`person` still decides whose ready-to-assign is reported, because income arrives to a\nperson and so does the money that has not been given a job yet.",
         "operationId": "getMonth",
         "parameters": [
           {
@@ -1034,7 +1034,7 @@
           "budgets"
         ],
         "summary": "Fund several buckets at once",
-        "description": "Assign to many buckets in one action, which is the payday case.\n\nFunding envelopes one at a time is the single most repeated chore in envelope budgeting.\nThree strategies cover it: top every bucket up to its target, or repeat what was assigned\nor spent last month.\n\nThis deliberately does not stop when the money runs out. Ready-to-assign is allowed to go\nnegative, and the month view says so \u2014 refusing the assignment would leave the plan\nhalf-applied and harder to reason about than an overcommitment you can see.",
+        "description": "Assign to many buckets in one action, which is the payday case.\n\nFunding envelopes one at a time is the single most repeated chore in envelope budgeting.\nThree strategies cover it: top every bucket up to its target, or repeat what was assigned\nor spent last month.\n\nA bucket's target belongs to the household, so filling it fills it **in the bucket's split\nratio** \u2014 four people at 25% each put in a quarter of the shortfall. Funding is otherwise\nnobody's business but their own, which is why the other two strategies stay personal: what\n*you* assigned or spent last month says nothing about what anyone else did.\n\nThis deliberately does not stop when the money runs out. Any funder's ready-to-assign is\nallowed to go negative, and the month view says so \u2014 refusing would leave the plan\nhalf-applied and harder to reason about than an overcommitment you can see.",
         "operationId": "autoAssign",
         "parameters": [
           {
@@ -1431,7 +1431,8 @@
         "tags": [
           "budgets"
         ],
-        "summary": "Buckets for a person",
+        "summary": "Every bucket in the budget",
+        "description": "Buckets are shared, so this no longer takes a person.\n\nEach one carries the split that decides who bears its spending; how much any individual\nhas put in lives in the month view, not here.",
         "operationId": "listBuckets",
         "parameters": [
           {
@@ -1441,22 +1442,6 @@
             "schema": {
               "type": "string",
               "title": "Budget"
-            }
-          },
-          {
-            "name": "person",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Person"
             }
           },
           {
@@ -1519,10 +1504,7 @@
           }
         },
         "x-cli": {
-          "command": "bucket list",
-          "aliases": {
-            "person": "-p"
-          }
+          "command": "bucket list"
         }
       }
     },
@@ -4891,6 +4873,24 @@
             "title": "Order",
             "description": "Sort position within its group; ties fall back to name",
             "default": 0
+          },
+          "split": {
+            "patternProperties": {
+              "^[a-z0-9][a-z0-9-]{0,38}$": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                  }
+                ]
+              }
+            },
+            "type": "object",
+            "title": "Split",
+            "description": "Fraction of spending each person bears. Empty means split evenly."
           }
         },
         "additionalProperties": false,
@@ -4899,7 +4899,8 @@
           "id",
           "name"
         ],
-        "title": "Bucket"
+        "title": "Bucket",
+        "description": "One shared envelope. Several people fund it; anyone can spend against it.\n\n`split` and funding are deliberately independent. How much you put in this month is a\ncashflow decision; what proportion of this category's spending is *yours* is a fairness\ndecision, and letting the first decide the second means you cannot fund a bucket generously\none month without also taking on more of its cost.\n\nKeeping them apart is what allows an envelope to be in the red for one person and in the\nblack for another: their position is what they funded minus what they bear."
       },
       "Bucket-Output": {
         "properties": {
@@ -4945,6 +4946,17 @@
             "title": "Order",
             "description": "Sort position within its group; ties fall back to name",
             "default": 0
+          },
+          "split": {
+            "patternProperties": {
+              "^[a-z0-9][a-z0-9-]{0,38}$": {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            },
+            "type": "object",
+            "title": "Split",
+            "description": "Fraction of spending each person bears. Empty means split evenly."
           }
         },
         "additionalProperties": false,
@@ -4953,7 +4965,8 @@
           "id",
           "name"
         ],
-        "title": "Bucket"
+        "title": "Bucket",
+        "description": "One shared envelope. Several people fund it; anyone can spend against it.\n\n`split` and funding are deliberately independent. How much you put in this month is a\ncashflow decision; what proportion of this category's spending is *yours* is a fairness\ndecision, and letting the first decide the second means you cannot fund a bucket generously\none month without also taking on more of its cost.\n\nKeeping them apart is what allows an envelope to be in the red for one person and in the\nblack for another: their position is what they funded minus what they bear."
       },
       "BucketPosition": {
         "properties": {
@@ -5027,6 +5040,13 @@
               }
             ],
             "title": "Target"
+          },
+          "funders": {
+            "items": {
+              "$ref": "#/components/schemas/FunderState"
+            },
+            "type": "array",
+            "title": "Funders"
           }
         },
         "type": "object",
@@ -5039,7 +5059,8 @@
           "available",
           "target"
         ],
-        "title": "BucketState"
+        "title": "BucketState",
+        "description": "A shared bucket, totalled for the household and broken down per funder."
       },
       "BudgetConnect": {
         "properties": {
@@ -5950,6 +5971,48 @@
         "type": "object",
         "title": "EntryUpdate"
       },
+      "FunderState": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "split": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Split",
+            "description": "Fraction of this bucket's spending they bear"
+          },
+          "assigned": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Assigned",
+            "description": "What they put in this month"
+          },
+          "activity": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Activity",
+            "description": "What they bore this month; negative for spending"
+          },
+          "available": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Available",
+            "description": "Their carried position: funded minus borne"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "split",
+          "assigned",
+          "activity",
+          "available"
+        ],
+        "title": "FunderState",
+        "description": "One person's standing in one shared bucket.\n\n`available` can be negative while another funder's is positive \u2014 that is the point of\nseparating funding from split. It means this person is consuming more of the category than\nthey have put in, which is fixed by funding more or by changing the split, and is a\ndifferent problem from owing somebody cash."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -6606,7 +6669,8 @@
                 "type": "null"
               }
             ],
-            "title": "Github"
+            "title": "Github",
+            "description": "Their GitHub login. A member without one is a placeholder, not an account."
           }
         },
         "additionalProperties": false,
@@ -7096,41 +7160,18 @@
           "when": {
             "$ref": "#/components/schemas/Match-Input"
           },
-          "split": {
-            "patternProperties": {
-              "^[a-z0-9][a-z0-9-]{0,38}$": {
-                "anyOf": [
-                  {
-                    "type": "number",
-                    "maximum": 1.0,
-                    "minimum": 0.0
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-                  }
-                ]
-              }
-            },
-            "type": "object",
-            "title": "Split"
-          },
           "bucket": {
-            "patternProperties": {
-              "^[a-z0-9][a-z0-9-]{0,38}$": {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
-              }
-            },
-            "type": "object",
-            "title": "Bucket"
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Bucket",
+            "description": "Which bucket a matching entry belongs in"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
-          "split"
+          "bucket"
         ],
         "title": "Rule"
       },
@@ -7145,32 +7186,18 @@
           "when": {
             "$ref": "#/components/schemas/Match-Output"
           },
-          "split": {
-            "patternProperties": {
-              "^[a-z0-9][a-z0-9-]{0,38}$": {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              }
-            },
-            "type": "object",
-            "title": "Split"
-          },
           "bucket": {
-            "patternProperties": {
-              "^[a-z0-9][a-z0-9-]{0,38}$": {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
-              }
-            },
-            "type": "object",
-            "title": "Bucket"
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
+            "title": "Bucket",
+            "description": "Which bucket a matching entry belongs in"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
-          "split"
+          "bucket"
         ],
         "title": "Rule"
       },

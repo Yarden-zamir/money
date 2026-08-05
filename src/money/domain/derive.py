@@ -11,7 +11,7 @@ from collections import defaultdict
 from decimal import Decimal
 from itertools import accumulate
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from money.domain.amounts import ZERO, quantize
 from money.domain.models import Bucket, Entry, EntryKind
@@ -30,14 +30,33 @@ class Settlement(BaseModel):
     amount: Decimal
 
 
+class FunderState(BaseModel):
+    """One person's standing in one shared bucket.
+
+    `available` can be negative while another funder's is positive — that is the point of
+    separating funding from split. It means this person is consuming more of the category than
+    they have put in, which is fixed by funding more or by changing the split, and is a
+    different problem from owing somebody cash.
+    """
+
+    person: str
+    split: Decimal = Field(description="Fraction of this bucket's spending they bear")
+    assigned: Decimal = Field(description="What they put in this month")
+    activity: Decimal = Field(description="What they bore this month; negative for spending")
+    available: Decimal = Field(description="Their carried position: funded minus borne")
+
+
 class BucketState(BaseModel):
+    """A shared bucket, totalled for the household and broken down per funder."""
+
     bucket: str
     name: str
     group: str | None
-    assigned: Decimal
-    activity: Decimal  # negative for spending
-    available: Decimal  # carryover + assigned + activity
+    assigned: Decimal  # household total for this month
+    activity: Decimal  # household total for this month; negative for spending
+    available: Decimal  # household carryover + assigned + activity
     target: Decimal | None
+    funders: list[FunderState] = Field(default_factory=list)
 
 
 class MonthView(BaseModel):
@@ -133,41 +152,62 @@ def month_view(
     start_month: str,
     entries: list[Entry],
     buckets: list[Bucket],
-    assignments: dict[str, dict[str, Decimal]],
+    assignments: dict[str, dict[str, dict[str, Decimal]]],
+    people: list[str],
 ) -> MonthView:
-    """Envelope state for one person in one month.
+    """Envelope state for one month, per funder as well as for the household.
 
     Availability carries over, so every month from `start_month` is folded rather than reading
-    a stored opening balance that could drift. `assignments` is keyed by month, then bucket.
+    a stored opening balance that could drift. `assignments` is keyed by person, then month,
+    then bucket.
+
+    `person` names whose ready-to-assign this is — that figure is genuinely personal, because
+    income arrives to a person. The buckets themselves are shared, and each carries what every
+    funder put in and bears.
     """
     timeline = months_between(start_month, month)
     if not timeline:
         raise ValueError(f"month {month} precedes the budget start {start_month}")
 
-    activity = _activity_by_month(entries, person)
+    borne = {who: _activity_by_month(entries, who) for who in people}
     visible = [b for b in buckets if not b.archived]
 
     states: list[BucketState] = []
     for bucket in visible:
-        # accumulate() folds carryover forward: each month's available is the previous
-        # month's available plus what was assigned and spent this month.
-        running = accumulate(
-            (
-                assignments.get(m, {}).get(bucket.id, ZERO) + activity.get((m, bucket.id), ZERO)
-                for m in timeline
-            ),
-            initial=ZERO,
-        )
-        available = quantize(list(running)[-1])
+        split = bucket.split_for(people)
+        funders: list[FunderState] = []
+
+        for who in people:
+            mine = assignments.get(who, {})
+            # accumulate() folds carryover forward: each month's available is the previous
+            # month's available plus what that person assigned and bore this month.
+            running = accumulate(
+                (
+                    mine.get(m, {}).get(bucket.id, ZERO) + borne[who].get((m, bucket.id), ZERO)
+                    for m in timeline
+                ),
+                initial=ZERO,
+            )
+            funders.append(
+                FunderState(
+                    person=who,
+                    split=split.get(who, ZERO),
+                    assigned=quantize(mine.get(month, {}).get(bucket.id, ZERO)),
+                    activity=quantize(borne[who].get((month, bucket.id), ZERO)),
+                    available=quantize(list(running)[-1]),
+                )
+            )
+
         states.append(
             BucketState(
                 bucket=bucket.id,
                 name=bucket.name,
                 group=bucket.group,
-                assigned=quantize(assignments.get(month, {}).get(bucket.id, ZERO)),
-                activity=quantize(activity.get((month, bucket.id), ZERO)),
-                available=available,
+                assigned=quantize(sum((f.assigned for f in funders), start=ZERO)),
+                activity=quantize(sum((f.activity for f in funders), start=ZERO)),
+                available=quantize(sum((f.available for f in funders), start=ZERO)),
                 target=bucket.target.amount if bucket.target else None,
+                funders=funders,
             )
         )
 
@@ -183,9 +223,10 @@ def month_view(
             start=ZERO,
         )
     )
+    ours = assignments.get(person, {})
     assigned_to_date = quantize(
         sum(
-            (amount for m in timeline for amount in assignments.get(m, {}).values()),
+            (amount for m in timeline for amount in ours.get(m, {}).values()),
             start=ZERO,
         )
     )
@@ -206,6 +247,6 @@ def month_view(
                 start=ZERO,
             )
         ),
-        assigned=quantize(sum(assignments.get(month, {}).values(), start=ZERO)),
+        assigned=quantize(sum(ours.get(month, {}).values(), start=ZERO)),
         buckets=states,
     )

@@ -293,25 +293,23 @@ class TestBucketOrder:
     def test_buckets_come_back_in_the_arranged_order(self, store: BudgetStore) -> None:
         for index, name in enumerate(["Rent", "Groceries", "Transport"]):
             store.put_bucket(
-                "yarden",
-                Bucket(id=name.lower(), name=name, group="Essentials", order=2 - index),
-                ACTOR,
+                Bucket(id=name.lower(), name=name, group="Essentials", order=2 - index), ACTOR
             )
-        assert [b.name for b in store.buckets("yarden")] == ["Transport", "Groceries", "Rent"]
+        assert [b.name for b in store.buckets()] == ["Transport", "Groceries", "Rent"]
 
     def test_saving_a_bucket_does_not_discard_the_arrangement(self, store: BudgetStore) -> None:
         """put_bucket used to re-sort by id, so any save silently undid a reordering."""
-        store.put_bucket("yarden", Bucket(id="b", name="B", order=0), ACTOR)
-        store.put_bucket("yarden", Bucket(id="a", name="A", order=1), ACTOR)
+        store.put_bucket(Bucket(id="b", name="B", order=0), ACTOR)
+        store.put_bucket(Bucket(id="a", name="A", order=1), ACTOR)
 
-        assert [b.id for b in store.buckets("yarden")] == ["b", "a"]
+        assert [b.id for b in store.buckets()] == ["b", "a"]
 
     def test_unarranged_buckets_read_alphabetically(self, store: BudgetStore) -> None:
         """Two buckets created together both start at order 0."""
-        store.put_bucket("yarden", Bucket(id="zeta", name="Zeta"), ACTOR)
-        store.put_bucket("yarden", Bucket(id="alpha", name="Alpha"), ACTOR)
+        store.put_bucket(Bucket(id="zeta", name="Zeta"), ACTOR)
+        store.put_bucket(Bucket(id="alpha", name="Alpha"), ACTOR)
 
-        assert [b.name for b in store.buckets("yarden")] == ["Alpha", "Zeta"]
+        assert [b.name for b in store.buckets()] == ["Alpha", "Zeta"]
 
 
 class TestNotes:
@@ -365,10 +363,10 @@ class TestSchemaVersion:
 
 class TestBuckets:
     def test_buckets_and_assignments_round_trip(self, store: BudgetStore) -> None:
-        store.put_bucket("yarden", Bucket(id="fun-money", name="בילויים", group="lifestyle"), ACTOR)
+        store.put_bucket(Bucket(id="fun-money", name="בילויים", group="lifestyle"), ACTOR)
         store.assign("yarden", "2026-07", "fun-money", D("400.00"), ACTOR)
 
-        assert store.buckets("yarden")[0].name == "בילויים"
+        assert store.buckets()[0].name == "בילויים"
         assert store.assignments("yarden") == {"2026-07": {"fun-money": D("400.00")}}
 
     def test_assigning_zero_removes_the_line(self, store: BudgetStore) -> None:
@@ -452,7 +450,7 @@ class TestFetchWindow:
         store.repo.ensure_clone(ACTOR.token, max_age=60.0)
         fetches = self.count_fetches(store.repo, monkeypatch)
 
-        store.put_bucket("yarden", Bucket(id="fun", name="Fun"), ACTOR)
+        store.put_bucket(Bucket(id="fun", name="Fun"), ACTOR)
 
         assert fetches[0] >= 1, "a write must not reuse a recently fetched clone"
 
@@ -462,7 +460,7 @@ class TestFetchWindow:
         The lock has to be reentrant. With a plain Lock this hangs forever on every single
         write rather than failing, which is the worst way for it to be wrong.
         """
-        store.put_bucket("yarden", Bucket(id="fun", name="Fun"), ACTOR)
-        store.put_bucket("yarden", Bucket(id="food", name="Food"), ACTOR)
+        store.put_bucket(Bucket(id="fun", name="Fun"), ACTOR)
+        store.put_bucket(Bucket(id="food", name="Food"), ACTOR)
 
-        assert {bucket.id for bucket in store.buckets("yarden")} == {"fun", "food"}
+        assert {bucket.id for bucket in store.buckets()} == {"fun", "food"}

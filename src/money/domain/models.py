@@ -236,6 +236,17 @@ class Target(Base):
 
 
 class Bucket(Base):
+    """One shared envelope. Several people fund it; anyone can spend against it.
+
+    `split` and funding are deliberately independent. How much you put in this month is a
+    cashflow decision; what proportion of this category's spending is *yours* is a fairness
+    decision, and letting the first decide the second means you cannot fund a bucket generously
+    one month without also taking on more of its cost.
+
+    Keeping them apart is what allows an envelope to be in the red for one person and in the
+    black for another: their position is what they funded minus what they bear.
+    """
+
     id: BucketId
     name: str = Field(min_length=1, max_length=100)
     group: str | None = None
@@ -245,12 +256,58 @@ class Bucket(Base):
         default=0,
         description="Sort position within its group; ties fall back to name",
     )
+    split: dict[PersonId, Decimal] = Field(
+        default_factory=dict,
+        description="Fraction of spending each person bears. Empty means split evenly.",
+    )
+
+    @field_validator("split", mode="before")
+    @classmethod
+    def _parse_split(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        return {person: Decimal(str(share)) for person, share in value.items()}
+
+    @model_validator(mode="after")
+    def _split_sums_to_one(self) -> Self:
+        """An empty split means "evenly, among whoever is a member" and is resolved on read.
+
+        A partial split is refused rather than normalised: shares that sum to 0.9 are a typo,
+        and silently scaling them to 1 would attribute money in proportions nobody chose.
+        """
+        if not self.split:
+            return self
+
+        if any(share < 0 for share in self.split.values()):
+            raise ValueError(f"bucket {self.id}: split shares cannot be negative")
+
+        total = sum(self.split.values(), start=Decimal("0"))
+        if abs(total - Decimal("1")) > Decimal("0.0001"):
+            raise ValueError(f"bucket {self.id}: split sums to {total}, not 1")
+        return self
+
+    def split_for(self, members: list[str]) -> dict[str, Decimal]:
+        """The effective split, filling in an even one when none is set.
+
+        Resolved against the current members rather than stored, so adding someone to the
+        budget does not leave every unconfigured bucket quietly attributing their spending to
+        everyone else.
+        """
+        if self.split:
+            return dict(self.split)
+        if not members:
+            return {}
+        share = Decimal("1") / Decimal(len(members))
+        return {person: share for person in members}
 
 
 class Member(Base):
     person: PersonId
     name: str
-    github: str | None = None
+    github: str | None = Field(
+        default=None,
+        description="Their GitHub login. A member without one is a placeholder, not an account.",
+    )
 
 
 class Scheduled(Base):

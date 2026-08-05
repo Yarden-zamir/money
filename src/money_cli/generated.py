@@ -246,9 +246,8 @@ def auth_whoami(
     )
 
 
-@bucket_app.command("list", help='Buckets for a person')
+@bucket_app.command("list", help='Every bucket in the budget')
 def bucket_list(
-    person: Annotated[str | None, typer.Option("--person", "-p", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
@@ -256,7 +255,7 @@ def bucket_list(
         request(
             "GET",
             f"/budgets/{resolve_budget(budget)}/buckets",
-            query={"person": person},
+            query={},
             body=None,
         ),
         as_json=json_out,

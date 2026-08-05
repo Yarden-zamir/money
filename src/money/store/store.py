@@ -50,8 +50,9 @@ def ledger_path(month: str) -> str:
     return f"ledger/{month}.yaml"
 
 
-def buckets_path(person: str) -> str:
-    return f"people/{person}/buckets.yaml"
+# Buckets are shared: one definition the whole household funds and spends against, rather
+# than a list per person that happened to use matching ids.
+BUCKETS_PATH = "buckets.yaml"
 
 
 def assignments_path(person: str, month: str) -> str:
@@ -178,13 +179,13 @@ class BudgetStore:
         raw = yamlio.load(self.repo.read("rules.yaml")) or []
         return [Rule.model_validate(item) for item in raw]
 
-    def buckets(self, person: str) -> list[Bucket]:
-        """Buckets in the order a person arranged them.
+    def buckets(self) -> list[Bucket]:
+        """Every bucket in the budget, in display order.
 
         Sorted on read as well as on write, because the file can be edited by hand and a
         reordering typed into YAML should take effect without needing the app to rewrite it.
         """
-        raw = yamlio.load(self.repo.read(buckets_path(person))) or []
+        raw = yamlio.load(self.repo.read(BUCKETS_PATH)) or []
         return sorted((Bucket.model_validate(item) for item in raw), key=_bucket_sort_key)
 
     def entries_for_month(self, month: str) -> list[Entry]:
@@ -222,11 +223,20 @@ class BudgetStore:
         return entries
 
     def assignments(self, person: str) -> dict[str, dict[str, Decimal]]:
+        """One person's funding, keyed by month then bucket."""
         result: dict[str, dict[str, Decimal]] = {}
         for path in self.repo.list_files(f"people/{person}/assignments/"):
             month = path.rsplit("/", 1)[-1].removesuffix(".yaml")
             result[month] = yamlio.load(self.repo.read(path)) or {}
         return result
+
+    def all_assignments(self) -> dict[str, dict[str, dict[str, Decimal]]]:
+        """Everyone's funding, keyed by person, then month, then bucket.
+
+        A shared bucket's state depends on what every funder put in, so the month view needs
+        all of it rather than one person's slice.
+        """
+        return {member.person: self.assignments(member.person) for member in self.budget().members}
 
     def find_entry(self, entry_id: str) -> tuple[Entry, str] | None:
         """Locate an entry and the month whose file holds it."""
@@ -326,25 +336,23 @@ class BudgetStore:
             trailers={"Entry-Id": entry.id},
         )
 
-    def put_bucket(self, person: str, bucket: Bucket, actor: Actor) -> str:
-        before = next((b for b in self.buckets(person) if b.id == bucket.id), None)
+    def put_bucket(self, bucket: Bucket, actor: Actor) -> str:
+        before = next((b for b in self.buckets() if b.id == bucket.id), None)
 
         def mutate() -> list[str]:
-            buckets = [b for b in self.buckets(person) if b.id != bucket.id]
+            buckets = [b for b in self.buckets() if b.id != bucket.id]
             buckets.append(bucket)
-            self._write_buckets(person, buckets)
-            return [buckets_path(person)]
+            self._write_buckets(buckets)
+            return [BUCKETS_PATH]
 
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"bucket: {describe_bucket_change(before, bucket)} ({person})",
-            trailers={"Person": person},
+            subject=f"bucket: {describe_bucket_change(before, bucket)}",
+            trailers={},
         )
 
-    def reorder_buckets(
-        self, person: str, order: list[tuple[str, str | None]], actor: Actor
-    ) -> str:
+    def reorder_buckets(self, order: list[tuple[str, str | None]], actor: Actor) -> str:
         """Put buckets in a given sequence of (id, group), in a single commit.
 
         A drag can change the position of every bucket it passes, and all of a person's
@@ -359,7 +367,7 @@ class BudgetStore:
         Buckets left out are untouched — archived ones are not on screen to be dragged, and
         omitting them must not move them.
         """
-        current = {bucket.id: bucket for bucket in self.buckets(person)}
+        current = {bucket.id: bucket for bucket in self.buckets()}
         unknown = [bucket_id for bucket_id, _ in order if bucket_id not in current]
         if unknown:
             raise DataError(f"no such bucket: {', '.join(sorted(unknown))}")
@@ -376,8 +384,8 @@ class BudgetStore:
             )
 
         def mutate() -> list[str]:
-            self._write_buckets(person, [moved.get(b.id, b) for b in self.buckets(person)])
-            return [buckets_path(person)]
+            self._write_buckets([moved.get(b.id, b) for b in self.buckets()])
+            return [BUCKETS_PATH]
 
         changed = [
             current[bucket_id].name
@@ -390,8 +398,8 @@ class BudgetStore:
         return self._commit(
             mutate,
             actor=actor,
-            subject=f"bucket: reorder {_describe_names(changed)} ({person})",
-            trailers={"Person": person},
+            subject=f"bucket: reorder {_describe_names(changed)}",
+            trailers={},
         )
 
     def assign(self, person: str, month: str, bucket: str, amount: Decimal, actor: Actor) -> str:
@@ -400,39 +408,62 @@ class BudgetStore:
     def assign_many(
         self, person: str, month: str, amounts: dict[str, Decimal], actor: Actor
     ) -> str:
-        """Set several envelopes for one month, in a single commit.
+        """Set several of one person's envelopes for a month, in a single commit."""
+        return self.assign_across({person: amounts}, month, actor)
 
-        Every assignment for a person and month lives in one file, so writing them together is
-        not an optimisation with a trade-off — it is what the storage already looks like.
-        Doing them one at a time meant a full fetch, commit and push per bucket: auto-assign
-        over eight buckets was sixteen round trips, about fourteen seconds, and eight commits
-        in the log for one button press. It also left the budget briefly half-applied, which
-        matters most for `move` — taking from one envelope and giving to another is one
-        decision and must not be observable as two.
+    def assign_across(
+        self, funding: dict[str, dict[str, Decimal]], month: str, actor: Actor
+    ) -> str:
+        """Set envelopes for several people at once, in a single commit.
+
+        Each person's funding is one file, so this touches one file per person and commits
+        them together. Writing them separately meant a full fetch, commit and push each:
+        filling four people's share of eight buckets was thirty-two round trips, and thirty-two
+        commits for one button press.
+
+        Committing them together also matters for correctness, not just speed. Funding a
+        bucket in the agreed ratio is one decision, and a repo that briefly holds one person's
+        contribution and not the others' shows an envelope that nobody chose to leave that way.
         """
-        path = assignments_path(person, month)
-        # Read before the write: the subject describes a change, and neither the old figures
-        # nor the bucket names survive it.
-        names = {bucket.id: bucket.name for bucket in self.buckets(person)}
-        before: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
+        names = {bucket.id: bucket.name for bucket in self.buckets()}
+        # Read before the write: the subject describes a change, and the old figures do not
+        # survive it.
+        before = {
+            who: (yamlio.load(self.repo.read(assignments_path(who, month))) or {})
+            for who in funding
+        }
 
         def mutate() -> list[str]:
-            current: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
-            for bucket_id, amount in amounts.items():
-                if amount == ZERO:
-                    current.pop(bucket_id, None)  # an empty envelope is absence, not a zero
-                else:
-                    current[bucket_id] = amount
-            self.repo.write(path, yamlio.dump(dict(sorted(current.items()))))
-            return [path]
+            touched: list[str] = []
+            for who, amounts in funding.items():
+                path = assignments_path(who, month)
+                current: dict[str, Decimal] = yamlio.load(self.repo.read(path)) or {}
+                for bucket_id, amount in amounts.items():
+                    if amount == ZERO:
+                        current.pop(bucket_id, None)  # an empty envelope is absence, not a zero
+                    else:
+                        current[bucket_id] = amount
+                self.repo.write(path, yamlio.dump(dict(sorted(current.items()))))
+                touched.append(path)
+            return touched
 
-        return self._commit(
-            mutate,
-            actor=actor,
-            subject=f"assign: {_describe_assignment(amounts, before, names)} "
-            f"for {month} ({person})",
-            trailers={"Person": person, "Month": month},
-        )
+        if len(funding) == 1:
+            who, amounts = next(iter(funding.items()))
+            described = f"{_describe_assignment(amounts, before[who], names)} for {month} ({who})"
+            trailers = {"Person": who, "Month": month}
+        else:
+            changed = sorted(
+                {
+                    names.get(bucket_id, bucket_id)
+                    for who, amounts in funding.items()
+                    for bucket_id, amount in amounts.items()
+                    if amount != before[who].get(bucket_id, ZERO)
+                }
+            )
+            described = f"{_describe_names(changed)} for {month} ({len(funding)} funders)"
+            trailers = {"Month": month}
+
+        return self._commit(mutate, actor=actor, subject=f"assign: {described}", trailers=trailers)
 
     def put_scheduled(self, items: list[Scheduled], actor: Actor) -> str:
         before = [item.name for item in self.scheduled()]
@@ -556,14 +587,12 @@ class BudgetStore:
         if self.repo.read("budget.yaml") is not None:
             raise DataError("this repo already holds a budget; connect it instead of creating")
 
-        person = budget.members[0].person
-
         def mutate() -> list[str]:
             self.repo.write(
                 "budget.yaml", yamlio.dump(budget.model_dump(mode="python", exclude_none=True))
             )
-            self._write_buckets(person, buckets)
-            return ["budget.yaml", buckets_path(person)]
+            self._write_buckets(buckets)
+            return ["budget.yaml", BUCKETS_PATH]
 
         return self._commit(
             mutate,
@@ -588,8 +617,8 @@ class BudgetStore:
             self.repo.write(
                 "budget.yaml", yamlio.dump(updated.model_dump(mode="python", exclude_none=True))
             )
-            self._write_buckets(member.person, buckets)
-            return ["budget.yaml", buckets_path(member.person)]
+            self._write_buckets(buckets)
+            return ["budget.yaml", BUCKETS_PATH]
 
         return self._commit(
             mutate,
@@ -636,14 +665,14 @@ class BudgetStore:
 
     # ---- internals ------------------------------------------------------------------
 
-    def _write_buckets(self, person: str, buckets: list[Bucket]) -> None:
+    def _write_buckets(self, buckets: list[Bucket]) -> None:
         """Write one person's buckets, always in display order.
 
         Sorting here as well as on read means the file on disk matches what the app shows,
         so someone reading the repo directly sees the same order they see on screen.
         """
         self.repo.write(
-            buckets_path(person),
+            BUCKETS_PATH,
             yamlio.dump(
                 [
                     b.model_dump(mode="python", exclude_none=True)

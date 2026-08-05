@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from money.domain.amounts import AmountError, allocate, parse_amount
 from money.domain.derive import month_view, months_between, net_positions, settle_up
 from money.domain.models import Bucket, Entry, EntryKind, Share
-from money.domain.rules import Rule, first_match, shares_from_rule
+from money.domain.rules import Rule, first_match, shares_from_split
 
 D = Decimal
 
@@ -149,7 +149,8 @@ class TestMonthView:
             start_month="2026-07",
             entries=[entry()],  # -25.00 in July
             buckets=buckets,
-            assignments=assignments,
+            assignments={"yarden": assignments},
+            people=["yarden"],
         )
         fun = view.buckets[0]
         assert fun.assigned == D("400.00")  # August only
@@ -171,7 +172,8 @@ class TestMonthView:
             start_month="2026-07",
             entries=[income],
             buckets=[Bucket(id="fun-money", name="בילויים")],
-            assignments={"2026-07": {"fun-money": D("400.00")}},
+            assignments={"yarden": {"2026-07": {"fun-money": D("400.00")}}},
+            people=["yarden"],
         )
         assert view.income == D("5000.00")
         assert view.ready_to_assign == D("4600.00")
@@ -185,6 +187,7 @@ class TestMonthView:
                 entries=[],
                 buckets=[],
                 assignments={},
+                people=["yarden"],
             )
 
     def test_months_between_crosses_a_year(self) -> None:
@@ -195,18 +198,15 @@ class TestRules:
     @pytest.fixture
     def ruleset(self) -> list[Rule]:
         return [
-            Rule.model_validate(
-                {"id": "hobby", "when": {"tag": "hobby"}, "split": {"yarden": 1.0}}
-            ),
+            Rule.model_validate({"id": "hobby", "when": {"tag": "hobby"}, "bucket": "games"}),
             Rule.model_validate(
                 {
                     "id": "groceries",
                     "when": {"payee_contains": "שופרסל"},
-                    "split": {"yarden": 0.5, "dana": 0.5},
-                    "bucket": {"yarden": "groceries", "dana": "groceries"},
+                    "bucket": "groceries",
                 }
             ),
-            Rule.model_validate({"id": "split-5050", "split": {"yarden": 0.5, "dana": 0.5}}),
+            Rule.model_validate({"id": "split-5050", "bucket": "fun-money"}),
         ]
 
     def test_first_match_wins(self, ruleset: list[Rule]) -> None:
@@ -221,37 +221,31 @@ class TestRules:
         assert matched is not None
         assert matched.id == "split-5050"
 
-    def test_rule_produces_shares_that_sum_exactly(self, ruleset: list[Rule]) -> None:
+    def test_a_rule_only_names_a_bucket(self, ruleset: list[Rule]) -> None:
+        """Who bears an entry is the bucket's business. A rule that also carried a split had
+        to be kept in step with it, and nothing made them agree."""
         rule = first_match(ruleset, payee="שופרסל", tags=[], paid_by="yarden", amount=D("-284.51"))
         assert rule is not None
-        shares = shares_from_rule(rule, D("-284.51"), EntryKind.EXPENSE)
+        assert rule.bucket == "groceries"
+
+    def test_shares_from_a_split_sum_exactly(self) -> None:
+        shares = shares_from_split(
+            {"yarden": D("0.5"), "dana": D("0.5")}, D("-284.51"), "groceries", EntryKind.EXPENSE
+        )
         assert sum(s.amount for s in shares) == D("-284.51")
         assert {s.bucket for s in shares} == {"groceries"}
 
-    def test_non_expense_kinds_drop_the_bucket(self, ruleset: list[Rule]) -> None:
-        shares = shares_from_rule(ruleset[1], D("-100.00"), EntryKind.SETTLEMENT)
+    def test_non_expense_kinds_drop_the_bucket(self) -> None:
+        shares = shares_from_split(
+            {"yarden": D("1")}, D("-100.00"), "groceries", EntryKind.SETTLEMENT
+        )
         assert all(s.bucket is None for s in shares)
 
-    def test_split_ratios_must_sum_to_one(self) -> None:
-        with pytest.raises(ValidationError, match="must sum to 1"):
-            Rule.model_validate({"id": "bad", "split": {"yarden": 0.5, "dana": 0.2}})
-
-    def test_bucket_map_cannot_name_someone_outside_the_split(self) -> None:
-        with pytest.raises(ValidationError, match="names people not in the split"):
-            Rule.model_validate(
-                {"id": "bad", "split": {"yarden": 1.0}, "bucket": {"dana": "groceries"}}
-            )
-
-    def test_shares_from_rule_matches_the_worked_example(self) -> None:
+    def test_split_matches_the_worked_example(self) -> None:
         """50 shekel coffee, split evenly, both sides land in fun-money."""
-        rule = Rule.model_validate(
-            {
-                "id": "coffee",
-                "split": {"yarden": 0.5, "dana": 0.5},
-                "bucket": {"yarden": "fun-money", "dana": "fun-money"},
-            }
+        shares = shares_from_split(
+            {"yarden": D("0.5"), "dana": D("0.5")}, D("-50.00"), "fun-money", EntryKind.EXPENSE
         )
-        shares = shares_from_rule(rule, D("-50.00"), EntryKind.EXPENSE)
         assert shares == [
             Share(person="yarden", amount=D("-25.00"), bucket="fun-money"),
             Share(person="dana", amount=D("-25.00"), bucket="fun-money"),

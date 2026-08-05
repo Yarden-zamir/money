@@ -123,7 +123,7 @@ class TestJoiningABudgetSomeoneElseMade:
 
         # Joining without buckets would land someone in a budget they cannot file anything
         # under, which is the dead end this is supposed to remove.
-        assert store.buckets("yarden") != []
+        assert store.buckets() != []
 
     def test_joining_leaves_everyone_else_alone(
         self, outsider: tuple[TestClient, BudgetStore]
@@ -219,7 +219,7 @@ class TestCreatingABudget:
 
         assert len(store.repo.log(limit=50)) == before + 1
         assert store.budget().name == "Household"
-        assert {b.id for b in store.buckets("yarden")} == {b.id for b in starter_buckets()}
+        assert {b.id for b in store.buckets()} == {b.id for b in starter_buckets()}
 
     def test_seeded_buckets_come_back_grouped(self, tmp_path: Path) -> None:
         """Buckets are written in display order, so the file on disk matches the screen and
@@ -235,7 +235,7 @@ class TestCreatingABudget:
             starter_buckets(),
             ACTOR,
         )
-        groups = [bucket.group for bucket in store.buckets("yarden")]
+        groups = [bucket.group for bucket in store.buckets()]
         assert groups == sorted(groups), "buckets in a group must be contiguous"
 
     def test_it_refuses_a_repo_that_already_holds_a_budget(self, tmp_path: Path) -> None:

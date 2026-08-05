@@ -32,6 +32,14 @@
   --color-positive: oklch(52% 0.13 155);
   --color-negative: oklch(52% 0.17 25);
   --color-warning: oklch(66% 0.13 75);
+  --color-member-1: oklch(52% 0.15 265);
+  --color-member-2: oklch(52% 0.17 300);
+  --color-member-3: oklch(55% 0.16 335);
+  --color-member-4: oklch(50% 0.14 240);
+  --color-member-5: oklch(55% 0.11 195);
+  --color-member-6: oklch(58% 0.14 105);
+  --color-member-7: oklch(58% 0.15 50);
+  --color-member-8: oklch(44% 0.15 320);
 
   --radius-card: 0.75rem;
 }
@@ -54,8 +62,30 @@
     --color-positive: oklch(74% 0.14 155);
     --color-negative: oklch(69% 0.16 25);
     --color-warning: oklch(78% 0.12 75);
+    --color-member-1: oklch(72% 0.13 265);
+    --color-member-2: oklch(72% 0.15 300);
+    --color-member-3: oklch(74% 0.14 335);
+    --color-member-4: oklch(70% 0.12 240);
+    --color-member-5: oklch(76% 0.11 195);
+    --color-member-6: oklch(80% 0.14 105);
+    --color-member-7: oklch(76% 0.14 50);
+    --color-member-8: oklch(62% 0.13 320);
+
   }
 }
+
+
+/* Member colours.
+ *
+ * Once a bar is coloured per person, colour stops encoding envelope state — so "overspent"
+ * has to be carried by the figure and the row's severity edge instead, and these hues only
+ * have to say *who*, not *how it is going*.
+ *
+ * They still avoid the four semantic hues (negative 25, warning 75, positive 155, brand 220)
+ * by a comfortable margin, because a member whose colour is the same green as "healthy" reads
+ * as a judgement rather than a name. Eight is enough for a household with headroom; a ninth
+ * member wraps and shares a colour, which is a legibility problem rather than a broken one.
+ */
 
 /* ...and an explicit choice overrides it, in both directions. A person who set light while
    their OS is dark must get light, so `data-theme="light"` has to restate the light tokens
@@ -74,6 +104,14 @@
   --color-positive: oklch(74% 0.14 155);
   --color-negative: oklch(69% 0.16 25);
   --color-warning: oklch(78% 0.12 75);
+  --color-member-1: oklch(72% 0.13 265);
+  --color-member-2: oklch(72% 0.15 300);
+  --color-member-3: oklch(74% 0.14 335);
+  --color-member-4: oklch(70% 0.12 240);
+  --color-member-5: oklch(76% 0.11 195);
+  --color-member-6: oklch(80% 0.14 105);
+  --color-member-7: oklch(76% 0.14 50);
+  --color-member-8: oklch(62% 0.13 320);
   color-scheme: dark;
 }
 
@@ -91,6 +129,14 @@
   --color-positive: oklch(52% 0.13 155);
   --color-negative: oklch(52% 0.17 25);
   --color-warning: oklch(66% 0.13 75);
+  --color-member-1: oklch(52% 0.15 265);
+  --color-member-2: oklch(52% 0.17 300);
+  --color-member-3: oklch(55% 0.16 335);
+  --color-member-4: oklch(50% 0.14 240);
+  --color-member-5: oklch(55% 0.11 195);
+  --color-member-6: oklch(58% 0.14 105);
+  --color-member-7: oklch(58% 0.15 50);
+  --color-member-8: oklch(44% 0.15 320);
   color-scheme: light;
 }
 

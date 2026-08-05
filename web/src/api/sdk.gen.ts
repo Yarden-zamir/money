@@ -170,7 +170,10 @@ export const joinBudget = <ThrowOnError extends boolean = false>(options: Option
 /**
  * Envelope view for a month
  *
- * Defaults to the calling user's own envelopes, since buckets are per person.
+ * Buckets are shared, so this returns every funder's standing in each of them.
+ *
+ * `person` still decides whose ready-to-assign is reported, because income arrives to a
+ * person and so does the money that has not been given a job yet.
  */
 export const getMonth = <ThrowOnError extends boolean = false>(options: Options<GetMonthData, ThrowOnError>): RequestResult<GetMonthResponses, GetMonthErrors, ThrowOnError> => (options.client ?? client).get<GetMonthResponses, GetMonthErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/months/{month}', ...options });
 
@@ -195,8 +198,13 @@ export const assignToBucket = <ThrowOnError extends boolean = false>(options: Op
  * Three strategies cover it: top every bucket up to its target, or repeat what was assigned
  * or spent last month.
  *
- * This deliberately does not stop when the money runs out. Ready-to-assign is allowed to go
- * negative, and the month view says so — refusing the assignment would leave the plan
+ * A bucket's target belongs to the household, so filling it fills it **in the bucket's split
+ * ratio** — four people at 25% each put in a quarter of the shortfall. Funding is otherwise
+ * nobody's business but their own, which is why the other two strategies stay personal: what
+ * *you* assigned or spent last month says nothing about what anyone else did.
+ *
+ * This deliberately does not stop when the money runs out. Any funder's ready-to-assign is
+ * allowed to go negative, and the month view says so — refusing would leave the plan
  * half-applied and harder to reason about than an overcommitment you can see.
  */
 export const autoAssign = <ThrowOnError extends boolean = false>(options: Options<AutoAssignData, ThrowOnError>): RequestResult<AutoAssignResponses, AutoAssignErrors, ThrowOnError> => (options.client ?? client).post<AutoAssignResponses, AutoAssignErrors, ThrowOnError>({
@@ -262,7 +270,12 @@ export const putBucket = <ThrowOnError extends boolean = false>(options: Options
 });
 
 /**
- * Buckets for a person
+ * Every bucket in the budget
+ *
+ * Buckets are shared, so this no longer takes a person.
+ *
+ * Each one carries the split that decides who bears its spending; how much any individual
+ * has put in lives in the month view, not here.
  */
 export const listBuckets = <ThrowOnError extends boolean = false>(options: Options<ListBucketsData, ThrowOnError>): RequestResult<ListBucketsResponses, ListBucketsErrors, ThrowOnError> => (options.client ?? client).get<ListBucketsResponses, ListBucketsErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/buckets', ...options });
 

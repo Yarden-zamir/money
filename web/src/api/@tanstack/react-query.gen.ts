@@ -333,7 +333,10 @@ export const getMonthQueryKey = (options: Options<GetMonthData>) => createQueryK
 /**
  * Envelope view for a month
  *
- * Defaults to the calling user's own envelopes, since buckets are per person.
+ * Buckets are shared, so this returns every funder's standing in each of them.
+ *
+ * `person` still decides whose ready-to-assign is reported, because income arrives to a
+ * person and so does the money that has not been given a job yet.
  */
 export const getMonthOptions = (options: Options<GetMonthData>) => queryOptions<GetMonthResponse, GetMonthError, GetMonthResponse, ReturnType<typeof getMonthQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -374,8 +377,13 @@ export const assignToBucketMutation = (options?: Partial<Options<AssignToBucketD
  * Three strategies cover it: top every bucket up to its target, or repeat what was assigned
  * or spent last month.
  *
- * This deliberately does not stop when the money runs out. Ready-to-assign is allowed to go
- * negative, and the month view says so — refusing the assignment would leave the plan
+ * A bucket's target belongs to the household, so filling it fills it **in the bucket's split
+ * ratio** — four people at 25% each put in a quarter of the shortfall. Funding is otherwise
+ * nobody's business but their own, which is why the other two strategies stay personal: what
+ * *you* assigned or spent last month says nothing about what anyone else did.
+ *
+ * This deliberately does not stop when the money runs out. Any funder's ready-to-assign is
+ * allowed to go negative, and the month view says so — refusing would leave the plan
  * half-applied and harder to reason about than an overcommitment you can see.
  */
 export const autoAssignMutation = (options?: Partial<Options<AutoAssignData>>): UseMutationOptions<AutoAssignResponse, AutoAssignError, Options<AutoAssignData>> => {
@@ -463,7 +471,12 @@ export const putBucketMutation = (options?: Partial<Options<PutBucketData>>): Us
 export const listBucketsQueryKey = (options: Options<ListBucketsData>) => createQueryKey('listBuckets', options);
 
 /**
- * Buckets for a person
+ * Every bucket in the budget
+ *
+ * Buckets are shared, so this no longer takes a person.
+ *
+ * Each one carries the split that decides who bears its spending; how much any individual
+ * has put in lives in the month view, not here.
  */
 export const listBucketsOptions = (options: Options<ListBucketsData>) => queryOptions<ListBucketsResponse, ListBucketsError, ListBucketsResponse, ReturnType<typeof listBucketsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

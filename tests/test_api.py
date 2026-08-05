@@ -36,19 +36,20 @@ members:
 RULES_YAML = """\
 - id: groceries
   when: {payee_contains: שופרסל}
-  split: {yarden: 0.5, dana: 0.5}
-  bucket: {yarden: groceries, dana: groceries}
+  bucket: groceries
 - id: split-5050
   when: {}
-  split: {yarden: 0.5, dana: 0.5}
-  bucket: {yarden: fun-money, dana: fun-money}
+  bucket: fun-money
 """
 
+# Buckets are shared and carry the split that decides who bears their spending.
 BUCKETS_YAML = """\
 - id: fun-money
   name: בילויים
+  split: {yarden: 0.5, dana: 0.5}
 - id: groceries
   name: מכולת
+  split: {yarden: 0.5, dana: 0.5}
 """
 
 
@@ -69,8 +70,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     subprocess.run(["git", "clone", str(bare), str(seed)], check=True, capture_output=True)
     (seed / "budget.yaml").write_text(BUDGET_YAML, encoding="utf-8")
     (seed / "rules.yaml").write_text(RULES_YAML, encoding="utf-8")
-    (seed / "people" / "yarden").mkdir(parents=True)
-    (seed / "people" / "yarden" / "buckets.yaml").write_text(BUCKETS_YAML, encoding="utf-8")
+    (seed / "buckets.yaml").write_text(BUCKETS_YAML, encoding="utf-8")
     for args in (
         ["config", "user.email", "seed@example.com"],
         ["config", "user.name", "seed"],
@@ -377,9 +377,23 @@ class TestMonths:
 
         month = client.get("/api/v1/budgets/joint/months/2026-07").json()
         fun = next(b for b in month["buckets"] if b["bucket"] == "fun-money")
+        # The bucket is shared, so its own figures are the household's. Each funder's slice
+        # is in `funders` — which is what makes an envelope able to be red for one person.
         assert fun["assigned"] == "400.00"
-        assert fun["activity"] == "-25.00"  # only Yarden's half hits Yarden's envelope
-        assert fun["available"] == "375.00"
+        assert fun["activity"] == "-50.00"
+
+        mine = next(f for f in fun["funders"] if f["person"] == "yarden")
+        theirs = next(f for f in fun["funders"] if f["person"] == "dana")
+        assert mine["activity"] == "-25.00"
+        assert theirs["activity"] == "-25.00"
+        assert mine["assigned"] == "400.00"
+        assert theirs["assigned"] == "0.00"
+        # 400 funded by one person, 50 spent by the household.
+        assert fun["available"] == "350.00"
+        # And this is the whole point of the model: the same envelope is +375 for the person
+        # who funded it and -25 for the one who did not, at the same time.
+        assert mine["available"] == "375.00"
+        assert theirs["available"] == "-25.00"
 
     def test_auto_assign_tops_every_bucket_up_to_its_target(self, client: TestClient) -> None:
         """Payday: funding envelopes one at a time is the chore this removes."""

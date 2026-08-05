@@ -164,6 +164,16 @@ export type BalanceSheet = {
 
 /**
  * Bucket
+ *
+ * One shared envelope. Several people fund it; anyone can spend against it.
+ *
+ * `split` and funding are deliberately independent. How much you put in this month is a
+ * cashflow decision; what proportion of this category's spending is *yours* is a fairness
+ * decision, and letting the first decide the second means you cannot fund a bucket generously
+ * one month without also taking on more of its cost.
+ *
+ * Keeping them apart is what allows an envelope to be in the red for one person and in the
+ * black for another: their position is what they funded minus what they bear.
  */
 export type BucketInput = {
     /**
@@ -189,10 +199,28 @@ export type BucketInput = {
      * Sort position within its group; ties fall back to name
      */
     order?: number;
+    /**
+     * Split
+     *
+     * Fraction of spending each person bears. Empty means split evenly.
+     */
+    split?: {
+        [key: string]: unknown | number | string;
+    };
 };
 
 /**
  * Bucket
+ *
+ * One shared envelope. Several people fund it; anyone can spend against it.
+ *
+ * `split` and funding are deliberately independent. How much you put in this month is a
+ * cashflow decision; what proportion of this category's spending is *yours* is a fairness
+ * decision, and letting the first decide the second means you cannot fund a bucket generously
+ * one month without also taking on more of its cost.
+ *
+ * Keeping them apart is what allows an envelope to be in the red for one person and in the
+ * black for another: their position is what they funded minus what they bear.
  */
 export type BucketOutput = {
     /**
@@ -218,6 +246,14 @@ export type BucketOutput = {
      * Sort position within its group; ties fall back to name
      */
     order?: number;
+    /**
+     * Split
+     *
+     * Fraction of spending each person bears. Empty means split evenly.
+     */
+    split?: {
+        [key: string]: unknown | string;
+    };
 };
 
 /**
@@ -236,6 +272,8 @@ export type BucketPosition = {
 
 /**
  * BucketState
+ *
+ * A shared bucket, totalled for the household and broken down per funder.
  */
 export type BucketState = {
     /**
@@ -266,6 +304,10 @@ export type BucketState = {
      * Target
      */
     target: string | null;
+    /**
+     * Funders
+     */
+    funders?: Array<FunderState>;
 };
 
 /**
@@ -766,6 +808,47 @@ export type EntryUpdate = {
 };
 
 /**
+ * FunderState
+ *
+ * One person's standing in one shared bucket.
+ *
+ * `available` can be negative while another funder's is positive — that is the point of
+ * separating funding from split. It means this person is consuming more of the category than
+ * they have put in, which is fixed by funding more or by changing the split, and is a
+ * different problem from owing somebody cash.
+ */
+export type FunderState = {
+    /**
+     * Person
+     */
+    person: string;
+    /**
+     * Split
+     *
+     * Fraction of this bucket's spending they bear
+     */
+    split: string;
+    /**
+     * Assigned
+     *
+     * What they put in this month
+     */
+    assigned: string;
+    /**
+     * Activity
+     *
+     * What they bore this month; negative for spending
+     */
+    activity: string;
+    /**
+     * Available
+     *
+     * Their carried position: funded minus borne
+     */
+    available: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -1146,6 +1229,8 @@ export type Member = {
     name: string;
     /**
      * Github
+     *
+     * Their GitHub login. A member without one is a placeholder, not an account.
      */
     github?: string | null;
 };
@@ -1454,17 +1539,11 @@ export type RuleInput = {
     id: string;
     when?: MatchInput;
     /**
-     * Split
-     */
-    split: {
-        [key: string]: unknown | number | string;
-    };
-    /**
      * Bucket
+     *
+     * Which bucket a matching entry belongs in
      */
-    bucket?: {
-        [key: string]: unknown | string;
-    };
+    bucket: string;
 };
 
 /**
@@ -1477,17 +1556,11 @@ export type RuleOutput = {
     id: string;
     when?: MatchOutput;
     /**
-     * Split
-     */
-    split: {
-        [key: string]: unknown | string;
-    };
-    /**
      * Bucket
+     *
+     * Which bucket a matching entry belongs in
      */
-    bucket?: {
-        [key: string]: unknown | string;
-    };
+    bucket: string;
 };
 
 /**
@@ -2626,12 +2699,7 @@ export type ListBucketsData = {
          */
         budget: string;
     };
-    query?: {
-        /**
-         * Person
-         */
-        person?: string | null;
-    };
+    query?: never;
     url: '/api/v1/budgets/{budget}/buckets';
 };
 

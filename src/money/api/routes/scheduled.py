@@ -18,7 +18,7 @@ from money.api.errors import ApiError, not_found
 from money.api.schemas import DueEntry, DueList, EntryResponse, PostRequest
 from money.domain.models import Entry, EntryKind, Scheduled, Share
 from money.domain.recurrence import occurrences
-from money.domain.rules import first_match, shares_from_rule
+from money.domain.rules import first_match, shares_from_split
 from money.store.store import new_id
 
 router = APIRouter(prefix="/budgets/{budget}/scheduled", tags=["scheduled"])
@@ -170,20 +170,24 @@ def _shares_for(context: BudgetContext, item: Scheduled, payer: str) -> list[Sha
     A template without a split stays correct as the rules change, which is what someone wants
     for "groceries" and not for "rent split 60/40" — so both are expressible.
     """
-    rule = first_match(
-        context.store.rules(),
-        payee=item.payee,
-        tags=item.tags,
-        paid_by=payer,
-        amount=item.amount,
-    )
     expense = item.kind is EntryKind.EXPENSE
-    if rule is None:
-        return [Share(person=payer, amount=item.amount, bucket=item.bucket if expense else None)]
 
-    shares = shares_from_rule(rule, item.amount, item.kind)
-    if expense and item.bucket:
-        # The template's own bucket wins over the rule's: it was chosen for this charge
-        # specifically, while the rule is a default for everything that looks like it.
-        shares = [share.model_copy(update={"bucket": item.bucket}) for share in shares]
-    return shares
+    # The template's own bucket wins over a rule's: it was chosen for this charge
+    # specifically, while a rule is a default for everything that looks like it.
+    bucket_id = item.bucket
+    if bucket_id is None and expense:
+        rule = first_match(
+            context.store.rules(),
+            payee=item.payee,
+            tags=item.tags,
+            paid_by=payer,
+            amount=item.amount,
+        )
+        bucket_id = rule.bucket if rule else None
+
+    bucket = next((b for b in context.store.buckets() if b.id == bucket_id), None)
+    if bucket is None:
+        return [Share(person=payer, amount=item.amount, bucket=bucket_id if expense else None)]
+
+    people = [member.person for member in context.store.budget().members]
+    return shares_from_split(bucket.split_for(people), item.amount, bucket.id, item.kind)

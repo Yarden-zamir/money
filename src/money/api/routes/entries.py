@@ -31,7 +31,7 @@ from money.api.schemas import (
 )
 from money.domain.amounts import ZERO
 from money.domain.models import Entry, EntryKind, LineItem, Place, Share
-from money.domain.rules import first_match, shares_from_rule
+from money.domain.rules import first_match, shares_from_split
 from money.store.store import new_id
 
 router = APIRouter(prefix="/budgets/{budget}/entries", tags=["entries"])
@@ -40,10 +40,21 @@ router = APIRouter(prefix="/budgets/{budget}/entries", tags=["entries"])
 def _resolve_shares(
     context: BudgetContext, body: EntryCreate, payer: str, kind: EntryKind
 ) -> tuple[list[Share], str | None]:
-    """Work out who bears an entry: explicit split first, then rules.
+    """Work out who bears an entry.
 
-    Returns the shares and the id of the rule that produced them, which is recorded on the
-    entry as an audit trail.
+    Order of precedence, most specific first:
+
+    1. line-level splits on a receipt,
+    2. an explicit split on the entry — the advanced override,
+    3. the split of the bucket it lands in, which is the default and covers almost everything,
+    4. the payer alone, when there is no bucket to ask.
+
+    The bucket is whatever the caller named, or whatever a rule matched: a rule categorises,
+    and the category decides who bears it.
+
+    Returns the shares and the id of the rule that chose the bucket, recorded on the entry as
+    an audit trail. The split is resolved **now** and stored on the entry — editing a bucket's
+    split later must not rewrite who owed whom for months of history.
     """
     # Lines that carry their own split are the most specific thing the caller said, so they
     # decide the entry's split rather than being checked against a separately supplied one.
@@ -61,28 +72,33 @@ def _resolve_shares(
         ]
         return shares, None
 
-    rule = first_match(
-        context.store.rules(),
-        payee=body.payee,
-        tags=body.tags,
-        paid_by=payer,
-        amount=body.amount,
-    )
-    if rule is None:
-        # No rule matched and no split was given, so the payer bears the whole thing. That is
-        # the behaviour a single-person budget wants and it never silently involves someone.
+    rule = None
+    bucket_id = body.bucket
+    if bucket_id is None and kind is EntryKind.EXPENSE:
+        rule = first_match(
+            context.store.rules(),
+            payee=body.payee,
+            tags=body.tags,
+            paid_by=payer,
+            amount=body.amount,
+        )
+        bucket_id = rule.bucket if rule else None
+
+    bucket = next((b for b in context.store.buckets() if b.id == bucket_id), None)
+    if bucket is None:
+        # Nothing to ask. The payer bears the whole thing, which is what a single-person
+        # budget wants and never silently involves anybody else.
         return [
             Share(
                 person=payer,
                 amount=body.amount,
-                bucket=body.bucket if kind is EntryKind.EXPENSE else None,
+                bucket=bucket_id if kind is EntryKind.EXPENSE else None,
             )
         ], None
 
-    shares = shares_from_rule(rule, body.amount, kind)
-    if body.bucket and kind is EntryKind.EXPENSE:
-        shares = [s.model_copy(update={"bucket": body.bucket}) for s in shares]
-    return shares, rule.id
+    people = [member.person for member in context.store.budget().members]
+    shares = shares_from_split(bucket.split_for(people), body.amount, bucket.id, kind)
+    return shares, rule.id if rule else None
 
 
 @router.post(
