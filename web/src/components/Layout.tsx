@@ -57,7 +57,7 @@ export function Layout({
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line bg-card/85 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-2.5">
+        <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-2.5 xl:max-w-6xl">
           {/* The wordmark is the way back to the month screen, which is the convention
               everywhere else and was the one obvious affordance the header lacked. */}
           <NavLink
@@ -126,7 +126,10 @@ export function Layout({
       </header>
 
       {/* Bottom padding clears the tab bar and the iOS home indicator. */}
-      <main className="mx-auto max-w-4xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-10">
+      {/* A ledger, not an article: xl screens get the width. 4xl below that keeps line
+          lengths sane on laptops, and prose-like screens (settings) still read fine at 6xl
+          because their cards set their own max width. */}
+      <main className="mx-auto max-w-4xl px-4 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-10 xl:max-w-6xl">
         {children}
       </main>
 
@@ -140,13 +143,15 @@ export function Layout({
               end={item.to === "/"}
               {...warm(item.to)}
               className={({ isActive }) =>
-                `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition ${
+                `flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition ${
                   isActive ? "text-brand" : "text-ink-muted"
                 }`
               }
             >
               <Icon name={item.icon} className="size-5" />
-              {t(item.key)}
+              {/* Truncation over clipping: at 320px six labels do not fit at full length,
+                  and "Setti…" centred beats "Settings" sliced off by the viewport edge. */}
+              <span className="w-full truncate text-center">{t(item.key)}</span>
             </NavLink>
           ))}
         </div>

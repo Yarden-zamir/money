@@ -53,7 +53,10 @@
     "barsStacked": "הצגה כפס אחד",
     "barsSeparate": "הצגה כפס לכל אחד",
     "split": "מי נושא בהוצאה כאן",
-    "splitEvenly": "חלוקה שווה"
+    "splitEvenly": "חלוקה שווה",
+    "yourIncome": "ההכנסות שלך",
+    "yourFunding": "המימון שלך",
+    "yourReadyToAssign": "זמין לשיוך שלך"
   },
   "entries": {
     "title": "תנועות",

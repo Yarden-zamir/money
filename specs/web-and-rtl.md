@@ -73,6 +73,16 @@ expanded panel, so it cannot be hit while scrolling.
 
 Controls are at least 44px tall (`.control`, `Button`).
 
+Two width rules with reasons:
+
+- **Amount cells never shrink** (`shrink-0`); only the bucket name gives way. A shrinking cell
+  holding unshrinkable digits overflows onto its neighbour, which is exactly how names and
+  amounts collided at 320px. Tab-bar labels truncate for the same reason — "Setti…" centred
+  beats "Settings" sliced off by the viewport edge.
+- **xl screens get `max-w-6xl`** (main and header). This is a ledger, not an article: the
+  896px reading column left half of a 1920px display empty. Below xl the narrower column
+  stays, because line length still matters on laptops.
+
 ## Visual Language
 
 The subject is a household ledger, not a fintech dashboard, and the palette says so.

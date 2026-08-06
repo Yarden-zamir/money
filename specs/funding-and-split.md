@@ -150,6 +150,17 @@ judgement rather than a name.
 that some generated utility references, and these are used through inline `var()` on a bar
 whose width is computed — so it stripped all eight and every bar rendered transparent.
 
+## The editable figure is yours
+
+The row shows the household's activity and available, but the **editable column is the acting
+person's own funding** and is labelled that way. It briefly showed the household total in an
+editable field, which meant pressing Enter replaced *your* funding with everybody's combined
+figure — the field you can type into must be the figure you own.
+
+The row's "fill to target" goes through the same split-ratio fill as the bulk button, scoped
+to one bucket. Writing the target into the assign field instead would set one person's
+funding to the whole household target.
+
 ## Two shapes for two questions
 
 The bars toggle, because they answer different things:

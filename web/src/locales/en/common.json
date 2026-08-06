@@ -53,7 +53,10 @@
     "barsStacked": "Show as one bar",
     "barsSeparate": "Show a bar each",
     "split": "Who bears spending here",
-    "splitEvenly": "Split evenly"
+    "splitEvenly": "Split evenly",
+    "yourIncome": "Your income",
+    "yourFunding": "Your funding",
+    "yourReadyToAssign": "Your ready to assign"
   },
   "entries": {
     "title": "Entries",

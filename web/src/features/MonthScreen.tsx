@@ -262,10 +262,10 @@ export function MonthScreen() {
       {/* A summary strip, not a hero number. "Ready to assign" alone cannot answer whether
           anything is overspent, or how much of the month's income is already committed. */}
       <Card className="grid grid-cols-2 divide-line sm:grid-cols-4 sm:divide-x rtl:sm:divide-x-reverse">
-        <Stat label={t("month.income")} amount={view.income} currency={view.currency} />
-        <Stat label={t("month.assigned")} amount={view.assigned} currency={view.currency} muted />
+        <Stat label={t("month.yourIncome")} amount={view.income} currency={view.currency} />
+        <Stat label={t("month.yourFunding")} amount={view.assigned} currency={view.currency} muted />
         <Stat
-          label={t("month.readyToAssign")}
+          label={t("month.yourReadyToAssign")}
           amount={view.ready_to_assign}
           currency={view.currency}
           emphasis
@@ -296,7 +296,7 @@ export function MonthScreen() {
             <span className="eyebrow flex-1">{t("month.bucket")}</span>
             <span className="eyebrow w-28 text-end">{t("month.activity")}</span>
             <span className="eyebrow w-28 text-end">{t("month.available")}</span>
-            <span className="eyebrow w-24 text-end">{t("month.assigned")}</span>
+            <span className="eyebrow w-24 text-end">{t("month.yourFunding")}</span>
           </div>
 
           {[...groups.entries()].map(([group, buckets_]) => (
@@ -334,6 +334,7 @@ export function MonthScreen() {
                   key={bucket.bucket}
                   members={budget.members}
                   stacked={stacked}
+                  me={view.person}
                   bucket={bucket}
                   currency={view.currency}
                   budget={budget.slug}
@@ -571,30 +572,45 @@ function Stat({
   );
 }
 
-/** Patch one bucket's figures in the cached month, so the row moves before the server does. */
-function patchMonth(view: MonthResponse, bucketId: string, assigned: number): MonthResponse {
+/** Patch one bucket's figures in the cached month, so the row moves before the server does.
+
+ * The amount being written is the acting person's funding, so the delta is measured against
+ * THEIR previous slice — the household totals then move by the same delta, because their
+ * contribution is part of the totals. Measuring against the household figure (as this once
+ * did) made the optimistic row jump by the wrong amount whenever anyone else had funded.
+ */
+function patchMonth(
+  view: MonthResponse,
+  bucketId: string,
+  me: string,
+  assigned: number,
+): MonthResponse {
+  const bucket = view.buckets.find((candidate) => candidate.bucket === bucketId);
+  const mine = bucket?.funders?.find((funder) => funder.person === me);
+  const delta = assigned - Number(mine?.assigned ?? 0);
+
   return {
     ...view,
-    buckets: view.buckets.map((bucket) => {
-      if (bucket.bucket !== bucketId) return bucket;
-      // Available shifts by the same delta as assigned: the money came from somewhere.
-      const delta = assigned - Number(bucket.assigned);
+    buckets: view.buckets.map((candidate) => {
+      if (candidate.bucket !== bucketId) return candidate;
       return {
-        ...bucket,
-        assigned: assigned.toFixed(2),
-        available: (Number(bucket.available) + delta).toFixed(2),
+        ...candidate,
+        assigned: (Number(candidate.assigned) + delta).toFixed(2),
+        // Available shifts by the same delta as assigned: the money came from somewhere.
+        available: (Number(candidate.available) + delta).toFixed(2),
+        funders: candidate.funders?.map((funder) =>
+          funder.person === me
+            ? {
+                ...funder,
+                assigned: assigned.toFixed(2),
+                available: (Number(funder.available) + delta).toFixed(2),
+              }
+            : funder,
+        ),
       };
     }),
-    assigned: (
-      Number(view.assigned) +
-      (assigned -
-        Number(view.buckets.find((bucket) => bucket.bucket === bucketId)?.assigned ?? 0))
-    ).toFixed(2),
-    ready_to_assign: (
-      Number(view.ready_to_assign) -
-      (assigned -
-        Number(view.buckets.find((bucket) => bucket.bucket === bucketId)?.assigned ?? 0))
-    ).toFixed(2),
+    assigned: (Number(view.assigned) + delta).toFixed(2),
+    ready_to_assign: (Number(view.ready_to_assign) - delta).toFixed(2),
   };
 }
 
@@ -602,6 +618,7 @@ function BucketRow({
   bucket,
   members,
   stacked,
+  me,
   currency,
   budget,
   month,
@@ -620,6 +637,7 @@ function BucketRow({
   bucket: BucketState;
   members: Member[];
   stacked: boolean;
+  me: string;
   currency: string;
   budget: string;
   month: string;
@@ -650,7 +668,7 @@ function BucketRow({
       if (previous) {
         queryClient.setQueryData<MonthResponse>(
           monthKey,
-          patchMonth(previous, bucket.bucket, Number(variables.body.amount)),
+          patchMonth(previous, bucket.bucket, me, Number(variables.body.amount)),
         );
       }
       return { previous };
@@ -661,9 +679,21 @@ function BucketRow({
     onSettled: lastWriteWins(queryClient),
   });
 
+  // Scoped to this bucket. Writing `target` into the assign field instead (as this once
+  // did) set ONE person's funding to the whole household target — the fill has to share
+  // the shortfall across funders in the split ratio, which is the server's job.
+  const fill = useMutation({
+    ...autoAssignMutation(),
+    onSettled: lastWriteWins(queryClient),
+  });
+
   const available = Number(bucket.available);
   const target = bucket.target === null ? null : Number(bucket.target);
   const assigned = Number(bucket.assigned);
+  // The figures on the row are the household's; the editable one is YOURS. Showing the
+  // household total in an editable field meant pressing Enter replaced your funding with
+  // everybody's combined figure.
+  const myAssigned = bucket.funders?.find((funder) => funder.person === me)?.assigned ?? "0.00";
 
   return (
     // The severity edge marks the one state that needs acting on. It is not decoration —
@@ -771,24 +801,27 @@ function BucketRow({
           </span>
         </span>
 
-        <span className="hidden w-28 text-end text-sm sm:block">
+        <span className="hidden w-28 shrink-0 text-end text-sm sm:block">
           <Money amount={bucket.activity} currency={currency} colour={false} />
         </span>
-        <span className="w-28 text-end text-sm font-semibold">
+        {/* shrink-0, because a shrinking cell with unshrinkable digits overflows onto its
+            neighbour — which is exactly what happened at 320px. The name is the only cell
+            allowed to give way. */}
+        <span className="w-24 shrink-0 text-end text-sm font-semibold sm:w-28">
           <Money amount={bucket.available} currency={currency} />
         </span>
 
         {canWrite ? (
           <AssignField
-            assigned={bucket.assigned}
+            assigned={myAssigned}
             pending={assign.isPending}
             onAssign={(amount) =>
               assign.mutate({ path: { budget, month }, body: { bucket: bucket.bucket, amount } })
             }
           />
         ) : (
-          <span className="w-24 text-end text-sm text-ink-muted">
-            <Money amount={bucket.assigned} currency={currency} colour={false} />
+          <span className="w-20 shrink-0 text-end text-sm text-ink-muted sm:w-24">
+            <Money amount={myAssigned} currency={currency} colour={false} />
           </span>
         )}
       </div>
@@ -801,15 +834,16 @@ function BucketRow({
         {canWrite && target !== null && assigned < target && (
           <button
             type="button"
-            className="shrink-0 text-[11px] text-brand hover:underline"
+            disabled={fill.isPending}
+            className="shrink-0 text-[11px] text-brand hover:underline disabled:opacity-50"
             onClick={() =>
-              assign.mutate({
+              fill.mutate({
                 path: { budget, month },
-                body: { bucket: bucket.bucket, amount: target.toFixed(2) },
+                body: { strategy: "underfunded", buckets: [bucket.bucket] },
               })
             }
           >
-            {t("month.fillToTarget")}
+            {fill.isPending ? t("month.assigning") : t("month.fillToTarget")}
           </button>
         )}
       </div>
@@ -843,7 +877,7 @@ function AssignField({
       aria-label={t("month.assign")}
       // Quiet until touched, so a column of them does not read as a wall of boxes — but it
       // still has to look editable, hence the border on hover and focus.
-      className="numeric ltr-field min-h-9 w-24 border-transparent bg-transparent px-2 text-end hover:border-line focus:bg-card"
+      className="numeric ltr-field min-h-9 w-[5.5rem] shrink-0 border-transparent bg-transparent px-2 text-end hover:border-line focus:bg-card sm:w-24"
       inputMode="decimal"
       value={draft ?? Number(assigned).toFixed(2)}
       disabled={pending}

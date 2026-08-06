@@ -45,10 +45,3 @@ export function bucketBar(available: number, activity: number): BucketBar {
 
   return { percent, tone };
 }
-
-export const BAR_TONES: Record<BucketBar["tone"], string> = {
-  overspent: "bg-negative",
-  emptied: "bg-ink-muted/40",
-  low: "bg-warning",
-  healthy: "bg-positive",
-};
