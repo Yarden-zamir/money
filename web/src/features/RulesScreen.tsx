@@ -7,7 +7,7 @@ import {
   listRulesOptions,
   putRulesMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type { BucketOutput, Member, RuleInput } from "@/api/types.gen";
+import type { BucketOutput, RuleInput } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
 import { ListSkeleton } from "@/components/Skeleton";
 import { ErrorState } from "@/components/States";
@@ -78,7 +78,6 @@ export function RulesScreen() {
             rule={rule}
             index={index}
             total={rows.length}
-            members={budget.members}
             buckets={buckets.data ?? []}
             canWrite={budget.can_write}
             onChange={(patch) => update(index, patch)}
@@ -105,14 +104,7 @@ export function RulesScreen() {
                 onClick={() =>
                   setDraft([
                     ...rows,
-                    {
-                      id: `rule-${rows.length + 1}`,
-                      when: {},
-                      split: Object.fromEntries(
-                        budget.members.map((member) => [member.person, "1"]),
-                      ),
-                      bucket: {},
-                    },
+                    { id: `rule-${rows.length + 1}`, when: {}, bucket: buckets.data?.[0]?.id ?? "" },
                   ])
                 }
               >
@@ -137,7 +129,6 @@ function RuleCard({
   rule,
   index,
   total,
-  members,
   buckets,
   canWrite,
   onChange,
@@ -147,7 +138,6 @@ function RuleCard({
   rule: RuleInput;
   index: number;
   total: number;
-  members: Member[];
   buckets: BucketOutput[];
   canWrite: boolean;
   onChange: (patch: Partial<RuleInput>) => void;
@@ -155,12 +145,6 @@ function RuleCard({
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
-
-  const ratios = Object.values(rule.split ?? {}).map((value) => Number(value) || 0);
-  const sum = ratios.reduce((total_, value) => total_ + value, 0);
-  // The API rejects a split that does not sum to 1. Saying so here means finding out while
-  // typing rather than after pressing save.
-  const balanced = Math.abs(sum - 1) < 0.0001;
 
   const catchAll = !rule.when?.payee_contains && !rule.when?.tag;
 
@@ -224,56 +208,22 @@ function RuleCard({
         </Field>
       </div>
 
+      {/* A rule picks a bucket and nothing else. Who bears the spending is the bucket's
+          split, because it is a property of the category rather than of the payee — and a
+          rule that carried its own had to be kept in step with one that nothing enforced. */}
       <div className="mt-4">
-        <div className="mb-2 flex items-baseline gap-2">
-          <span className="text-xs font-medium text-ink-muted">{t("rules.split")}</span>
-          <span className={`numeric text-xs ${balanced ? "text-ink-muted" : "text-negative"}`}>
-            {sum.toFixed(2)} / 1.00
-          </span>
-        </div>
-
-        {/* One row per person, so the ratio and the bucket it lands in stay together. */}
-        <div className="space-y-2">
-          {members.map((member) => (
-            <div key={member.person} className="grid gap-2 sm:grid-cols-[8rem_6rem_1fr]">
-              <span className="self-center truncate text-sm">{member.name}</span>
-              <Input
-                fullWidth={false}
-                aria-label={`${member.name} ${t("rules.split")}`}
-                className="numeric ltr-field w-full"
-                inputMode="decimal"
-                placeholder="0.5"
-                value={String(rule.split?.[member.person] ?? "")}
-                onChange={(event) => {
-                  const split = { ...rule.split };
-                  if (event.target.value === "") delete split[member.person];
-                  else split[member.person] = event.target.value;
-                  onChange({ split });
-                }}
-              />
-              <Select
-                aria-label={`${member.name} ${t("entries.bucket")}`}
-                // The generated type for this map widens to `unknown` — the schema for a
-                // pattern-constrained key renders as `unknown | string`. The value is always
-                // a bucket id on the wire.
-                value={String(rule.bucket?.[member.person] ?? "")}
-                onChange={(event) => {
-                  const bucket = { ...rule.bucket };
-                  if (event.target.value === "") delete bucket[member.person];
-                  else bucket[member.person] = event.target.value;
-                  onChange({ bucket });
-                }}
-              >
-                <option value="">{t("rules.noBucket")}</option>
-                {buckets.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          ))}
-        </div>
+        <Field label={t("entries.bucket")} hint={t("rules.bucketHint")}>
+          <Select
+            value={rule.bucket ?? ""}
+            onChange={(event) => onChange({ bucket: event.target.value })}
+          >
+            {buckets.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
     </Card>
   );

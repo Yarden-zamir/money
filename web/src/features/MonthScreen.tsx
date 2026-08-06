@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Bar, LedgerSkeleton, SummarySkeleton } from "@/components/Skeleton";
-import { BAR_TONES, bucketBar } from "@/lib/bucket";
+import { FunderBars, MemberDot } from "@/components/FunderBars";
+import { splitFor } from "@/lib/members";
 import { lastWriteWins } from "@/lib/optimistic";
 
 import {
@@ -16,7 +17,7 @@ import {
   putBucketMutation,
   reorderBucketsMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type { BucketState, MonthResponse } from "@/api/types.gen";
+import type { BucketState, Member, MonthResponse } from "@/api/types.gen";
 import { Button, Card, Field, FormActions, FormError, Input, Select } from "@/components/Form";
 import { Icon } from "@/components/Icon";
 import { useCountUp } from "@/lib/useCountUp";
@@ -40,6 +41,10 @@ export function MonthScreen() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  // A view preference, not budget data — it belongs to this browser, not to the household.
+  const [stacked, setStacked] = useState(
+    () => localStorage.getItem("money.stackedBars") === "1",
+  );
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const query = useQuery({
@@ -208,6 +213,28 @@ export function MonthScreen() {
       className={`space-y-4 transition-opacity ${query.isPlaceholderData ? "opacity-60" : ""}`}
       aria-busy={query.isPlaceholderData}
     >
+      {/* Who each colour is, and how to read the bars. Without it the segments are pretty
+          and meaningless. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {budget.members.map((member) => (
+          <span key={member.person} className="flex items-center gap-1.5 text-xs text-ink-muted">
+            <MemberDot person={member.person} members={budget.members} />
+            {member.name}
+          </span>
+        ))}
+        <button
+          type="button"
+          className="ms-auto text-xs text-brand hover:underline"
+          onClick={() => {
+            const next = !stacked;
+            setStacked(next);
+            localStorage.setItem("money.stackedBars", next ? "1" : "0");
+          }}
+        >
+          {stacked ? t("month.barsSeparate") : t("month.barsStacked")}
+        </button>
+      </div>
+
       <header className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-0.5">
           {/* ‹ and › are Bidi-Mirrored: the text engine flips them in RTL, so they must not
@@ -305,6 +332,8 @@ export function MonthScreen() {
               {buckets_.map((bucket) => (
                 <BucketRow
                   key={bucket.bucket}
+                  members={budget.members}
+                  stacked={stacked}
                   bucket={bucket}
                   currency={view.currency}
                   budget={budget.slug}
@@ -335,7 +364,12 @@ export function MonthScreen() {
       )}
 
       {editing && (
-        <EditBucket budget={budget.slug} bucketId={editing} onDone={() => setEditing(null)} />
+        <EditBucket
+          budget={budget.slug}
+          bucketId={editing}
+          members={budget.members}
+          onDone={() => setEditing(null)}
+        />
       )}
 
       {budget.can_write &&
@@ -566,6 +600,8 @@ function patchMonth(view: MonthResponse, bucketId: string, assigned: number): Mo
 
 function BucketRow({
   bucket,
+  members,
+  stacked,
   currency,
   budget,
   month,
@@ -582,6 +618,8 @@ function BucketRow({
   onMove,
 }: {
   bucket: BucketState;
+  members: Member[];
+  stacked: boolean;
   currency: string;
   budget: string;
   month: string;
@@ -626,8 +664,6 @@ function BucketRow({
   const available = Number(bucket.available);
   const target = bucket.target === null ? null : Number(bucket.target);
   const assigned = Number(bucket.assigned);
-
-  const { percent, tone } = bucketBar(available, Number(bucket.activity));
 
   return (
     // The severity edge marks the one state that needs acting on. It is not decoration —
@@ -758,8 +794,8 @@ function BucketRow({
       </div>
 
       <div className="mt-2 flex items-center gap-3">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
-          <div className={`h-full ${BAR_TONES[tone]}`} style={{ width: `${percent}%` }} />
+        <div className="min-w-0 flex-1">
+          <FunderBars funders={bucket.funders ?? []} members={members} stacked={stacked} />
         </div>
         {/* Only shown when acting on it would change something. */}
         {canWrite && target !== null && assigned < target && (
@@ -882,7 +918,6 @@ function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
             placeholder="0.00"
           />
         </Field>
-
         <div className="sm:col-span-3">
           <FormActions
             primary={
@@ -907,10 +942,12 @@ function NewBucket({ budget, onDone }: { budget: string; onDone: () => void }) {
 function EditBucket({
   budget,
   bucketId,
+  members,
   onDone,
 }: {
   budget: string;
   bucketId: string;
+  members: Member[];
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -921,14 +958,30 @@ function EditBucket({
   const [name, setName] = useState("");
   const [group, setGroup] = useState("");
   const [target, setTarget] = useState("");
+  const [split, setSplit] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
 
   if (existing && !loaded) {
     setName(existing.name);
     setGroup(existing.group ?? "");
     setTarget(existing.target?.amount != null ? String(existing.target.amount) : "");
+    // An unset split shows as the even one it already behaves as, rather than as blanks that
+    // look like nobody bears anything.
+    setSplit(
+      Object.fromEntries(
+        Object.entries(splitFor(existing.split as Record<string, string>, members)).map(
+          ([person, share]) => [person, String(Number(share.toFixed(4)))],
+        ),
+      ),
+    );
     setLoaded(true);
   }
+
+  const shares = members.map((member) => Number(split[member.person] ?? 0) || 0);
+  const total = shares.reduce((sum, value) => sum + value, 0);
+  // The API refuses a split that does not sum to 1, and a partial one is a typo rather than
+  // an instruction to normalise. Saying so while typing beats finding out on save.
+  const balanced = Math.abs(total - 1) < 0.0001;
 
   const save = useMutation({
     ...putBucketMutation(),
@@ -947,6 +1000,9 @@ function EditBucket({
         group: group.trim() || null,
         target: target ? { kind: "monthly", amount: Number(target).toFixed(2) } : null,
         archived,
+        split: Object.fromEntries(
+          Object.entries(split).filter(([, share]) => Number(share) > 0),
+        ),
       },
     });
 
@@ -975,10 +1031,56 @@ function EditBucket({
           />
         </Field>
 
+        {/* Who bears spending here. Independent of who funds it, which is what lets an
+            envelope be in the red for one person and in the black for another. */}
+        <div className="sm:col-span-3">
+          <div className="mb-2 flex items-baseline gap-2">
+            <span className="text-xs font-medium text-ink-muted">{t("month.split")}</span>
+            <span className={`numeric text-xs ${balanced ? "text-ink-muted" : "text-negative"}`}>
+              {total.toFixed(2)} / 1.00
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {members.map((member) => (
+              <div key={member.person} className="flex items-center gap-2">
+                <MemberDot person={member.person} members={members} />
+                <span className="min-w-0 flex-1 truncate text-sm">{member.name}</span>
+                <Input
+                  fullWidth={false}
+                  aria-label={`${member.name} ${t("month.split")}`}
+                  className="numeric ltr-field w-20 text-end"
+                  inputMode="decimal"
+                  placeholder="0.5"
+                  value={split[member.person] ?? ""}
+                  onChange={(event) =>
+                    setSplit({ ...split, [member.person]: event.target.value })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="mt-2 text-xs text-brand hover:underline"
+            onClick={() =>
+              setSplit(
+                Object.fromEntries(
+                  members.map((member) => [
+                    member.person,
+                    String(Number((1 / members.length).toFixed(4))),
+                  ]),
+                ),
+              )
+            }
+          >
+            {t("month.splitEvenly")}
+          </button>
+        </div>
+
         <div className="sm:col-span-3">
           <FormActions
             primary={
-              <Button type="submit" disabled={save.isPending}>
+              <Button type="submit" disabled={save.isPending || !balanced}>
                 {t("common.save")}
               </Button>
             }

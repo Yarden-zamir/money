@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { Select } from "@/components/Form";
 import { useBudget } from "@/features/useBudget";
 import { UndoButton } from "@/features/UndoButton";
+import { UserPill } from "@/features/UserPill";
 import { LANGUAGES, type Language } from "@/lib/i18n";
 import { prefetchRoute } from "@/lib/prefetch";
 
@@ -92,6 +93,7 @@ export function Layout({
           )}
 
           <span className="ms-auto flex items-center gap-1">
+            <UserPill />
             <UndoButton />
             <NavLink
               to="/history"

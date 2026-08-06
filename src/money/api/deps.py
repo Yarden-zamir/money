@@ -124,6 +124,12 @@ class BudgetContext:
     store: BudgetStore
     actor: Actor
     can_write: bool
+    acting_as: str | None = None
+    """Which member this request speaks for, when it is not the signed-in account.
+
+    Only ever set for a placeholder member — one with no GitHub login. The commit author
+    stays the real person, so `git log` still records who actually did it.
+    """
 
 
 def budget_context(
@@ -133,6 +139,7 @@ def budget_context(
     config: Annotated[Settings, Depends(get_settings)],
     cache: Annotated[AccessCache, Depends(access_cache)],
     shared: Annotated[Cache, Depends(get_cache)],
+    act_as: Annotated[str | None, Header(alias="X-Act-As")] = None,
 ) -> BudgetContext:
     """Resolve a budget slug to a store, after checking GitHub says the caller may see it."""
     link = session.scalar(select(db.BudgetLink).where(db.BudgetLink.slug == budget))
@@ -154,10 +161,11 @@ def budget_context(
     # round trip to GitHub. Writes go through the store, which always fetches.
     repo.ensure_clone(token, max_age=READ_MAX_AGE)
 
+    store = BudgetStore(repo, cache=shared)
     return BudgetContext(
         slug=link.slug,
         repo=link.repo,
-        store=BudgetStore(repo, cache=shared),
+        store=store,
         actor=Actor(
             login=caller.user.login,
             name=caller.user.name,
@@ -165,7 +173,33 @@ def budget_context(
             token=token,
         ),
         can_write=access.can_write and "write" in caller.scopes,
+        acting_as=_acting_as(store, act_as),
     )
+
+
+def _acting_as(store: BudgetStore, requested: str | None) -> str | None:
+    """Resolve an `X-Act-As` header, or refuse it.
+
+    Only a member with **no GitHub login** can be acted as. That single rule is what makes
+    this safe rather than an impersonation hole: a person without a login is a placeholder
+    nobody can sign in as, so acting as them speaks for a stand-in rather than for somebody
+    real. A member with a login always speaks for themselves, and no header changes that.
+
+    Without it this would let anyone with repo access attribute their spending to their
+    partner, which is precisely the thing the ledger exists to record honestly.
+    """
+    if not requested:
+        return None
+
+    member = next((m for m in store.budget().members if m.person == requested), None)
+    if member is None:
+        raise not_found(f"member {requested!r}")
+    if member.github:
+        raise forbidden(
+            f"{requested} is a real account and cannot be acted as; "
+            "only placeholder members with no GitHub login can"
+        )
+    return member.person
 
 
 def _repo_access(login: str, repo: str, token: str, shared: Cache, fallback: AccessCache):
@@ -207,6 +241,15 @@ def github_token(user: db.User, config: Settings) -> str:
 
 
 def person_for(context: BudgetContext, login: str) -> str:
+    """Which member is acting.
+
+    Normally the signed-in GitHub account. `context.acting_as` overrides it, but only for a
+    member with **no GitHub login** — see `acting_as` for why that constraint is the whole
+    security model here.
+    """
+    if context.acting_as is not None:
+        return context.acting_as
+
     person = context.store.budget().person_for_github(login)
     if person is None:
         raise forbidden(

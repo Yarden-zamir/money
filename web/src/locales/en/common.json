@@ -49,7 +49,11 @@
     "noTarget": "no target",
     "moreOptions": "More options",
     "reorder": "Drag to reorder",
-    "assigning": "Assigning…"
+    "assigning": "Assigning…",
+    "barsStacked": "Show as one bar",
+    "barsSeparate": "Show a bar each",
+    "split": "Who bears spending here",
+    "splitEvenly": "Split evenly"
   },
   "entries": {
     "title": "Entries",
@@ -302,5 +306,10 @@
     "namePlaceholder": "Name this location (optional)",
     "use": "Use this location",
     "useDevice": "Where I am now"
+  },
+  "people": {
+    "switch": "Act as",
+    "me": "Me",
+    "actingAs": "Acting as {{name}} — commits still record you"
   }
 }

@@ -49,7 +49,11 @@
     "noTarget": "ללא יעד",
     "moreOptions": "אפשרויות נוספות",
     "reorder": "גררו כדי לסדר מחדש",
-    "assigning": "משייך…"
+    "assigning": "משייך…",
+    "barsStacked": "הצגה כפס אחד",
+    "barsSeparate": "הצגה כפס לכל אחד",
+    "split": "מי נושא בהוצאה כאן",
+    "splitEvenly": "חלוקה שווה"
   },
   "entries": {
     "title": "תנועות",
@@ -302,5 +306,10 @@
     "namePlaceholder": "שם למיקום (לא חובה)",
     "use": "שימוש במיקום הזה",
     "useDevice": "איפה שאני עכשיו"
+  },
+  "people": {
+    "switch": "פעולה בשם",
+    "me": "אני",
+    "actingAs": "פועלים בשם {{name}} — הקומיטים עדיין נרשמים על שמכם"
   }
 }

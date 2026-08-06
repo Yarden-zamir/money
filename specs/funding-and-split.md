@@ -1,10 +1,8 @@
 # Funding And Split
 
-> Status: **proposed**. Nothing below is built yet.
-
 How much you put into a bucket and how much of its spending you bear are two different
-decisions. Today the app conflates them: buckets are per-person lists, and the split comes
-from a rules file keyed by payee. This separates them.
+decisions. The app used to conflate them: buckets were per-person lists, and the split came
+from a rules file keyed by payee.
 
 - **Funding** — "how much am I putting into this envelope this month". A cashflow decision,
   per person, per bucket, per month.
@@ -31,11 +29,15 @@ while another is in the black** — the YNAB red bar, per person rather than per
 rent: 2000.00                           # what I put in
 ```
 
-Funding stays exactly where it is. Only the bucket definition moves and gains `split`.
+An **empty split means "evenly, among whoever is a member"**, resolved on read rather than
+stored. Adding somebody to the budget would otherwise leave every unconfigured bucket quietly
+attributing their spending to everyone else. A *partial* split is refused rather than
+normalised: shares summing to 0.9 are a typo, and scaling them to 1 would attribute money in
+proportions nobody chose.
 
 Rules stop being about people, which is the simplification that falls out of this. A rule
-carries `split` and a per-person `bucket` map today; with one shared bucket that owns its own
-split, a rule is pure categorisation:
+carried `split` and a per-person `bucket` map; with one shared bucket that owns its split, a
+rule is pure categorisation:
 
 ```yaml
 - id: groceries
@@ -55,14 +57,18 @@ Three recorded quantities, two derived comparisons. Nothing new is stored.
 
 - **Position in a bucket**, per person: `Σ funded − Σ borne`, folded from the budget start so
   it carries over. Negative means that person is consuming more of this category than they
-  have put in.
-- **Debt**, per person: `Σ borne − Σ paid`. Negative means they have handed over more cash
-  than they bear, so the household owes them. This is unchanged.
+  have put in. `BucketState.funders[]` carries one of these per person; the bucket's own
+  `assigned`, `activity` and `available` are the household's totals.
+- **Debt**, per person: `Σ borne − Σ paid`. Unchanged.
 
 `shares` is produced from the bucket's split **when the entry is created, and then stored**.
 It is an audit trail, not an instruction — the same treatment `rule` already gets. Reading the
 split live would mean that editing a bucket silently rewrites who owed whom across months of
 history.
+
+Precedence when an entry is created, most specific first: line-level splits on a receipt, an
+explicit split on the entry, the split of the bucket it lands in, and finally the payer alone
+when there is no bucket to ask.
 
 ## Worked example
 
@@ -82,75 +88,97 @@ Funding deliberately disagrees with the split, because that is the whole point.
 | partner | 1200 − 1600 = **−400** | owes me **1600** |
 
 Partner's rent is red: they agreed to half of it and funded 1200 of a 3200 bill. The split did
-not bend to the funding — that is the behaviour being asked for.
+not bend to the funding.
 
 **Partner pays food, 2000.** Split says 1000 each. Food position: +500 each. Running debt:
 partner owes me **600**.
 
-**Partner buys games, 100.** Split is 100/0, so **I** bear all of it. Games position: me +200,
-partner unchanged at 0. Partner paid 100 and bore nothing, so running debt: partner owes me
-**500**.
+**Partner buys games, 100.** Split is 100/0, so **I** bear all of it. Games position: me +200.
+Partner paid 100 and bore nothing, so running debt: partner owes me **500**.
 
 That last one is the case that motivated this: a bucket only I fund, spent against by someone
 else, recorded as money I owe them.
 
 ## Two signals, deliberately not merged
 
-The screen has to keep these apart, because they are fixed in different ways and can point in
-opposite directions at the same time.
+They are fixed in different ways and can point in opposite directions at the same time.
 
 | | means | fix by |
 |---|---|---|
 | **bucket red for a person** | your plan does not cover what you consume in this category | funding more, spending less, or changing the split |
 | **debt** | cash has not moved to match what you bear | paying each other |
 
-You can be owed money while your own side of a bucket is red. In the example above, after the
-rent payment I am owed 1600 *and* my partner's rent envelope is 400 short. Both are true and
-neither implies the other.
+After the rent payment above I am owed 1600 *and* my partner's rent envelope is 400 short.
+Both are true and neither implies the other.
 
-## Rules
+## Filling to target
 
-1. `split` sums to 1 across the budget's members. Validated on write.
-2. A new bucket defaults to an equal split among current members.
-3. Adding a member does not change existing splits; they bear 0 until a split is edited.
-4. An entry may override the split — a gift from `gifts` that is entirely mine. The bucket
-   split is a **default**, not a law.
-5. Overspending needs no special case. The split decides who bears it, and that person's
-   position goes negative. Exactly like YNAB, only per person.
-6. Income, transfers and settlements carry no bucket and therefore no split.
+A target belongs to the household, so filling one shares the **shortfall** in the bucket's
+split ratio — four people at 25% each cover a quarter. Only the shortfall, not the target:
+somebody who has already funded their part is not asked again because somebody else has not.
+That does mean an over-funder subsidises the split of what remains, which is the same thing as
+having agreed to cover a quarter of the category.
 
-## Pros
+Every funder's file is written in one commit (`assign_across`). Separately would have been a
+fetch, commit and push each — four people over eight buckets is thirty-two round trips — and
+a repo that briefly holds one person's contribution and not the others' shows an envelope
+nobody chose to leave that way.
 
-- Matches how the decision is actually made. Choosing how much cash to put in this month is
-  not the same as choosing what is fair, and the current model forces them to be.
-- The motivating cases need no special rule: "a bucket only I fund" is just `split: {me: 1}`.
-- Rules stop mentioning people at all, and lose their per-person bucket map.
-- The split is visible on the category, which is where someone would look for it, rather than
-  in a payee-matching list read top to bottom.
-- The ledger is untouched. Debt still derives from paid versus borne.
-- Much of it already exists: assignments are already per person, and `available` already
-  filters shares by person, so per-person positions are not new machinery.
+The other two strategies stay personal: what *you* assigned or spent last month says nothing
+about what anyone else did.
 
-## Cons
+Nobody's funding is ever reduced, and any funder's ready-to-assign may go negative. Refusing
+would leave the plan half-applied, which is harder to reason about than an overcommitment you
+can see.
 
-- 🔴 The split must stay frozen onto the entry. Entries already store `shares`, so this is a
-  property to preserve rather than build — but if anything ever recomputes shares from the
-  bucket on read, editing a split silently rewrites history.
-- Two numbers per person per bucket makes the month screen denser. It likely needs a
-  mine/household toggle rather than four figures on every row.
-- Splits need maintaining as membership changes, and a stale split is silent.
-- Funding a bucket you hold a 0% split in is legal and almost always a mistake. Worth a
-  warning, not a refusal.
-- "Owed money while my bucket is red" is correct and initially confusing. It is a wording
-  problem on the month screen, not a modelling one.
-- 🔴 Breaking schema change: buckets move to the repo root and gain `split`, rules lose theirs.
-  There is no migration path planned — the data would be rewritten in place.
+## Colour, and what it can no longer mean
 
-## Open questions
+Bars are per funder and coloured by person, so **colour names identity, not state**. Envelope
+state moved to the figure beside the bar and the row's severity edge, and an overspent
+funder's bar carries a hatch — which reads without depending on hue at all.
 
-- **Default split for a new bucket** — equal among members, with a one-tap "make this mine"?
-- **A `payer` split mode**, where whoever pays bears it entirely and no debt ever arises. Names
-  a real case (shared category, personal spending) but is a second concept; not proposed yet.
-- **Covering someone's deficit.** If a partner's side of a bucket is −400, is there an action
-  that moves funding from one person to another, or do they simply fund more next month?
-- **What the month screen leads with** — my position, or the household's.
+Eight colours, assigned by position in the member list rather than by hashing a person id: a
+hash collides often enough in a four-person budget to make a stacked bar unreadable. Removing
+a member re-colours everyone after them, which is rare and happens at a moment when the
+colours are being re-learned anyway.
+
+They avoid the four semantic hues (negative 25, warning 75, positive 155, brand 220) by a
+comfortable margin, because a member whose colour is the same green as "healthy" reads as a
+judgement rather than a name.
+
+🔴 They are declared in **plain CSS, not `@theme`**. Tailwind only emits a `@theme` variable
+that some generated utility references, and these are used through inline `var()` on a bar
+whose width is computed — so it stripped all eight and every bar rendered transparent.
+
+## Two shapes for two questions
+
+The bars toggle, because they answer different things:
+
+- **Separate** — one bar per funder, each measured against *their own* contribution. "Is each
+  of us within our own share?" It is the only shape where one person being over while everyone
+  else is under is visible at a glance.
+- **Stacked** — one bar, segments sized by what each person spent against the household total.
+  "How much of this envelope is gone, and who spent it?"
+
+The choice is a view preference in localStorage: it belongs to a browser, not to the
+household.
+
+## Acting as somebody else
+
+A pill in the header names who this browser speaks for, because in a budget where several
+people's figures sit side by side, "whose ready-to-assign is this" needs an answer on screen
+rather than inferred.
+
+It also switches, which is a testing affordance — driving the app as several placeholder
+members shows how a shared budget behaves without needing four GitHub accounts. The rule that
+makes it safe rather than an impersonation hole is a single one:
+
+> Only a member with **no GitHub login** can be acted as.
+
+A placeholder is a stand-in nobody can sign in as, so speaking for one speaks for a stand-in
+rather than for somebody real. A member with a login always speaks for themselves and no
+header changes that. Without it, anyone with repo access could attribute their spending to
+their partner — precisely what the ledger exists to record honestly.
+
+The server enforces this independently of the UI, and the **commit author stays the signed-in
+person**, so `git log` still records who actually pressed the button.

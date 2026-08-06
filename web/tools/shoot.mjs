@@ -37,18 +37,27 @@ const budget = {
   members: [
     { person: "yarden", name: "Yarden", github: "Yarden-zamir" },
     { person: "dana", name: "Dana", github: "dana-example" },
+    { person: "noa", name: "Noa" },
+    { person: "amir", name: "Amir" },
   ],
   me: "yarden",
   can_write: true,
 };
 
+const EVEN = { yarden: "0.25", dana: "0.25", noa: "0.25", amir: "0.25" };
 const buckets = [
-  { id: "groceries", name: "Groceries", group: "Essentials", target: { kind: "monthly", amount: "2000.00" }, archived: false },
-  { id: "rent", name: "Rent", group: "Essentials", target: { kind: "monthly", amount: "5200.00" }, archived: false },
-  { id: "eating-out", name: "Eating out", group: "Lifestyle", target: { kind: "monthly", amount: "800.00" }, archived: false },
-  { id: "transport", name: "Transport", group: "Essentials", target: null, archived: false },
-  { id: "savings", name: "Savings", group: "Goals", target: { kind: "monthly", amount: "1500.00" }, archived: false },
+  { id: "groceries", name: "Groceries", group: "Essentials", target: { kind: "monthly", amount: "2000.00" }, archived: false, split: EVEN },
+  { id: "rent", name: "Rent", group: "Essentials", target: { kind: "monthly", amount: "5200.00" }, archived: false, split: EVEN },
+  { id: "eating-out", name: "Eating out", group: "Lifestyle", target: { kind: "monthly", amount: "800.00" }, archived: false, split: { yarden: "0.5", dana: "0.5" } },
+  { id: "transport", name: "Transport", group: "Essentials", target: null, archived: false, split: EVEN },
+  { id: "savings", name: "Savings", group: "Goals", target: { kind: "monthly", amount: "1500.00" }, archived: false, split: { yarden: "1" } },
 ];
+
+/** Four funders with deliberately unequal standing, so the bars have something to show. */
+const funders = (bucket, rows) =>
+  rows.map(([person, split, assigned, activity, available]) => ({
+    person, split, assigned, activity, available,
+  }));
 
 const month = {
   person: "yarden",
@@ -58,11 +67,34 @@ const month = {
   income: "12000.00",
   assigned: "9500.00",
   buckets: [
-    { bucket: "groceries", name: "Groceries", group: "Essentials", assigned: "2000.00", activity: "-1642.30", available: "357.70", target: "2000.00" },
-    { bucket: "rent", name: "Rent", group: "Essentials", assigned: "5200.00", activity: "-5200.00", available: "0.00", target: "5200.00" },
-    { bucket: "eating-out", name: "Eating out", group: "Lifestyle", assigned: "800.00", activity: "-912.50", available: "-112.50", target: "800.00" },
-    { bucket: "transport", name: "Transport", group: "Essentials", assigned: "500.00", activity: "-231.00", available: "269.00", target: null },
-    { bucket: "savings", name: "Savings", group: "Goals", assigned: "1000.00", activity: "0.00", available: "3400.00", target: "1500.00" },
+    { bucket: "groceries", name: "Groceries", group: "Essentials", assigned: "2000.00", activity: "-1642.30", available: "357.70", target: "2000.00",
+      funders: funders("groceries", [
+        ["yarden", "0.25", "800.00", "-410.58", "389.42"],
+        ["dana", "0.25", "600.00", "-410.57", "189.43"],
+        ["noa", "0.25", "400.00", "-410.58", "-10.58"],
+        ["amir", "0.25", "200.00", "-410.57", "-210.57"],
+      ]) },
+    { bucket: "rent", name: "Rent", group: "Essentials", assigned: "5200.00", activity: "-5200.00", available: "0.00", target: "5200.00",
+      funders: funders("rent", [
+        ["yarden", "0.25", "1300.00", "-1300.00", "0.00"],
+        ["dana", "0.25", "1300.00", "-1300.00", "0.00"],
+        ["noa", "0.25", "1300.00", "-1300.00", "0.00"],
+        ["amir", "0.25", "1300.00", "-1300.00", "0.00"],
+      ]) },
+    { bucket: "eating-out", name: "Eating out", group: "Lifestyle", assigned: "800.00", activity: "-912.50", available: "-112.50", target: "800.00",
+      funders: funders("eating-out", [
+        ["yarden", "0.5", "500.00", "-456.25", "43.75"],
+        ["dana", "0.5", "300.00", "-456.25", "-156.25"],
+      ]) },
+    { bucket: "transport", name: "Transport", group: "Essentials", assigned: "500.00", activity: "-231.00", available: "269.00", target: null,
+      funders: funders("transport", [
+        ["yarden", "0.25", "200.00", "-57.75", "142.25"],
+        ["dana", "0.25", "150.00", "-57.75", "92.25"],
+        ["noa", "0.25", "100.00", "-57.75", "42.25"],
+        ["amir", "0.25", "50.00", "-57.75", "-7.75"],
+      ]) },
+    { bucket: "savings", name: "Savings", group: "Goals", assigned: "1000.00", activity: "0.00", available: "3400.00", target: "1500.00",
+      funders: funders("savings", [["yarden", "1", "1000.00", "0.00", "3400.00"]]) },
   ],
 };
 
@@ -103,8 +135,8 @@ const balances = {
 };
 
 const rules = [
-  { id: "groceries", when: { payee_contains: "שופרסל", tag: null, paid_by: null, min_amount: null }, split: { yarden: "0.5", dana: "0.5" }, bucket: { yarden: "groceries", dana: "groceries" } },
-  { id: "split-5050", when: { payee_contains: null, tag: null, paid_by: null, min_amount: null }, split: { yarden: "0.5", dana: "0.5" }, bucket: {} },
+  { id: "groceries", when: { payee_contains: "שופרסל", tag: null, paid_by: null, min_amount: null }, bucket: "groceries" },
+  { id: "everything-else", when: { payee_contains: null, tag: null, paid_by: null, min_amount: null }, bucket: "eating-out" },
 ];
 
 const repos = [
@@ -280,6 +312,14 @@ for (const [device, viewport] of VIEWPORTS) {
         fullPage: true,
       });
     }
+
+    // The stacked bar is the other half of the funder view and is a stored preference, so
+    // it needs its own pass rather than a click.
+    await page.evaluate(() => localStorage.setItem("money.stackedBars", "1"));
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-month-stacked.png`), fullPage: true });
+    await page.evaluate(() => localStorage.setItem("money.stackedBars", "0"));
 
     // History rows only show what a change did once opened, so the closed list is not the
     // screen worth reviewing.

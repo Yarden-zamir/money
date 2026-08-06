@@ -14,7 +14,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from money.api.app import create_app
-from money.api.deps import BudgetContext, budget_context, writable
+from money.api.deps import BudgetContext, _acting_as, budget_context, writable
+from money.api.errors import ApiError
 from money.store.gitrepo import GitRepo
 from money.store.store import Actor, BudgetStore
 
@@ -751,3 +752,51 @@ class TestReorderingBuckets:
         """`/buckets/order` is declared before `/buckets/{bucket_id}`. Reversed, a reorder
         would be read as an attempt to create a bucket literally called "order"."""
         assert "order" not in self.order_of(client)
+
+
+class TestActingAsSomebodyElse:
+    """Switching person is a testing affordance, and it must not be an impersonation hole.
+
+    The whole safeguard is one rule: only a member with no GitHub login can be acted as. A
+    placeholder is a stand-in nobody can sign in as; a real account always speaks for itself.
+    Without that, anyone with repo access could attribute their spending to their partner —
+    exactly what the ledger exists to record honestly.
+
+    Tested against `_acting_as` directly, because the client fixture replaces `budget_context`
+    wholesale and an integration test would exercise the override rather than the rule.
+    """
+
+    @staticmethod
+    def store_with(members: list[dict], tmp_path) -> BudgetStore:
+        from tests.test_onboarding import seed_remote
+
+        yaml = "name: joint\ncurrency: ILS\nstart_month: 2026-07\nmembers:\n" + "".join(
+            f"  - person: {m['person']}\n    name: {m['name']}\n"
+            + (f"    github: {m['github']}\n" if m.get("github") else "")
+            for m in members
+        )
+        return BudgetStore(seed_remote(tmp_path, yaml))
+
+    def test_a_real_member_cannot_be_acted_as(self, tmp_path) -> None:
+        store = self.store_with(
+            [{"person": "dana", "name": "Dana", "github": "dana-example"}], tmp_path
+        )
+        with pytest.raises(ApiError) as caught:
+            _acting_as(store, "dana")
+        assert caught.value.status == 403
+        assert "cannot be acted as" in caught.value.message
+
+    def test_an_unknown_member_is_a_404(self, tmp_path) -> None:
+        store = self.store_with([{"person": "dana", "name": "Dana"}], tmp_path)
+        with pytest.raises(ApiError) as caught:
+            _acting_as(store, "nobody")
+        assert caught.value.status == 404
+
+    def test_a_placeholder_member_can_be_acted_as(self, tmp_path) -> None:
+        """No GitHub login, so nobody can sign in as them and nobody is impersonated."""
+        store = self.store_with([{"person": "ghost", "name": "Ghost"}], tmp_path)
+        assert _acting_as(store, "ghost") == "ghost"
+
+    def test_no_header_means_the_signed_in_account(self, tmp_path) -> None:
+        store = self.store_with([{"person": "ghost", "name": "Ghost"}], tmp_path)
+        assert _acting_as(store, None) is None
