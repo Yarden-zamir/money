@@ -131,11 +131,33 @@ Nobody's funding is ever reduced, and any funder's ready-to-assign may go negati
 would leave the plan half-applied, which is harder to reason about than an overcommitment you
 can see.
 
+## The bar means one thing
+
+**How funded is this envelope, and by whom.** The track is the target, the segments are what
+each person has put in this month, the empty remainder is the gap. No target: the segments
+fill the track, showing the funding mix. Overfunding rescales the whole bar rather than
+clipping whoever funded last, so segments stay proportional and the numbers carry the "over".
+
+The first design drew a thin line per funder showing how much of *their own* contribution
+*they* had consumed. It answered a question nobody asks, every line had a different
+denominator so equal lengths meant different amounts, and with real data — where spending is
+often attributed to one person — most lines rendered empty and the whole feature read as
+broken. `pnpm check:bars` asserts the new semantics segment by segment.
+
+Spending state is deliberately not on the bar. Overspend lives in the available figure, the
+row's severity edge, and the breakdown below.
+
+## The breakdown: red for one person, as a number with a name
+
+Pressing a bar opens a row per funder: their share of the split, what they put in this month,
+what they bore, and where that leaves them — red when negative. This is where "a bucket can
+be in the red for one person and in the black for another" actually shows. It was previously
+encoded as bar geometry, which nobody could read; "Noa is 10.58 in the red" is information,
+an unlabelled hatched sliver is not.
+
 ## Colour, and what it can no longer mean
 
-Bars are per funder and coloured by person, so **colour names identity, not state**. Envelope
-state moved to the figure beside the bar and the row's severity edge, and an overspent
-funder's bar carries a hatch — which reads without depending on hue at all.
+Bar segments are coloured by person, so **colour names identity, not state**.
 
 Eight colours, assigned by position in the member list rather than by hashing a person id: a
 hash collides often enough in a four-person budget to make a stacked bar unreadable. Removing
@@ -160,19 +182,6 @@ figure — the field you can type into must be the figure you own.
 The row's "fill to target" goes through the same split-ratio fill as the bulk button, scoped
 to one bucket. Writing the target into the assign field instead would set one person's
 funding to the whole household target.
-
-## Two shapes for two questions
-
-The bars toggle, because they answer different things:
-
-- **Separate** — one bar per funder, each measured against *their own* contribution. "Is each
-  of us within our own share?" It is the only shape where one person being over while everyone
-  else is under is visible at a glance.
-- **Stacked** — one bar, segments sized by what each person spent against the household total.
-  "How much of this envelope is gone, and who spent it?"
-
-The choice is a view preference in localStorage: it belongs to a browser, not to the
-household.
 
 ## Acting as somebody else
 

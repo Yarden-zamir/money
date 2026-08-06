@@ -1,13 +1,14 @@
 /**
- * Asserts the width of every funder's bar, against cases that were once wrong.
+ * Asserts the funding bar: segment widths per funder against the target.
  *
- * A bar is the main visual on the main screen and is derived from two numbers, so it goes
- * wrong quietly: a bar of the wrong length still looks like a bar. These cases are the ones
- * the old `target ?? assigned` denominator got wrong, plus the ones it got right, so a future
- * change has to keep both.
+ * The bar's one meaning is "how funded is this envelope, and by whom" — the track is the
+ * target, each segment a funder's contribution this month. A bar of the wrong length still
+ * looks like a bar, so the widths are asserted, not eyeballed:
  *
- * Each case is now one funder in a shared bucket, which is also what the length means: a
- * person's own spending measured against their own contribution.
+ * - segments are proportional to contributions;
+ * - an overfunded bucket rescales rather than clipping whoever funded last;
+ * - no target means the segments fill the track (the funding mix);
+ * - nothing funded means an empty track, whatever was spent.
  */
 import { chromium } from "playwright";
 import { createServer } from "node:http";
@@ -21,41 +22,34 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const now = new Date();
 const MONTH = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-/** Each case is [id, assigned, activity, available, target, expected percent]. */
+/** [bucket, target, {person: assigned}, expected {person: width%}] */
 const CASES = [
-  // id                 assigned  activity   available  target    want
-  ["normal",            "2000",   "-1642.30", "357.70",  "2000",   82],
-  ["paid-in-full",      "5200",   "-5200",    "0",       "5200",  100],
-  ["no-target",         "500",    "-231",     "269",     null,     46],
-  ["overspent",         "800",    "-912.50",  "-112.50", "800",   100],
-  ["untouched",         "1000",   "0",        "3400",    "1500",    0],
-
-  // Spent from money carried over, nothing assigned this month. The old denominator was
-  // `assigned` = 0, so this rendered empty while 60% of the envelope was gone.
-  ["carryover-spend",   "0",      "-300",     "200",     null,     60],
-
-  // Overspent with nothing assigned and no target: the old code produced a bar of zero
-  // width, so the one state that needs acting on was invisible.
-  ["overspent-nothing", "0",      "-50",      "-50",     null,    100],
-
-  // Holds more than its target. The old denominator was the target, so this filled completely
-  // while a third of the envelope was still available.
-  ["over-target",       "3000",   "-2000",    "1000",    "1000",   67],
-
-  // Nearly empty relative to what it held.
-  ["low",               "1000",   "-950",     "50",      "1000",   95],
+  // Half funded by two people unevenly: widths are their share of the TARGET.
+  ["half-funded", "2000", { a: "600", b: "400" }, { a: 30, b: 20 }],
+  // Fully funded in the split ratio.
+  ["funded", "1000", { a: "750", b: "250" }, { a: 75, b: 25 }],
+  // Overfunded: track grows to the total, so segments stay proportional (2400 of 2400).
+  ["overfunded", "2000", { a: "1600", b: "800" }, { a: 66.7, b: 33.3 }],
+  // No target: the bar is the funding mix, filling the track.
+  ["no-target", null, { a: "300", b: "100" }, { a: 75, b: 25 }],
+  // Nothing funded: empty track, even though there was spending.
+  ["unfunded", "500", {}, {}],
 ];
 
-const me = { login: "dev", name: "Y", email: "d@l", avatar_url: null };
+const me = { login: "dev", name: "A", email: "d@l", avatar_url: null };
 const budget = {
   slug: "joint", name: "Household", repo: "y/b", currency: "ILS", branch: "main",
-  members: [{ person: "yarden", name: "Y", github: "dev" }], me: "yarden", can_write: true,
+  members: [{ person: "a", name: "A", github: "dev" }, { person: "b", name: "B" }],
+  me: "a", can_write: true,
 };
 
-/** One funder per bucket, so each bar is that case in isolation. */
-const funderFor = ([, assigned, activity, available]) => [
-  { person: "yarden", split: "1", assigned, activity, available },
-];
+const funders = (amounts) =>
+  ["a", "b"].map((person) => ({
+    person, split: "0.5",
+    assigned: amounts[person] ?? "0.00",
+    activity: "-50.00",
+    available: String(Number(amounts[person] ?? 0) - 50),
+  }));
 
 const server = createServer(async (req, res) => {
   const path = (req.url ?? "/").split("?")[0];
@@ -64,23 +58,20 @@ const server = createServer(async (req, res) => {
     if (path.endsWith("/me")) body = me;
     else if (path.endsWith("/budgets")) body = [budget];
     else if (path.endsWith("/auth/config")) body = { login_url: "/x" };
-    else if (path.includes("/close")) body = { closed: false, tag: null, sha: null };
     else if (path.includes("/months/")) {
       body = {
-        person: "yarden", month: MONTH, currency: "ILS",
+        person: "a", month: MONTH, currency: "ILS",
         ready_to_assign: "0.00", income: "0.00", assigned: "0.00",
-        buckets: CASES.map((entry) => {
-          const [id, assigned, activity, available, target] = entry;
-          return {
-            bucket: id, name: id, group: "All", assigned, activity, available, target,
-            funders: funderFor(entry),
-          };
-        }),
+        buckets: CASES.map(([id, target, amounts]) => ({
+          bucket: id, name: id, group: "All",
+          assigned: "0.00", activity: "-100.00", available: "0.00", target,
+          funders: funders(amounts),
+        })),
       };
     } else if (path.includes("/buckets")) {
       body = CASES.map(([id], i) => ({
         id, name: id, group: "All", target: null, archived: false, order: i,
-        split: { yarden: "1" },
+        split: { a: "0.5", b: "0.5" },
       }));
     }
     res.writeHead(200, { "content-type": "application/json" });
@@ -108,38 +99,39 @@ const page = await context.newPage();
 await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
 await page.waitForSelector("[data-bucket]");
 
-// The rendered fill for each row's single funder: its inline width, and whether it carries
-// the hatch that marks an overspent funder without relying on colour.
 const rendered = await page.locator("[data-bucket]").evaluateAll((rows) =>
   Object.fromEntries(
-    rows.map((row) => {
-      const fill = row.querySelector("[style*='width']");
-      return [
-        row.dataset.bucket,
-        { width: fill?.style.width ?? "", hatched: fill?.classList.contains("bar-overspent") },
-      ];
-    }),
+    rows.map((row) => [
+      row.dataset.bucket,
+      Object.fromEntries(
+        [...row.querySelectorAll("[data-person]")].map((el) => [
+          el.dataset.person,
+          Number.parseFloat(el.style.width),
+        ]),
+      ),
+    ]),
   ),
 );
 
 let failures = 0;
-for (const [id, , , available, , want] of CASES) {
-  const got = rendered[id];
-  if (!got) {
-    console.log(`  ${id.padEnd(18)} MISSING from the page`);
-    failures += 1;
-    continue;
+for (const [id, , , want] of CASES) {
+  const got = rendered[id] ?? {};
+  const people = new Set([...Object.keys(want), ...Object.keys(got)]);
+  let ok = true;
+  const parts = [];
+  for (const person of people) {
+    const width = got[person];
+    const expected = want[person];
+    const fine =
+      expected === undefined
+        ? width === undefined
+        : width !== undefined && Math.abs(width - expected) < 0.5;
+    if (!fine) ok = false;
+    parts.push(`${person}=${width?.toFixed(1) ?? "—"}% (want ${expected?.toFixed(1) ?? "—"})`);
   }
-  const width = Number.parseInt(got.width, 10);
-  const wantHatch = Number(available) < 0;
-  const okWidth = width === want;
-  const okHatch = Boolean(got.hatched) === wantHatch;
-  const mark = okWidth && okHatch ? "ok   " : "FAIL ";
-  console.log(
-    `  ${mark} ${id.padEnd(18)} ${String(width).padStart(3)}% (want ${String(want).padStart(3)}%)` +
-      `  ${okHatch ? (wantHatch ? "hatched" : "plain") : "WRONG hatch"}`,
-  );
-  if (!okWidth || !okHatch) failures += 1;
+  if (people.size === 0) parts.push("empty (want empty)");
+  console.log(`  ${ok ? "ok   " : "FAIL "} ${id.padEnd(12)} ${parts.join("  ")}`);
+  if (!ok) failures += 1;
 }
 
 await browser.close();

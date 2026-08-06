@@ -50,13 +50,19 @@
     "moreOptions": "אפשרויות נוספות",
     "reorder": "גררו כדי לסדר מחדש",
     "assigning": "משייך…",
-    "barsStacked": "הצגה כפס אחד",
-    "barsSeparate": "הצגה כפס לכל אחד",
     "split": "מי נושא בהוצאה כאן",
     "splitEvenly": "חלוקה שווה",
     "yourIncome": "ההכנסות שלך",
     "yourFunding": "המימון שלך",
-    "yourReadyToAssign": "זמין לשיוך שלך"
+    "yourReadyToAssign": "זמין לשיוך שלך",
+    "showBreakdown": "מי מימן מה",
+    "funder": "חבר.ה",
+    "share": "חלק",
+    "putIn": "הכניס.ה",
+    "bore": "נשא.ה",
+    "left": "נשאר",
+    "barLabel": "מומן {{funded}} מתוך {{target}}",
+    "barLabelNoTarget": "מומן {{funded}}"
   },
   "entries": {
     "title": "תנועות",

@@ -50,13 +50,19 @@
     "moreOptions": "More options",
     "reorder": "Drag to reorder",
     "assigning": "Assigning…",
-    "barsStacked": "Show as one bar",
-    "barsSeparate": "Show a bar each",
     "split": "Who bears spending here",
     "splitEvenly": "Split evenly",
     "yourIncome": "Your income",
     "yourFunding": "Your funding",
-    "yourReadyToAssign": "Your ready to assign"
+    "yourReadyToAssign": "Your ready to assign",
+    "showBreakdown": "Who funded what",
+    "funder": "Person",
+    "share": "Share",
+    "putIn": "Put in",
+    "bore": "Bore",
+    "left": "Left",
+    "barLabel": "Funded {{funded}} of {{target}}",
+    "barLabelNoTarget": "Funded {{funded}}"
   },
   "entries": {
     "title": "Entries",

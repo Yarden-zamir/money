@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Bar, LedgerSkeleton, SummarySkeleton } from "@/components/Skeleton";
-import { FunderBars, MemberDot } from "@/components/FunderBars";
+import { FunderBreakdown, FundingBar, MemberDot } from "@/components/FunderBars";
 import { splitFor } from "@/lib/members";
 import { lastWriteWins } from "@/lib/optimistic";
 
@@ -41,10 +41,6 @@ export function MonthScreen() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  // A view preference, not budget data — it belongs to this browser, not to the household.
-  const [stacked, setStacked] = useState(
-    () => localStorage.getItem("money.stackedBars") === "1",
-  );
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const query = useQuery({
@@ -222,17 +218,6 @@ export function MonthScreen() {
             {member.name}
           </span>
         ))}
-        <button
-          type="button"
-          className="ms-auto text-xs text-brand hover:underline"
-          onClick={() => {
-            const next = !stacked;
-            setStacked(next);
-            localStorage.setItem("money.stackedBars", next ? "1" : "0");
-          }}
-        >
-          {stacked ? t("month.barsSeparate") : t("month.barsStacked")}
-        </button>
       </div>
 
       <header className="flex flex-wrap items-center gap-2">
@@ -333,7 +318,6 @@ export function MonthScreen() {
                 <BucketRow
                   key={bucket.bucket}
                   members={budget.members}
-                  stacked={stacked}
                   me={view.person}
                   bucket={bucket}
                   currency={view.currency}
@@ -617,7 +601,6 @@ function patchMonth(
 function BucketRow({
   bucket,
   members,
-  stacked,
   me,
   currency,
   budget,
@@ -636,7 +619,6 @@ function BucketRow({
 }: {
   bucket: BucketState;
   members: Member[];
-  stacked: boolean;
   me: string;
   currency: string;
   budget: string;
@@ -656,6 +638,7 @@ function BucketRow({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [armed, setArmed] = useState(false);
+  const [breakdown, setBreakdown] = useState(false);
 
   const monthKey = getMonthQueryKey({ path: { budget, month } });
   const assign = useMutation({
@@ -827,9 +810,17 @@ function BucketRow({
       </div>
 
       <div className="mt-2 flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <FunderBars funders={bucket.funders ?? []} members={members} stacked={stacked} />
-        </div>
+        {/* The bar is also the way into the per-funder numbers: it names who funded, so it
+            is the natural thing to press when asking "and where does that leave each of us". */}
+        <button
+          type="button"
+          onClick={() => setBreakdown(!breakdown)}
+          aria-expanded={breakdown}
+          title={t("month.showBreakdown")}
+          className="min-w-0 flex-1 cursor-pointer py-1"
+        >
+          <FundingBar funders={bucket.funders ?? []} members={members} target={target} />
+        </button>
         {/* Only shown when acting on it would change something. */}
         {canWrite && target !== null && assigned < target && (
           <button
@@ -847,6 +838,10 @@ function BucketRow({
           </button>
         )}
       </div>
+
+      {breakdown && (
+        <FunderBreakdown funders={bucket.funders ?? []} members={members} currency={currency} />
+      )}
     </div>
   );
 }

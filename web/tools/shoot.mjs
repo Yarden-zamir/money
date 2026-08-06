@@ -313,13 +313,14 @@ for (const [device, viewport] of VIEWPORTS) {
       });
     }
 
-    // The stacked bar is the other half of the funder view and is a stored preference, so
-    // it needs its own pass rather than a click.
-    await page.evaluate(() => localStorage.setItem("money.stackedBars", "1"));
+    // The per-funder breakdown only shows once a bar is pressed.
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: join(OUT, `${device}-${language}-month-stacked.png`), fullPage: true });
-    await page.evaluate(() => localStorage.setItem("money.stackedBars", "0"));
+    const bar = page.locator('[title="Who funded what"], [title="מי מימן מה"]').first();
+    if (await bar.count()) {
+      await bar.click();
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: join(OUT, `${device}-${language}-month-breakdown.png`), fullPage: true });
+    }
 
     // History rows only show what a change did once opened, so the closed list is not the
     // screen worth reviewing.

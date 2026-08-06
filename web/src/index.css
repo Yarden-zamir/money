@@ -247,15 +247,3 @@ body {
   }
 }
 
-/* An overspent funder's segment.
- *
- * Colour names the person once bars are per funder, so it cannot also name the state. A
- * hatch reads without depending on hue at all, which means it survives both themes and
- * anyone who cannot separate the member colours from each other. */
-.bar-overspent {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent 0 2px,
-    color-mix(in oklch, var(--color-negative) 85%, transparent) 2px 4px
-  );
-}
