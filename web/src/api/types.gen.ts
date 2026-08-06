@@ -2295,6 +2295,10 @@ export type GetBudgetData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2330,6 +2334,10 @@ export type GetBudgetResponse = GetBudgetResponses[keyof GetBudgetResponses];
 export type ListMembersData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2372,6 +2380,10 @@ export type PutMembersData = {
     body: Array<Member>;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2410,6 +2422,10 @@ export type JoinBudgetData = {
     body: BudgetJoin;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2445,6 +2461,10 @@ export type JoinBudgetResponse = JoinBudgetResponses[keyof JoinBudgetResponses];
 export type GetMonthData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2491,6 +2511,10 @@ export type AssignToBucketData = {
     body: AssignRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2530,6 +2554,10 @@ export type AssignToBucketResponse = AssignToBucketResponses[keyof AssignToBucke
 export type AutoAssignData = {
     body: AutoAssignRequest;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2571,6 +2599,10 @@ export type MoveMoneyData = {
     body: MoveRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2611,6 +2643,10 @@ export type ReorderBucketsData = {
     body: ReorderRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2648,6 +2684,10 @@ export type ReorderBucketsResponse = ReorderBucketsResponses[keyof ReorderBucket
 export type PutBucketData = {
     body: BucketInput;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2689,6 +2729,10 @@ export type ListBucketsData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2727,6 +2771,10 @@ export type GetBalancesData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2763,6 +2811,10 @@ export type SettleUpData = {
     body: SettleRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2798,6 +2850,10 @@ export type SettleUpResponse = SettleUpResponses[keyof SettleUpResponses];
 export type ListEntriesData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2860,6 +2916,10 @@ export type CreateEntryData = {
     body: EntryCreate;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2895,6 +2955,10 @@ export type CreateEntryResponse = CreateEntryResponses[keyof CreateEntryResponse
 export type SuggestPayeesData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -2943,6 +3007,10 @@ export type DeleteEntryData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -2982,6 +3050,10 @@ export type DeleteEntryResponse = DeleteEntryResponses[keyof DeleteEntryResponse
 export type GetEntryData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3023,6 +3095,10 @@ export type UpdateEntryData = {
     body: EntryUpdate;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3062,6 +3138,10 @@ export type UpdateEntryResponse = UpdateEntryResponses[keyof UpdateEntryResponse
 export type GetEntryHistoryData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3103,6 +3183,10 @@ export type GetEntryNoteData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3142,6 +3226,10 @@ export type GetEntryNoteResponse = GetEntryNoteResponses[keyof GetEntryNoteRespo
 export type PutEntryNoteData = {
     body: NoteBody;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3183,6 +3271,10 @@ export type PreviewSplitData = {
     body: EntryCreate;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3218,6 +3310,10 @@ export type PreviewSplitResponse = PreviewSplitResponses[keyof PreviewSplitRespo
 export type ListRulesData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3259,6 +3355,10 @@ export type PutRulesData = {
      */
     body: Array<RuleInput>;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3500,6 +3600,10 @@ export type ListCollaboratorsData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3538,6 +3642,10 @@ export type InviteCollaboratorData = {
     body: InviteRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3573,6 +3681,10 @@ export type InviteCollaboratorResponse = InviteCollaboratorResponses[keyof Invit
 export type ListScheduledData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3615,6 +3727,10 @@ export type PutScheduledData = {
     body: Array<ScheduledInput>;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3652,6 +3768,10 @@ export type PutScheduledResponse = PutScheduledResponses[keyof PutScheduledRespo
 export type ListDueData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3694,6 +3814,10 @@ export type PostScheduledData = {
     body: PostRequest;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3733,6 +3857,10 @@ export type PostScheduledResponse = PostScheduledResponses[keyof PostScheduledRe
 export type GetHistoryData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3775,6 +3903,10 @@ export type GetHistoryDetailData = {
     body?: never;
     headers?: {
         /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
          * Authorization
          */
         authorization?: string | null;
@@ -3814,6 +3946,10 @@ export type GetHistoryDetailResponse = GetHistoryDetailResponses[keyof GetHistor
 export type UndoChangeData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3855,6 +3991,10 @@ export type UndoChangeResponse = UndoChangeResponses[keyof UndoChangeResponses];
 export type RedoChangeData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
@@ -3979,6 +4119,10 @@ export type SearchPlacesResponse = SearchPlacesResponses[keyof SearchPlacesRespo
 export type SuggestEntryData = {
     body?: never;
     headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
         /**
          * Authorization
          */
