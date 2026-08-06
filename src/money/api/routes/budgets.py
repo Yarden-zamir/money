@@ -299,7 +299,7 @@ def join_budget(
 
     member = Member(person=body.person, name=body.display_name, github=context.actor.login)
     try:
-        context.store.join(member, body.buckets or starter_buckets(), context.actor)
+        context.store.join(member, context.actor)
     except DataError as exc:
         raise ApiError("person_taken", str(exc), status=409) from exc
 

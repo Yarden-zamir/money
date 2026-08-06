@@ -5739,20 +5739,6 @@
             "maxLength": 100,
             "minLength": 1,
             "title": "Display Name"
-          },
-          "buckets": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/Bucket-Input"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Buckets"
           }
         },
         "additionalProperties": false,
@@ -5762,7 +5748,7 @@
           "display_name"
         ],
         "title": "BudgetJoin",
-        "description": "Adding yourself to a budget whose repo you can already push to."
+        "description": "Adding yourself to a budget whose repo you can already push to.\n\nNo buckets: they are shared, and the household's already exist. Letting a joiner supply\nsome would overwrite everybody's."
       },
       "BudgetSummary": {
         "properties": {

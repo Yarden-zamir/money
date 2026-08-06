@@ -601,11 +601,15 @@ class BudgetStore:
             trailers={},
         )
 
-    def join(self, member: Member, buckets: list[Bucket], actor: Actor) -> str:
-        """Add one person to `budget.yaml`, with buckets of their own.
+    def join(self, member: Member, actor: Actor) -> str:
+        """Add one person to `budget.yaml` — and touch nothing else.
 
-        Buckets are per-person, so joining without them lands someone in a budget they can
-        read and cannot file anything under — the same dead end `initialize` avoids.
+        Buckets are shared, so a joiner does not arrive with any: the household's already
+        exist for them to file under. When this method still seeded starter buckets (a
+        holdover from per-person bucket files) it REPLACED the household's entire list —
+        names, targets, groups and splits — with the seven defaults, in one commit, the
+        moment anybody joined. Whether the joiner bears anything is the buckets' `split`,
+        which stays exactly as it was until someone edits it.
         """
         budget = self.budget()
         if any(m.person == member.person for m in budget.members):
@@ -617,8 +621,7 @@ class BudgetStore:
             self.repo.write(
                 "budget.yaml", yamlio.dump(updated.model_dump(mode="python", exclude_none=True))
             )
-            self._write_buckets(buckets)
-            return ["budget.yaml", BUCKETS_PATH]
+            return ["budget.yaml"]
 
         return self._commit(
             mutate,

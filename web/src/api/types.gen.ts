@@ -376,6 +376,9 @@ export type BudgetCreate = {
  * BudgetJoin
  *
  * Adding yourself to a budget whose repo you can already push to.
+ *
+ * No buckets: they are shared, and the household's already exist. Letting a joiner supply
+ * some would overwrite everybody's.
  */
 export type BudgetJoin = {
     /**
@@ -386,10 +389,6 @@ export type BudgetJoin = {
      * Display Name
      */
     display_name: string;
-    /**
-     * Buckets
-     */
-    buckets?: Array<BucketInput> | null;
 };
 
 /**

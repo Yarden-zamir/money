@@ -238,13 +238,15 @@ class BudgetCreate(BaseModel):
 
 
 class BudgetJoin(BaseModel):
-    """Adding yourself to a budget whose repo you can already push to."""
+    """Adding yourself to a budget whose repo you can already push to.
+
+    No buckets: they are shared, and the household's already exist. Letting a joiner supply
+    some would overwrite everybody's."""
 
     model_config = ConfigDict(extra="forbid")
 
     person: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")
     display_name: str = Field(min_length=1, max_length=100)
-    buckets: list[Bucket] | None = None
 
 
 class DueEntry(BaseModel):

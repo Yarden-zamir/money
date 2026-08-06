@@ -12,7 +12,7 @@ which budget. Losing the SQLite file loses no budget data.
 ```
 budget.yaml                        # budget identity, members, currency
 rules.yaml                         # default split rules
-people/<person>/buckets.yaml       # that person's envelopes
+buckets.yaml                       # shared envelopes, each carrying its split
 people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
 scheduled.yaml                     # recurring entries, optional
@@ -35,12 +35,12 @@ membership being edited only as a whole list. Push access already decides who ma
 data, so making them wait for another member to type their name in was a wall with no
 security value behind it.
 
-A new person always arrives with buckets. Creating a budget and joining one both write
-`people/<person>/buckets.yaml` in the same commit as the `budget.yaml` change, because
-buckets are per-person: someone added without them lands in a budget they can read and
-cannot file anything under. The seeded set (`money.domain.starter`) is a handful of buckets
-across four groups, with no targets — a target is a claim about what that person intends to
-spend, and guessing it would put a number on screen nobody chose.
+Buckets are **shared**: one `buckets.yaml` at the root that the whole household funds and
+spends against, each carrying the `split` that says who bears its spending (see
+`funding-and-split.md`). Creating a budget writes it in the same commit as `budget.yaml`, so
+the first expense has somewhere to go. The seeded set (`money.domain.starter`) is a handful
+of buckets across four groups, with no targets — a target is a claim about what the household
+intends to spend, and guessing it would put a number on screen nobody chose.
 
 ## Reading Is Not Fetching
 

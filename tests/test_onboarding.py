@@ -35,6 +35,16 @@ members:
     github: dana-example
 """
 
+# The household's existing envelopes — deliberately NOT the starter set, so a join that
+# overwrites them with defaults is caught rather than invisible.
+OTHERS_BUCKETS = """\
+- id: opera
+  name: Opera tickets
+  group: Culture
+  target: {kind: monthly, amount: '750.00'}
+  split: {dana: 1}
+"""
+
 
 def seed_remote(tmp_path: Path, budget_yaml: str | None) -> GitRepo:
     """A git remote holding `budget_yaml`, or an empty initialized repo when it is None."""
@@ -49,6 +59,7 @@ def seed_remote(tmp_path: Path, budget_yaml: str | None) -> GitRepo:
     (seed / "README.md").write_text("# budget\n", encoding="utf-8")
     if budget_yaml is not None:
         (seed / "budget.yaml").write_text(budget_yaml, encoding="utf-8")
+        (seed / "buckets.yaml").write_text(OTHERS_BUCKETS, encoding="utf-8")
     for args in (
         ["config", "user.email", "seed@example.com"],
         ["config", "user.name", "seed"],
@@ -110,10 +121,20 @@ class TestJoiningABudgetSomeoneElseMade:
         assert response.json()["me"] is None
         assert [m["person"] for m in response.json()["members"]] == ["dana"]
 
-    def test_joining_adds_you_with_buckets_of_your_own(
+    def test_joining_leaves_the_household_buckets_alone(
         self, outsider: tuple[TestClient, BudgetStore]
     ) -> None:
+        """Buckets are shared, so a joiner arrives with none — and must overwrite none.
+
+        When join still seeded starter buckets (a holdover from per-person files), the moment
+        anybody joined it replaced the household's whole list — names, targets, splits — with
+        the seven defaults. The seed here is deliberately not the starter set so that exact
+        regression fails loudly.
+        """
         client, store = outsider
+        before = [(b.id, b.name, b.split) for b in store.buckets()]
+        assert before, "seed must contain household buckets for this test to mean anything"
+
         response = client.post(
             "/api/v1/budgets/joint/members/me",
             json={"person": "yarden", "display_name": "Yarden"},
@@ -121,9 +142,7 @@ class TestJoiningABudgetSomeoneElseMade:
         assert response.status_code == 201, response.text
         assert response.json()["me"] == "yarden"
 
-        # Joining without buckets would land someone in a budget they cannot file anything
-        # under, which is the dead end this is supposed to remove.
-        assert store.buckets() != []
+        assert [(b.id, b.name, b.split) for b in store.buckets()] == before
 
     def test_joining_leaves_everyone_else_alone(
         self, outsider: tuple[TestClient, BudgetStore]
@@ -171,13 +190,12 @@ class TestTheFirstExpense:
             "/api/v1/budgets/joint/members/me",
             json={"person": "yarden", "display_name": "Yarden"},
         )
-        bucket = starter_buckets()[0].id
         response = client.post(
             "/api/v1/budgets/joint/entries",
-            json={"amount": "-50.00", "payee": "Coffee", "bucket": bucket},
+            json={"amount": "-50.00", "payee": "Coffee", "bucket": "opera"},
         )
         assert response.status_code == 200, response.text
-        assert response.json()["entry"]["shares"][0]["bucket"] == bucket
+        assert response.json()["entry"]["shares"][0]["bucket"] == "opera"
 
     def test_an_expense_with_nowhere_to_go_explains_itself(
         self, outsider: tuple[TestClient, BudgetStore]

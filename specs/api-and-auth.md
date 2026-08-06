@@ -78,7 +78,7 @@ GET    /budgets/{budget}/entries/{id}/history   commits touching this entry
 GET    /budgets/{budget}/entries/{id}/note      long-form markdown note
 PUT    /budgets/{budget}/entries/{id}/note      write it; empty text removes the file
 
-GET    /budgets/{budget}/buckets                buckets for a person
+GET    /budgets/{budget}/buckets                every bucket, with its split
 PUT    /budgets/{budget}/buckets/order          reposition several buckets in one commit
 PUT    /budgets/{budget}/buckets/{bucket}
 GET    /budgets/{budget}/months/{month}         full envelope view: assigned, activity, available
