@@ -108,6 +108,21 @@ const PATHS = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4.5 4.5" />
+    </>
+  ),
+  message: <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1 0 0z" />,
+  paperclip: <path d="m20 11-8.5 8.5a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.6 1.6 0 0 1-2.3-2.3L14.5 7.3" />,
+  send: <path d="M4 12 20 4l-4 16-4-7z" />,
+  camera: (
+    <>
+      <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
 } as const;
 
 export function Icon({ name, className = "size-5", directional }: IconProps) {

@@ -7,18 +7,24 @@ without it is still reachable through `money api`.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from datetime import UTC
 from datetime import date as date_type
 from datetime import datetime as datetime_type
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Header, Query, Response
 
 from money.api.deps import BudgetContext, budget_context, person_for, writable
-from money.api.errors import ApiError, not_found
+from money.api.errors import ApiError, forbidden, not_found
 from money.api.schemas import (
+    AttachmentList,
+    AttachmentResponse,
+    CommentCreate,
+    CommentList,
     CommitRef,
     EntryCreate,
+    EntryExtras,
     EntryList,
     EntryResponse,
     EntryUpdate,
@@ -30,9 +36,9 @@ from money.api.schemas import (
     SplitPreview,
 )
 from money.domain.amounts import ZERO
-from money.domain.models import Entry, EntryKind, LineItem, Place, Share
+from money.domain.models import Comment, Entry, EntryKind, LineItem, Place, Share
 from money.domain.rules import first_match, shares_from_split
-from money.store.store import new_id
+from money.store.store import ATTACHMENT_MAX_BYTES, ATTACHMENT_TYPES, DataError, new_id
 
 router = APIRouter(prefix="/budgets/{budget}/entries", tags=["entries"])
 
@@ -182,6 +188,15 @@ def list_entries(
     bucket: str | None = None,
     tag: str | None = None,
     payee: str | None = None,
+    kind: EntryKind | None = None,
+    q: Annotated[
+        str | None,
+        Query(
+            max_length=200,
+            description="Free text over payee, note, tags, place and receipt lines. "
+            "Every word must match somewhere.",
+        ),
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
 ) -> EntryList:
     entries = context.store.entries_for_month(month) if month else context.store.all_entries()
@@ -192,12 +207,47 @@ def list_entries(
         entries = [e for e in entries if any(s.bucket == bucket for s in e.shares)]
     if tag:
         entries = [e for e in entries if tag in e.tags]
+    if kind:
+        entries = [e for e in entries if e.kind is kind]
     if payee:
         needle = payee.casefold()
         entries = [e for e in entries if needle in e.payee.casefold()]
+    if q and q.strip():
+        entries = [e for e in entries if _matches(e, q)]
 
     entries.sort(key=lambda e: (e.date, e.id), reverse=True)
-    return EntryList(entries=entries[:limit], total=len(entries))
+    page = entries[:limit]
+    return EntryList(
+        entries=page,
+        total=len(entries),
+        extras={
+            entry_id: EntryExtras(comments=comments, attachments=attachments)
+            for entry_id, (comments, attachments) in context.store.extras(
+                [e.id for e in page]
+            ).items()
+        },
+    )
+
+
+def _matches(entry: Entry, query: str) -> bool:
+    """Every word of the query appears somewhere on the entry.
+
+    Words rather than the phrase, so "coffee receipt" finds a coffee whose note mentions the
+    receipt. Substring rather than prefix, because Hebrew payees carry prefixes ("בקפה") that
+    a word boundary would hide. Amounts and people are not searched: "50" would match every
+    entry in the fifties, and a person's id is on every entry the rules split with them —
+    the `person` and amount filters are the right tools for those.
+    """
+    haystack = " ".join(
+        [
+            entry.payee,
+            entry.note or "",
+            " ".join(entry.tags),
+            entry.place.name if entry.place and entry.place.name else "",
+            " ".join(item.label for item in entry.items),
+        ]
+    ).casefold()
+    return all(word in haystack for word in query.casefold().split())
 
 
 @router.get(
@@ -386,6 +436,183 @@ def put_note(
 
     context.store.put_note(entry_id, body.text, context.actor)
     return NoteResponse(entry_id=entry_id, text=body.text)
+
+
+@router.get(
+    "/{entry_id}/comments",
+    operation_id="listComments",
+    response_model=CommentList,
+    summary="The conversation under an entry",
+    openapi_extra={"x-cli": {"command": "comment list", "args": ["entry_id"]}},
+)
+def list_comments(
+    entry_id: str, context: Annotated[BudgetContext, Depends(budget_context)]
+) -> CommentList:
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+    return CommentList(entry_id=entry_id, comments=context.store.comments(entry_id))
+
+
+@router.post(
+    "/{entry_id}/comments",
+    operation_id="addComment",
+    response_model=CommentList,
+    summary="Say something under an entry",
+    openapi_extra={"x-cli": {"command": "comment add", "args": ["entry_id", "text"]}},
+)
+def add_comment(
+    entry_id: str,
+    body: CommentCreate,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> CommentList:
+    """Appends and returns the whole thread, so a client can render the reply in place
+    without a second round trip — the thread is short by nature."""
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+
+    comment = Comment(
+        id=new_id(),
+        author=person_for(context, context.actor.login),
+        at=datetime_type.now(UTC),
+        text=body.text.strip(),
+    )
+    context.store.add_comment(entry_id, comment, context.actor)
+    return CommentList(entry_id=entry_id, comments=context.store.comments(entry_id))
+
+
+@router.delete(
+    "/{entry_id}/comments/{comment_id}",
+    operation_id="deleteComment",
+    response_model=CommentList,
+    summary="Take back something you said",
+)
+def delete_comment(
+    entry_id: str,
+    comment_id: str,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> CommentList:
+    """Only the author. A comment is attributed speech, and removing someone else's words
+    from a shared record is not an edit anybody should be able to make silently."""
+    existing = next((c for c in context.store.comments(entry_id) if c.id == comment_id), None)
+    if existing is None:
+        raise not_found(f"comment {comment_id}")
+    if existing.author != person_for(context, context.actor.login):
+        raise forbidden("only the person who wrote a comment can remove it")
+
+    context.store.delete_comment(entry_id, comment_id, context.actor)
+    return CommentList(entry_id=entry_id, comments=context.store.comments(entry_id))
+
+
+@router.get(
+    "/{entry_id}/attachments",
+    operation_id="listAttachments",
+    response_model=AttachmentList,
+    summary="Files kept beside an entry",
+    openapi_extra={"x-cli": {"command": "attachment list", "args": ["entry_id"]}},
+)
+def list_attachments(
+    entry_id: str, context: Annotated[BudgetContext, Depends(budget_context)]
+) -> AttachmentList:
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+    return AttachmentList(
+        entry_id=entry_id,
+        attachments=[
+            AttachmentResponse(name=a.name, size=a.size, content_type=a.content_type)
+            for a in context.store.attachments(entry_id)
+        ],
+    )
+
+
+@router.post(
+    "/{entry_id}/attachments",
+    operation_id="addAttachment",
+    response_model=AttachmentList,
+    summary="Attach a receipt photo or PDF",
+)
+def add_attachment(
+    entry_id: str,
+    context: Annotated[BudgetContext, Depends(writable)],
+    data: Annotated[bytes, Body(media_type="application/octet-stream")],
+    content_type: Annotated[str | None, Header()] = None,
+    media_type: Annotated[
+        str | None,
+        Query(description="The file's type when the Content-Type header cannot carry it"),
+    ] = None,
+) -> AttachmentList:
+    """The body is the file itself.
+
+    Raw bytes rather than multipart: there is exactly one file per request, so a multipart
+    envelope would add a parser dependency and a field name for nothing. The type comes from
+    the Content-Type header when it names one we accept, else from `media_type` — a
+    generated client sends the schema's octet-stream header and cannot say more.
+    """
+    if context.store.find_entry(entry_id) is None:
+        raise not_found(f"entry {entry_id}")
+
+    from_header = (content_type or "").split(";")[0].strip().lower()
+    media = from_header if from_header in ATTACHMENT_TYPES else (media_type or "").lower()
+    extension = ATTACHMENT_TYPES.get(media)
+    if extension is None:
+        raise ApiError(
+            "unsupported_attachment",
+            f"{media or from_header or 'unknown'} is not a supported attachment type",
+            details={"supported": sorted(ATTACHMENT_TYPES)},
+        )
+    if len(data) > ATTACHMENT_MAX_BYTES:
+        raise ApiError(
+            "attachment_too_large",
+            f"attachments are limited to {ATTACHMENT_MAX_BYTES // (1024 * 1024)} MB",
+            status=413,
+        )
+
+    try:
+        context.store.add_attachment(entry_id, new_id() + extension, media, data, context.actor)
+    except DataError as exc:
+        raise ApiError("invalid_attachment", str(exc)) from exc
+    return list_attachments(entry_id, context)
+
+
+@router.get(
+    "/{entry_id}/attachments/{name}",
+    operation_id="getAttachment",
+    summary="The file itself",
+    response_class=Response,
+    responses={200: {"content": {media: {} for media in ATTACHMENT_TYPES}}},
+)
+def get_attachment(
+    entry_id: str, name: str, context: Annotated[BudgetContext, Depends(budget_context)]
+) -> Response:
+    data = context.store.attachment(entry_id, name)
+    if data is None:
+        raise not_found(f"attachment {name}")
+    media = next(
+        (ct for ct, ext in ATTACHMENT_TYPES.items() if name.endswith(ext)),
+        "application/octet-stream",
+    )
+    # Immutable: the name is a ULID, so the same URL never serves different bytes. A browser
+    # may keep a receipt photo for as long as it likes.
+    return Response(
+        content=data,
+        media_type=media,
+        headers={"Cache-Control": "private, max-age=31536000, immutable"},
+    )
+
+
+@router.delete(
+    "/{entry_id}/attachments/{name}",
+    operation_id="deleteAttachment",
+    response_model=AttachmentList,
+    summary="Remove a file from an entry",
+)
+def delete_attachment(
+    entry_id: str, name: str, context: Annotated[BudgetContext, Depends(writable)]
+) -> AttachmentList:
+    try:
+        context.store.delete_attachment(entry_id, name, context.actor)
+    except DataError as exc:
+        raise not_found(str(exc)) from exc
+    return list_attachments(entry_id, context)
 
 
 @router.post(

@@ -69,6 +69,14 @@ export function Layout({
           >
             {t("app.name")}
           </NavLink>
+          {/* Which budget this is. With two budgets nothing else on screen said, and the
+              create form promises the name will be visible. Hidden on the first-run
+              screens because there is no budget yet. */}
+          {navigation && budget && (
+            <span className="min-w-0 max-w-32 truncate text-sm text-ink-muted sm:max-w-48">
+              {budget.name}
+            </span>
+          )}
 
           {navigation && (
           <nav className="ms-4 hidden gap-1 sm:flex">

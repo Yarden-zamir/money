@@ -36,6 +36,8 @@ KINDS = {
     "rules:": "rules",
     "members:": "members",
     "note:": "note",
+    "comment:": "comment",
+    "attachment:": "attachment",
     "scheduled:": "scheduled",
     "revert": "undo",
 }

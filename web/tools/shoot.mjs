@@ -123,6 +123,26 @@ const entries = {
     entry("01K9VYQ2N3X8R4T7B0M6D5C1FD", "2026-07-01", "Rent", "-5200.00", "rent"),
   ],
   total: 4,
+  extras: { "01K9VYQ2N3X8R4T7B0M6D5C1FA": { comments: 3, attachments: 1 } },
+};
+
+const comments = {
+  entry_id: "01K9VYQ2N3X8R4T7B0M6D5C1FA",
+  comments: [
+    { id: "01K9VYQ2N3X8R4T7B0M6D5C1G1", author: "dana", at: "2026-07-27T18:02:00Z", text: "שמרת את הקבלה?" },
+    { id: "01K9VYQ2N3X8R4T7B0M6D5C1G2", author: "yarden", at: "2026-07-27T18:05:00Z", text: "Yes, attaching it now. The wine was 60 of it." },
+    { id: "01K9VYQ2N3X8R4T7B0M6D5C1G3", author: "noa", at: "2026-07-28T07:40:00Z", text: "תודה! אז זה 224 מכולת ו־60 בילויים" },
+  ],
+};
+
+// A 1x1 PNG, so the thumbnail has something to draw without a network.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
+const attachments = {
+  entry_id: "01K9VYQ2N3X8R4T7B0M6D5C1FA",
+  attachments: [{ name: "01K9VYQ2N3X8R4T7B0M6D5C1H1.png", size: 68, content_type: "image/png" }],
 };
 
 const balances = {
@@ -197,6 +217,9 @@ const historyDetail = {
 };
 
 const ROUTES = [
+  [/\/attachments\/[^/]+$/, () => PNG, "image/png"],
+  [/\/attachments$/, () => attachments],
+  [/\/comments/, () => comments],
   [/\/history\/[0-9a-f]{7,}/, () => historyDetail],
   [/\/history/, () => historyFeed],
   [/\/suggest/, () => ({ payee: null, amount: null, bucket: null, shares: [], items: [], place_name: null, confidence: 0, basis: "none", reason: "Nothing similar yet.", sample_size: 0 })],
@@ -278,10 +301,12 @@ for (const [device, viewport] of VIEWPORTS) {
       const url = route.request().url();
       const match = ROUTES.find(([pattern]) => pattern.test(url));
       if (!match) return route.fulfill({ status: 404, body: '{"error":{"code":"nf","message":"no stub"}}' });
+      const [, produce, contentType] = match;
+      const body = produce();
       await route.fulfill({
         status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(match[1]()),
+        contentType: contentType ?? "application/json",
+        body: contentType ? body : JSON.stringify(body),
       });
     });
 
@@ -329,11 +354,34 @@ for (const [device, viewport] of VIEWPORTS) {
     await page.waitForTimeout(400);
     await page.screenshot({ path: join(OUT, `${device}-${language}-history-open.png`), fullPage: true });
 
+    // An entry opened on its conversation, and the same entry's split and receipts.
+    await page.goto(`http://localhost:${PORT}/entries`, { waitUntil: "networkidle" });
+    await page.locator("[data-entry]").first().click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-entry-open.png`), fullPage: true });
+    await page.getByRole("button", { name: /^(Comments|תגובות)/ }).first().click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-entry-comments.png`), fullPage: true });
+
     // The quick-add dialog is reachable from every screen, so it gets its own shot.
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: /add entry|הוספת תנועה/i }).first().click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(OUT, `${device}-${language}-quickadd.png`) });
+
+    // The split editor, in the mode that needs typing, so the derived amounts show.
+    await page.getByPlaceholder("50.00").fill("120");
+    await page.getByRole("button", { name: /Custom split|חלוקה מותאמת/ }).click();
+    await page.getByRole("tab", { name: /^(Percent|אחוזים)$/ }).click();
+    const percents = page.getByLabel(/Percent|אחוזים/);
+    for (const [index, value] of ["40", "30", "20", "10"].entries()) {
+      await percents.nth(index).fill(value);
+    }
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-split.png`) });
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /add entry|הוספת תנועה/i }).first().click();
+    await page.waitForTimeout(300);
 
     // The map is lazy-loaded and pulls real tiles, so give it a moment to settle.
     const setLocation = page.getByRole("button", { name: /Add a location|הוספת מיקום|Change|שינוי/ });

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AddAttachmentData, AddAttachmentErrors, AddAttachmentResponses, AddCommentData, AddCommentErrors, AddCommentResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteAttachmentData, DeleteAttachmentErrors, DeleteAttachmentResponses, DeleteCommentData, DeleteCommentErrors, DeleteCommentResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAttachmentData, GetAttachmentErrors, GetAttachmentResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListAttachmentsData, ListAttachmentsErrors, ListAttachmentsResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListCommentsData, ListCommentsErrors, ListCommentsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -377,6 +377,69 @@ export const putEntryNote = <ThrowOnError extends boolean = false>(options: Opti
         ...options.headers
     }
 });
+
+/**
+ * The conversation under an entry
+ */
+export const listComments = <ThrowOnError extends boolean = false>(options: Options<ListCommentsData, ThrowOnError>): RequestResult<ListCommentsResponses, ListCommentsErrors, ThrowOnError> => (options.client ?? client).get<ListCommentsResponses, ListCommentsErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments', ...options });
+
+/**
+ * Say something under an entry
+ *
+ * Appends and returns the whole thread, so a client can render the reply in place
+ * without a second round trip — the thread is short by nature.
+ */
+export const addComment = <ThrowOnError extends boolean = false>(options: Options<AddCommentData, ThrowOnError>): RequestResult<AddCommentResponses, AddCommentErrors, ThrowOnError> => (options.client ?? client).post<AddCommentResponses, AddCommentErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Take back something you said
+ *
+ * Only the author. A comment is attributed speech, and removing someone else's words
+ * from a shared record is not an edit anybody should be able to make silently.
+ */
+export const deleteComment = <ThrowOnError extends boolean = false>(options: Options<DeleteCommentData, ThrowOnError>): RequestResult<DeleteCommentResponses, DeleteCommentErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCommentResponses, DeleteCommentErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments/{comment_id}', ...options });
+
+/**
+ * Files kept beside an entry
+ */
+export const listAttachments = <ThrowOnError extends boolean = false>(options: Options<ListAttachmentsData, ThrowOnError>): RequestResult<ListAttachmentsResponses, ListAttachmentsErrors, ThrowOnError> => (options.client ?? client).get<ListAttachmentsResponses, ListAttachmentsErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments', ...options });
+
+/**
+ * Attach a receipt photo or PDF
+ *
+ * The body is the file itself.
+ *
+ * Raw bytes rather than multipart: there is exactly one file per request, so a multipart
+ * envelope would add a parser dependency and a field name for nothing. The type comes from
+ * the Content-Type header when it names one we accept, else from `media_type` — a
+ * generated client sends the schema's octet-stream header and cannot say more.
+ */
+export const addAttachment = <ThrowOnError extends boolean = false>(options: Options<AddAttachmentData, ThrowOnError>): RequestResult<AddAttachmentResponses, AddAttachmentErrors, ThrowOnError> => (options.client ?? client).post<AddAttachmentResponses, AddAttachmentErrors, ThrowOnError>({
+    bodySerializer: null,
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments',
+    ...options,
+    headers: {
+        'content-type': 'application/octet-stream',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove a file from an entry
+ */
+export const deleteAttachment = <ThrowOnError extends boolean = false>(options: Options<DeleteAttachmentData, ThrowOnError>): RequestResult<DeleteAttachmentResponses, DeleteAttachmentErrors, ThrowOnError> => (options.client ?? client).delete<DeleteAttachmentResponses, DeleteAttachmentErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments/{name}', ...options });
+
+/**
+ * The file itself
+ */
+export const getAttachment = <ThrowOnError extends boolean = false>(options: Options<GetAttachmentData, ThrowOnError>): RequestResult<GetAttachmentResponses, GetAttachmentErrors, ThrowOnError> => (options.client ?? client).get<GetAttachmentResponses, GetAttachmentErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments/{name}', ...options });
 
 /**
  * Show how an entry would be split, without saving it

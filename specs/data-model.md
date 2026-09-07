@@ -17,6 +17,8 @@ people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
 scheduled.yaml                     # recurring entries, optional
 notes/<entry-id>.md                # long-form note for one entry, optional
+comments/<entry-id>.yaml           # the conversation under one entry, optional
+attachments/<entry-id>/<ulid>.jpg  # receipt photos and PDFs, optional
 README.md                          # generated; explains this layout to a human
 .money/schema-version              # integer, currently 1
 ```
@@ -267,6 +269,48 @@ An entry's `note` field is a one-liner. Anything longer lives in `notes/<entry-i
 markdown: a paragraph explaining why a split is uneven belongs somewhere a diff shows line by
 line, and somewhere a person can read without picking it out of YAML. Writing an empty note
 deletes the file rather than leaving an empty one.
+
+## Comments
+
+The conversation under an entry: "did you keep the receipt?" — "yes, attached". A comment is
+a *said* thing, not a fact about the purchase, so it is not a field of the entry. It lives in
+`comments/<entry-id>.yaml`, one list, oldest first:
+
+```yaml
+- id: 01K9VYQ2N3X8R4T7B0M6D5C1G1
+  author: dana
+  at: 2026-07-27T18:02:00Z
+  text: שמרת את הקבלה?
+```
+
+- `author` is a person id, resolved from the acting member. It is attribution, so only the
+  author can remove a comment; editing is not offered at all — take it back and say it again.
+- `at` is timezone-aware, unlike an entry's `at`. An entry's time answers "which day was
+  this", a local judgement; a message time answers "who said what first", which has to
+  compare across two phones in two time zones.
+- The file is appended to and pruned, never reshaped, and sorted by id (a ULID, so by time),
+  so two people replying at once rebase cleanly. The last comment removed removes the file.
+- One comment is one commit — `comment: dana on שופרסל דיל`, with `Entry-Id` and
+  `Comment-Id` trailers — so a thread is auditable like everything else.
+
+## Attachments
+
+Receipt photos and PDFs live in the repo, under `attachments/<entry-id>/`. In the repo rather
+than a blob store for the reason everything else is: a receipt that exists only on the
+server this app runs on is a receipt you lose when the app goes.
+
+- The stored name is a ULID plus the type's extension. Two photos taken a second apart never
+  collide, and a person browsing the repo can still open them. The phone's own name is not
+  kept: they are all `IMG_4821.jpg`.
+- Five types are accepted — JPEG, PNG, WebP, HEIC, PDF — and nothing else. The repo is
+  cloned by every member, and "attach a file" must not become "put an executable in a repo
+  people clone".
+- 🟠 **8 MB per file**, enforced by the store so every client hits the same wall. That is a
+  phone photo. Git does not deduplicate or diff binaries, so a year of receipts is a clone
+  measured in hundreds of megabytes; if that ever bites, the fix is resizing on the client
+  before upload, not a different store. Nothing is parsed out of a photo yet.
+- Adding or removing one is one commit with an `Entry-Id` trailer, so it appears in the
+  entry's history and in the feed.
 
 ## Schema Version
 

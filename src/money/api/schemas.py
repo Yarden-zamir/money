@@ -14,7 +14,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 from money.domain.derive import Balance, BucketState, Settlement
-from money.domain.models import Bucket, Entry, EntryKind, Member, Month
+from money.domain.models import Bucket, Comment, Entry, EntryKind, Member, Month
 
 
 class ShareInput(BaseModel):
@@ -100,9 +100,42 @@ class EntryResponse(BaseModel):
     commit: str = Field(description="Sha of the commit that recorded this change")
 
 
+class EntryExtras(BaseModel):
+    """What hangs off an entry without being part of it, counted for a badge on a row."""
+
+    comments: int = 0
+    attachments: int = 0
+
+
 class EntryList(BaseModel):
     entries: list[Entry]
     total: int
+    extras: dict[str, EntryExtras] = Field(
+        default_factory=dict,
+        description="Per entry id, only for entries that have comments or attachments",
+    )
+
+
+class CommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class CommentList(BaseModel):
+    entry_id: str
+    comments: list[Comment] = Field(description="Oldest first")
+
+
+class AttachmentResponse(BaseModel):
+    name: str = Field(description="Path segment under attachments/<entry-id>/")
+    size: int
+    content_type: str
+
+
+class AttachmentList(BaseModel):
+    entry_id: str
+    attachments: list[AttachmentResponse]
 
 
 class HistoryList(BaseModel):

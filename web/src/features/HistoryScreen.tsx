@@ -34,6 +34,8 @@ const KIND_ICONS = {
   rules: "sliders",
   members: "swap",
   note: "list",
+  comment: "message",
+  attachment: "paperclip",
   scheduled: "repeat",
   undo: "undo",
   other: "clock",

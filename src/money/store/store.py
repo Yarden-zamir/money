@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Any
 
 from money.domain.amounts import ZERO
-from money.domain.models import Bucket, Budget, Entry, Member, Scheduled, Target
+from money.domain.models import Bucket, Budget, Comment, Entry, Member, Scheduled, Target
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
@@ -161,6 +161,51 @@ def note_path(entry_id: str) -> str:
     return f"notes/{entry_id}.md"
 
 
+def comments_path(entry_id: str) -> str:
+    return f"comments/{entry_id}.yaml"
+
+
+def attachments_prefix(entry_id: str) -> str:
+    return f"attachments/{entry_id}/"
+
+
+@dataclass(frozen=True)
+class Attachment:
+    """A file kept beside an entry: a receipt photo, a PDF invoice.
+
+    Stored in the data repo rather than in a blob store, for the same reason everything else
+    is: the repo is the budget, and a receipt that only exists on a server this app runs on
+    is a receipt you lose when the app goes. The cost is repo size — see specs/data-model.md
+    for the limit that keeps it sane.
+    """
+
+    name: str
+    size: int
+    content_type: str
+
+
+# What a receipt can be. Anything else is refused: the repo is shared by everyone in the
+# budget, and "attach a file" must not become "put an executable in a repo people clone".
+ATTACHMENT_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/heic": ".heic",
+    "application/pdf": ".pdf",
+}
+
+# Enough for a phone photo of a receipt, small enough that a year of them does not make the
+# clone slow. Revisit if photos are ever resized client-side, which would allow a lower cap.
+ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024
+
+
+def _content_type_of(name: str) -> str:
+    for content_type, extension in ATTACHMENT_TYPES.items():
+        if name.endswith(extension):
+            return content_type
+    return "application/octet-stream"
+
+
 class BudgetStore:
     def __init__(self, repo: GitRepo, cache: Any | None = None) -> None:
         self.repo = repo
@@ -259,6 +304,55 @@ class BudgetStore:
         without picking it out of YAML.
         """
         return self.repo.read(note_path(entry_id))
+
+    def comments(self, entry_id: str) -> list[Comment]:
+        """The conversation under one entry, oldest first — the order it was said in."""
+        raw = yamlio.load(self.repo.read(comments_path(entry_id))) or []
+        return sorted((Comment.model_validate(item) for item in raw), key=lambda c: c.id)
+
+    def attachments(self, entry_id: str) -> list[Attachment]:
+        """The files kept beside one entry, in the order they were added (names are ULIDs)."""
+        found: list[Attachment] = []
+        for path in self.repo.list_files(attachments_prefix(entry_id)):
+            name = path.rsplit("/", 1)[-1]
+            data = self.repo.read_bytes(path)
+            if data is None:
+                continue
+            found.append(Attachment(name=name, size=len(data), content_type=_content_type_of(name)))
+        return found
+
+    def attachment(self, entry_id: str, name: str) -> bytes | None:
+        # The name is a path segment written by us, but it arrives back from a URL: refuse
+        # anything that could climb out of the entry's own directory.
+        if "/" in name or name in ("", ".", ".."):
+            return None
+        return self.repo.read_bytes(attachments_prefix(entry_id) + name)
+
+    def extras(self, entry_ids: list[str]) -> dict[str, tuple[int, int]]:
+        """(comment count, attachment count) per entry, for badges on a list.
+
+        Two `ls-files` calls and a parse of only the comment files that exist, so the common
+        case — a ledger where a handful of entries have a conversation — costs nothing
+        proportional to the ledger.
+        """
+        wanted = set(entry_ids)
+        comment_counts: dict[str, int] = {}
+        for path in self.repo.list_files("comments/"):
+            entry_id = path.removeprefix("comments/").removesuffix(".yaml")
+            if entry_id in wanted:
+                comment_counts[entry_id] = len(yamlio.load(self.repo.read(path)) or [])
+
+        attachment_counts: dict[str, int] = {}
+        for path in self.repo.list_files("attachments/"):
+            entry_id = path.removeprefix("attachments/").split("/", 1)[0]
+            if entry_id in wanted:
+                attachment_counts[entry_id] = attachment_counts.get(entry_id, 0) + 1
+
+        return {
+            entry_id: (comment_counts.get(entry_id, 0), attachment_counts.get(entry_id, 0))
+            for entry_id in entry_ids
+            if entry_id in comment_counts or entry_id in attachment_counts
+        }
 
     def schema_version(self) -> int:
         raw = self.repo.read(".money/schema-version")
@@ -575,6 +669,100 @@ class BudgetStore:
             trailers={"Entry-Id": entry_id},
         )
 
+    def add_comment(self, entry_id: str, comment: Comment, actor: Actor) -> str:
+        """Append one message. The file is only ever appended to or pruned, never rewritten
+        into a different shape, so two people replying at once rebase cleanly."""
+        found = self.find_entry(entry_id)
+        if found is None:
+            raise DataError(f"no entry {entry_id}")
+
+        def mutate() -> list[str]:
+            existing = self.comments(entry_id)
+            self._write_comments(entry_id, [*existing, comment])
+            return [comments_path(entry_id)]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"comment: {comment.author} on {found[0].payee}",
+            trailers={"Entry-Id": entry_id, "Comment-Id": comment.id},
+        )
+
+    def delete_comment(self, entry_id: str, comment_id: str, actor: Actor) -> str:
+        found = self.find_entry(entry_id)
+        if found is None:
+            raise DataError(f"no entry {entry_id}")
+
+        def mutate() -> list[str]:
+            remaining = [c for c in self.comments(entry_id) if c.id != comment_id]
+            self._write_comments(entry_id, remaining)
+            return [comments_path(entry_id)]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"comment: remove on {found[0].payee}",
+            trailers={"Entry-Id": entry_id, "Comment-Id": comment_id},
+        )
+
+    def add_attachment(
+        self, entry_id: str, name: str, content_type: str, data: bytes, actor: Actor
+    ) -> str:
+        """Commit one file beside an entry.
+
+        The stored name is a ULID plus the type's extension, so two photos taken a second
+        apart never collide and a person browsing the repo can still open them. The original
+        filename is not kept: phones name everything IMG_4821.jpg.
+        """
+        found = self.find_entry(entry_id)
+        if found is None:
+            raise DataError(f"no entry {entry_id}")
+        if content_type not in ATTACHMENT_TYPES:
+            raise DataError(
+                f"{content_type} is not a supported attachment type; "
+                f"use one of {', '.join(sorted(ATTACHMENT_TYPES))}"
+            )
+        if len(data) == 0:
+            raise DataError("the attachment is empty")
+        if len(data) > ATTACHMENT_MAX_BYTES:
+            raise DataError(
+                f"the attachment is {len(data) // 1024} kB; "
+                f"the limit is {ATTACHMENT_MAX_BYTES // 1024} kB"
+            )
+
+        path = attachments_prefix(entry_id) + name
+
+        def mutate() -> list[str]:
+            self.repo.write_bytes(path, data)
+            return [path]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"attachment: add {name} to {found[0].payee}",
+            trailers={"Entry-Id": entry_id},
+        )
+
+    def delete_attachment(self, entry_id: str, name: str, actor: Actor) -> str:
+        found = self.find_entry(entry_id)
+        if found is None:
+            raise DataError(f"no entry {entry_id}")
+        if self.attachment(entry_id, name) is None:
+            raise DataError(f"no attachment {name} on entry {entry_id}")
+
+        path = attachments_prefix(entry_id) + name
+
+        def mutate() -> list[str]:
+            self.repo.delete(path)
+            return [path]
+
+        return self._commit(
+            mutate,
+            actor=actor,
+            subject=f"attachment: remove {name} from {found[0].payee}",
+            trailers={"Entry-Id": entry_id},
+        )
+
     def initialize(self, budget: Budget, buckets: list[Bucket], actor: Actor) -> str:
         """Write `budget.yaml` and the first member's buckets into an empty repo.
 
@@ -680,6 +868,21 @@ class BudgetStore:
                 [
                     b.model_dump(mode="python", exclude_none=True)
                     for b in sorted(buckets, key=_bucket_sort_key)
+                ]
+            ),
+        )
+
+    def _write_comments(self, entry_id: str, comments: list[Comment]) -> None:
+        """Oldest first, and no file at all once the last comment is gone."""
+        if not comments:
+            self.repo.delete(comments_path(entry_id))
+            return
+        self.repo.write(
+            comments_path(entry_id),
+            yamlio.dump(
+                [
+                    c.model_dump(mode="python", exclude_none=True)
+                    for c in sorted(comments, key=lambda c: c.id)
                 ]
             ),
         )

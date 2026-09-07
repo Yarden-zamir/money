@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  addAttachmentMutation,
   createEntryMutation,
   listBucketsOptions,
   listRulesOptions,
@@ -20,10 +21,12 @@ import type { PickedPlace } from "./LocationPicker";
 const LocationPicker = lazy(() =>
   import("./LocationPicker").then((m) => ({ default: m.LocationPicker })),
 );
-import { SplitEditor, evenSplit, type PaidRow, type ShareRow } from "./SplitEditor";
+import { SplitEditor, computeShares, emptyDraft, type PaidRow, type SplitDraft } from "./SplitEditor";
+import { AttachmentPicker, acceptableAttachment } from "./Attachments";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
 import { Money } from "@/components/Money";
+import { nameFor } from "@/lib/members";
 
 const KINDS = ["expense", "income", "transfer", "settlement"] as const;
 type Kind = (typeof KINDS)[number];
@@ -57,10 +60,11 @@ export function AddEntry({
   const [bucket, setBucket] = useState("");
   const [note, setNote] = useState("");
 
-  // Off by default: most entries are handled by the rules, and showing eight inputs for a
-  // coffee would bury the common case. On, it exposes both halves of the split.
+  // Off by default: most entries are handled by the bucket's split, and showing the editor
+  // for a coffee would bury the common case. On, it takes the split as a decision — equally,
+  // by percent, by shares — and derives the amounts.
   const [custom, setCustom] = useState(false);
-  const [shares, setShares] = useState<ShareRow[]>([]);
+  const [draft, setDraft] = useState<SplitDraft>(() => emptyDraft(budget.members, ""));
   const [paidBy, setPaidBy] = useState<PaidRow[]>([]);
 
   // Which fields the app filled, so a marker can disappear the moment one is edited: once it
@@ -77,6 +81,9 @@ export function AddEntry({
   const [items, setItems] = useState<ReceiptLine[]>([]);
   const [place, setPlace] = useState<PickedPlace | null>(null);
   const [picking, setPicking] = useState(false);
+  // A receipt photo chosen before the entry exists. Uploaded right after the save, because
+  // an attachment hangs off an entry id and there is none until the commit lands.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const { coords } = useCoords(true);
   const nearby = useNearbyPlaces(coords);
@@ -153,6 +160,7 @@ export function AddEntry({
   };
 
   const lineTotal = items.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+  const computed = computeShares(draft, budget.members, signed(amount));
 
   const body = () => ({
     amount: signed(amount),
@@ -183,17 +191,17 @@ export function AddEntry({
     payee,
     date,
     kind,
-    ...(usesBucket(kind) && bucket && !custom ? { bucket } : {}),
+    // Sent even with a custom split: a share whose bucket is blank inherits it server-side,
+    // so choosing a bucket once on the form is enough.
+    ...(usesBucket(kind) && bucket ? { bucket } : {}),
     ...(note ? { note } : {}),
     ...(custom
       ? {
-          shares: shares
-            .filter((row) => row.amount !== "")
-            .map((row) => ({
-              person: row.person,
-              amount: row.amount,
-              bucket: usesBucket(kind) && row.bucket ? row.bucket : null,
-            })),
+          shares: computed.shares.map((row) => ({
+            person: row.person,
+            amount: row.amount,
+            bucket: usesBucket(kind) && row.bucket ? row.bucket : null,
+          })),
           paid_by: Object.fromEntries(
             paidBy.filter((row) => row.amount !== "").map((row) => [row.person, row.amount]),
           ),
@@ -201,21 +209,54 @@ export function AddEntry({
       : {}),
   });
 
-  /** Seed the editor from the current form so it opens with something sensible, not blanks. */
+  /** Open the editor seeded from the form, so it starts from "everyone, equally, this bucket". */
   const openCustom = () => {
-    const total = signed(amount);
-    setShares(evenSplit(budget.members, total, usesBucket(kind) ? bucket : ""));
-    setPaidBy([{ person: budget.me ?? budget.members[0]?.person ?? "", amount: total }]);
+    setDraft((current) => ({ ...current, bucket: usesBucket(kind) ? bucket : "" }));
+    setPaidBy([
+      { person: budget.me ?? budget.members[0]?.person ?? "", amount: signed(amount) },
+    ]);
     setCustom(true);
   };
 
-  // Shows what the rules will do before anything is written, which is the whole point of
-  // having rules you cannot see from the form.
+  // Keeps the single payer's amount in step with the total while the editor is open.
+  useEffect(() => {
+    if (!custom || paidBy.length !== 1) return;
+    const total = signed(amount);
+    setPaidBy((rows) => (rows[0] && rows[0].amount !== total ? [{ ...rows[0], amount: total }] : rows));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amount, kind, custom]);
+
+  // The bucket's split is applied server-side, so the form asks what would happen and shows
+  // it under the fields — the way Splitwise says "paid by you and split equally" under the
+  // amount. Debounced: a keystroke in the payee field must not fire a request each.
   const preview = useMutation(previewSplitMutation());
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
+  const previewable = signed(amount) !== "" && payee.trim() !== "" && !custom;
+  useEffect(() => {
+    if (!previewable) return;
+    const handle = setTimeout(
+      () => previewRef.current.mutate({ path: { budget: budget.slug }, body: body() }),
+      400,
+    );
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewable, amount, payee, kind, bucket, budget.slug]);
+
+  const attach = useMutation(addAttachmentMutation());
 
   const create = useMutation({
     ...createEntryMutation(),
-    onSuccess: () => {
+    onSuccess: async (created) => {
+      if (pendingFile) {
+        await attach.mutateAsync({
+          path: { budget: budget.slug, entry_id: created.entry.id },
+          body: pendingFile,
+          // The generated client sends octet-stream; the real type is what the server
+          // decides the extension from.
+          headers: { "content-type": pendingFile.type },
+        });
+      }
       // Balances, the month view and the ledger all derive from entries, so refresh
       // everything rather than trying to name each affected query.
       void queryClient.invalidateQueries();
@@ -229,16 +270,27 @@ export function AddEntry({
   const noBuckets = usesBucket(kind) && buckets.isSuccess && buckets.data.length === 0;
   const bucketMissing =
     usesBucket(kind) && !custom && !bucket && rules.isSuccess && rules.data.length === 0;
+  const customBucketMissing = usesBucket(kind) && custom && !bucket && !draft.bucket;
+
+  const paidTotal = paidBy.reduce((sum, row) => sum + Math.round((Number(row.amount) || 0) * 100), 0);
+  const paidBalanced = !custom || paidTotal === Math.round(Number(signed(amount)) * 100);
 
   const ready =
-    signed(amount) !== "" && payee.trim() !== "" && !noBuckets && !bucketMissing;
+    signed(amount) !== "" &&
+    payee.trim() !== "" &&
+    !noBuckets &&
+    !bucketMissing &&
+    !customBucketMissing &&
+    (!custom || (computed.problem === null && paidBalanced));
+
+  const saving = create.isPending || attach.isPending;
 
   return (
     <form
       className={bare ? "" : "sheet-in mb-4 rounded-card border border-line bg-card p-4"}
       onSubmit={(event) => {
         event.preventDefault();
-        if (ready) create.mutate({ path: { budget: budget.slug }, body: body() });
+        if (ready && !saving) create.mutate({ path: { budget: budget.slug }, body: body() });
       }}
     >
       {/* With no buckets an expense cannot be recorded at all, and every other field here is
@@ -335,7 +387,18 @@ export function AddEntry({
             label={t("entries.bucket")}
             hint={bucketMissing ? t("entries.bucketRequired") : undefined}
           >
-            <Select value={bucket} onChange={(event) => setBucket(event.target.value)}>
+            <Select
+              value={bucket}
+              onChange={(event) => {
+                setBucket(event.target.value);
+                // The editor's bucket follows the form's unless somebody set it apart.
+                setDraft((current) =>
+                  current.bucket === bucket || current.bucket === ""
+                    ? { ...current, bucket: event.target.value }
+                    : current,
+                );
+              }}
+            >
               {/* An empty bucket only works when a rule can fill it in. With no rules it is
                   a choice that cannot succeed, so it becomes a prompt rather than a trap —
                   still the selected value, so the field never shows a bucket nobody picked. */}
@@ -360,57 +423,82 @@ export function AddEntry({
         </Field>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={!ready || create.isPending}>
-          {t("entries.save")}
-        </Button>
-        <Button
-          type="button"
-          variant="quiet"
-          disabled={!ready || preview.isPending}
-          onClick={() => preview.mutate({ path: { budget: budget.slug }, body: body() })}
-        >
-          {t("entries.splitPreview")}
-        </Button>
+      {/* One line that says what will be recorded — who paid, who bears it — before the
+          save, with the editor one press away. Story 1 keeps the common case at zero extra
+          taps; this is what makes the uncommon case one tap rather than a separate screen. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
         {custom ? (
           <>
-            <Button type="button" variant="quiet" onClick={() => setCustom(false)}>
-              {t("entries.useRules")}
-            </Button>
-            <Button
+            <span>
+              {t("split.summary", {
+                paid: paidLabel(paidBy, budget, t),
+                how: t("split.custom"),
+              })}
+            </span>
+            <button
               type="button"
-              variant="quiet"
-              onClick={() =>
-                setShares(
-                  evenSplit(budget.members, signed(amount), usesBucket(kind) ? bucket : ""),
-                )
-              }
+              className="text-brand underline underline-offset-2"
+              onClick={() => setCustom(false)}
             >
-              {t("entries.splitEven")}
-            </Button>
+              {t("entries.useRules")}
+            </button>
           </>
-        ) : (
-          <Button type="button" variant="quiet" onClick={openCustom} disabled={!ready}>
-            {t("entries.customSplit")}
-          </Button>
-        )}
-        <Button type="button" variant="quiet" onClick={onDone}>
-          {t("common.cancel")}
-        </Button>
-
-        {preview.data && (
-          <span className="text-xs text-ink-muted">
-            {preview.data.rule && <>{t("entries.splitBy", { rule: preview.data.rule })} · </>}
+        ) : previewable && preview.data ? (
+          <>
+            <span>
+              {t("split.summary", {
+                paid: t("split.paidBy", {
+                  name: nameFor(budget.me ?? "", budget.members),
+                }),
+                how: preview.data.rule
+                  ? t("split.byRule", { rule: preview.data.rule })
+                  : t("split.byBucket"),
+              })}
+            </span>
             {preview.data.shares.map((share) => (
-              <span key={`${share.person}-${share.bucket}`} className="ms-2">
-                {share.person}{" "}
+              <span key={`${share.person}-${share.bucket}`} className="numeric">
+                {nameFor(share.person, budget.members)}{" "}
                 <Money amount={String(share.amount)} currency={budget.currency} colour={false} />
-                {share.bucket && ` (${share.bucket})`}
               </span>
             ))}
-          </span>
+            <button
+              type="button"
+              className="text-brand underline underline-offset-2"
+              onClick={openCustom}
+            >
+              {t("split.change")}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="text-brand underline underline-offset-2 disabled:opacity-50"
+            disabled={!signed(amount)}
+            onClick={openCustom}
+          >
+            {t("entries.customSplit")}
+          </button>
         )}
       </div>
+
+      {custom && (
+        <>
+          <SplitEditor
+            members={budget.members}
+            buckets={buckets.data ?? []}
+            total={signed(amount)}
+            currency={budget.currency}
+            draft={draft}
+            onDraftChange={setDraft}
+            paidBy={paidBy}
+            onPaidByChange={setPaidBy}
+            showBuckets={usesBucket(kind) && !bucket}
+          />
+          {customBucketMissing && (
+            <p className="mt-1 text-xs text-negative">{t("split.noBucket")}</p>
+          )}
+        </>
+      )}
 
       {/* Location is opt-in detail, so it sits below the fields rather than among them. The
           map only loads when asked for — it is the one screen with a heavy dependency. */}
@@ -474,20 +562,43 @@ export function AddEntry({
         }}
       />
 
-      {custom && (
-        <SplitEditor
-          members={budget.members}
-          buckets={buckets.data ?? []}
-          total={signed(amount)}
-          shares={shares}
-          paidBy={paidBy}
-          onSharesChange={setShares}
-          onPaidByChange={setPaidBy}
-          showBuckets={usesBucket(kind)}
-        />
-      )}
+      <AttachmentPicker
+        file={pendingFile}
+        onPick={(file) => {
+          const problem = acceptableAttachment(file);
+          if (problem) {
+            window.alert(t(problem));
+            return;
+          }
+          setPendingFile(file);
+        }}
+        onClear={() => setPendingFile(null)}
+      />
 
-      <FormError error={create.error ?? preview.error} />
+      {/* Actions last, below whatever was opened above them. They used to sit between the
+          fields and the map, receipt and split editors, so on a phone the Save button — and
+          the error a failed save produced — were above the fold of the thing being edited. */}
+      <FormError error={create.error ?? attach.error ?? preview.error} />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button type="submit" disabled={!ready || saving}>
+          {attach.isPending ? t("attachments.uploading") : t("entries.save")}
+        </Button>
+        <Button type="button" variant="quiet" onClick={onDone}>
+          {t("common.cancel")}
+        </Button>
+      </div>
     </form>
   );
+}
+
+function paidLabel(
+  paidBy: PaidRow[],
+  budget: BudgetSummary,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const payers = paidBy.filter((row) => row.amount !== "");
+  if (payers.length > 1) return t("split.paidByMany", { count: payers.length });
+  return t("split.paidBy", {
+    name: nameFor(payers[0]?.person ?? budget.me ?? "", budget.members),
+  });
 }

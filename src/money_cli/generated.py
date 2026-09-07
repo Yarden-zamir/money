@@ -20,11 +20,15 @@ _root = typer.Typer()
 
 assign_app = typer.Typer(no_args_is_help=True, help="assign commands")
 
+attachment_app = typer.Typer(no_args_is_help=True, help="attachment commands")
+
 auth_app = typer.Typer(no_args_is_help=True, help="auth commands")
 
 bucket_app = typer.Typer(no_args_is_help=True, help="bucket commands")
 
 budget_app = typer.Typer(no_args_is_help=True, help="budget commands")
+
+comment_app = typer.Typer(no_args_is_help=True, help="comment commands")
 
 entry_app = typer.Typer(no_args_is_help=True, help="entry commands")
 
@@ -230,6 +234,24 @@ def assign_move(
     )
 
 
+@attachment_app.command("list", help='Files kept beside an entry')
+def attachment_list(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/attachments",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @auth_app.command("whoami", help='Show the signed-in user')
 def auth_whoami(
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
@@ -399,6 +421,47 @@ def budget_list(
     )
 
 
+@comment_app.command("add", help='Say something under an entry')
+def comment_add(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    text: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"text": text}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/comments",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@comment_app.command("list", help='The conversation under an entry')
+def comment_list(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/comments",
+            query={},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @entry_app.command("add", help='Record an entry')
 def entry_add(
     amount: Annotated[str, typer.Argument(help='Negative for money out, positive for money in')],
@@ -502,6 +565,8 @@ def entry_list(
     bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='')] = None,
     tag: Annotated[str | None, typer.Option("--tag", help='')] = None,
     payee: Annotated[str | None, typer.Option("--payee", help='')] = None,
+    kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
+    q: Annotated[str | None, typer.Option("--q", help='Free text over payee, note, tags, place and receipt lines. Every word must match somewhere.')] = None,
     limit: Annotated[int | None, typer.Option("--limit", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
@@ -510,7 +575,7 @@ def entry_list(
         request(
             "GET",
             f"/budgets/{resolve_budget(budget)}/entries",
-            query={"month": month, "person": person, "bucket": bucket, "tag": tag, "payee": payee, "limit": limit},
+            query={"month": month, "person": person, "bucket": bucket, "tag": tag, "payee": payee, "kind": kind, "q": q, "limit": limit},
             body=None,
         ),
         as_json=json_out,
@@ -887,9 +952,11 @@ def register(app: typer.Typer) -> None:
     """Attach every generated command to the root app."""
     app.registered_commands.extend(_root.registered_commands)
     app.add_typer(assign_app, name="assign")
+    app.add_typer(attachment_app, name="attachment")
     app.add_typer(auth_app, name="auth")
     app.add_typer(bucket_app, name="bucket")
     app.add_typer(budget_app, name="budget")
+    app.add_typer(comment_app, name="comment")
     app.add_typer(entry_app, name="entry")
     app.add_typer(history_app, name="history")
     app.add_typer(key_app, name="key")

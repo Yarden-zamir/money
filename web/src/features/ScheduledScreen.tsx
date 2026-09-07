@@ -300,7 +300,7 @@ function Templates({ budget }: { budget: BudgetSummary }) {
             </div>
 
             {item.last_posted && (
-              <p className="mt-2 text-xs text-ink-muted">
+              <p className="px-3 pb-3 text-xs text-ink-muted sm:px-4">
                 {t("scheduled.lastPosted", { date: String(item.last_posted) })}
               </p>
             )}

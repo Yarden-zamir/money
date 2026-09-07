@@ -40,6 +40,10 @@ mapping file that can drift from the routes.
 and the annotation is visible to any other client that wants it. A route with no `x-cli` is
 still reachable through `money api`; it just gets no dedicated command.
 
+The generator only understands JSON bodies. The attachment upload takes the file as a raw
+body, so it has no command and `money api` cannot call it either — `curl --data-binary` with
+a bearer token is the CLI path for a receipt photo until the generator grows a file option.
+
 `money generate-cli` writes `src/money_cli/generated.py` from the schema. It is checked in and
 regenerated in CI, which fails on a diff — the same rule the TypeScript client follows. Import
 time stays free of network calls and schema parsing, so the CLI starts fast.

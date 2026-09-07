@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, assignToBucket, autoAssign, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteEntry, finishGithubLogin, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listBuckets, listBudgets, listCollaborators, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, addAttachment, addComment, assignToBucket, autoAssign, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteAttachment, deleteComment, deleteEntry, finishGithubLogin, getAttachment, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listAttachments, listBuckets, listBudgets, listCollaborators, listComments, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AddAttachmentData, AddAttachmentError, AddAttachmentResponse, AddCommentData, AddCommentError, AddCommentResponse, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteAttachmentData, DeleteAttachmentError, DeleteAttachmentResponse, DeleteCommentData, DeleteCommentError, DeleteCommentResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAttachmentData, GetAttachmentError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListAttachmentsData, ListAttachmentsError, ListAttachmentsResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListCommentsData, ListCommentsError, ListCommentsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -699,6 +699,141 @@ export const putEntryNoteMutation = (options?: Partial<Options<PutEntryNoteData>
     };
     return mutationOptions;
 };
+
+export const listCommentsQueryKey = (options: Options<ListCommentsData>) => createQueryKey('listComments', options);
+
+/**
+ * The conversation under an entry
+ */
+export const listCommentsOptions = (options: Options<ListCommentsData>) => queryOptions<ListCommentsResponse, ListCommentsError, ListCommentsResponse, ReturnType<typeof listCommentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listComments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCommentsQueryKey(options)
+});
+
+/**
+ * Say something under an entry
+ *
+ * Appends and returns the whole thread, so a client can render the reply in place
+ * without a second round trip — the thread is short by nature.
+ */
+export const addCommentMutation = (options?: Partial<Options<AddCommentData>>): UseMutationOptions<AddCommentResponse, AddCommentError, Options<AddCommentData>> => {
+    const mutationOptions: UseMutationOptions<AddCommentResponse, AddCommentError, Options<AddCommentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addComment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Take back something you said
+ *
+ * Only the author. A comment is attributed speech, and removing someone else's words
+ * from a shared record is not an edit anybody should be able to make silently.
+ */
+export const deleteCommentMutation = (options?: Partial<Options<DeleteCommentData>>): UseMutationOptions<DeleteCommentResponse, DeleteCommentError, Options<DeleteCommentData>> => {
+    const mutationOptions: UseMutationOptions<DeleteCommentResponse, DeleteCommentError, Options<DeleteCommentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteComment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listAttachmentsQueryKey = (options: Options<ListAttachmentsData>) => createQueryKey('listAttachments', options);
+
+/**
+ * Files kept beside an entry
+ */
+export const listAttachmentsOptions = (options: Options<ListAttachmentsData>) => queryOptions<ListAttachmentsResponse, ListAttachmentsError, ListAttachmentsResponse, ReturnType<typeof listAttachmentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listAttachments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listAttachmentsQueryKey(options)
+});
+
+/**
+ * Attach a receipt photo or PDF
+ *
+ * The body is the file itself.
+ *
+ * Raw bytes rather than multipart: there is exactly one file per request, so a multipart
+ * envelope would add a parser dependency and a field name for nothing. The type comes from
+ * the Content-Type header when it names one we accept, else from `media_type` — a
+ * generated client sends the schema's octet-stream header and cannot say more.
+ */
+export const addAttachmentMutation = (options?: Partial<Options<AddAttachmentData>>): UseMutationOptions<AddAttachmentResponse, AddAttachmentError, Options<AddAttachmentData>> => {
+    const mutationOptions: UseMutationOptions<AddAttachmentResponse, AddAttachmentError, Options<AddAttachmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addAttachment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Remove a file from an entry
+ */
+export const deleteAttachmentMutation = (options?: Partial<Options<DeleteAttachmentData>>): UseMutationOptions<DeleteAttachmentResponse, DeleteAttachmentError, Options<DeleteAttachmentData>> => {
+    const mutationOptions: UseMutationOptions<DeleteAttachmentResponse, DeleteAttachmentError, Options<DeleteAttachmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteAttachment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getAttachmentQueryKey = (options: Options<GetAttachmentData>) => createQueryKey('getAttachment', options);
+
+/**
+ * The file itself
+ */
+export const getAttachmentOptions = (options: Options<GetAttachmentData>) => queryOptions<unknown, GetAttachmentError, unknown, ReturnType<typeof getAttachmentQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAttachment({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAttachmentQueryKey(options)
+});
 
 /**
  * Show how an entry would be split, without saving it

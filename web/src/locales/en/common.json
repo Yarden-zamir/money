@@ -86,7 +86,7 @@
     "save": "Save",
     "delete": "Delete",
     "confirmDelete": "Delete this entry?",
-    "splitPreview": "Split",
+    "splitPreview": "Preview split",
     "amountHint": "Just the number — the kind decides the sign",
     "kinds": {
       "expense": "Expense",
@@ -110,12 +110,27 @@
     "tabs": {
       "split": "Split",
       "note": "Note",
-      "history": "History"
+      "history": "History",
+      "comments": "Comments"
     },
     "byRule": "Decided by a rule",
     "chooseBucket": "Choose a bucket",
     "bucketRequired": "No rules exist yet, so pick where this belongs.",
-    "noBucketsYet": "You have no buckets yet, so an expense has nowhere to go. Add one on the month screen first."
+    "noBucketsYet": "You have no buckets yet, so an expense has nowhere to go. Add one on the month screen first.",
+    "receipt": "Receipt lines",
+    "lineLabel": "What was bought",
+    "addLine": "Add line",
+    "at": "At {{place}}",
+    "search": "Search",
+    "searchPlaceholder": "Payee, note, tag, place…",
+    "filterPerson": "Person",
+    "anyone": "Anyone",
+    "filterKind": "Kind",
+    "anyKind": "Any kind",
+    "noMatches": "Nothing matches. Try fewer words, or widen the month.",
+    "clearFilters": "Clear filters",
+    "matches_one": "{{count}} match",
+    "matches_other": "{{count}} matches"
   },
   "balances": {
     "title": "Balances",
@@ -181,7 +196,7 @@
     "chooseFromList": "Choose from list",
     "firstRunHelp": "A budget lives in a private GitHub repo that only you and the people you invite can see. Name it and the repo is created for you.",
     "name": "Budget name",
-    "nameHint": "Shown at the top of every screen",
+    "nameHint": "Shown in the header, next to the app name",
     "namePlaceholder": "Household",
     "currency": "Currency",
     "create": "Create budget",
@@ -221,8 +236,8 @@
     "notAMember": "not a member"
   },
   "rules": {
-    "title": "Split rules",
-    "hint": "First match wins. An empty condition matches everything.",
+    "title": "Rules",
+    "hint": "Which bucket an entry lands in. First match wins, and an empty condition matches everything.",
     "id": "Name",
     "payeeContains": "Payee contains",
     "tag": "Tag",
@@ -236,7 +251,8 @@
     "moveDown": "Move down",
     "anyPayee": "Any payee",
     "anyTag": "Any tag",
-    "noBucket": "No bucket"
+    "noBucket": "No bucket",
+    "bucketHint": "Who bears the spending is set on the bucket, not here."
   },
   "scheduled": {
     "due": "Due now",
@@ -320,5 +336,68 @@
     "switch": "Act as",
     "me": "Me",
     "actingAs": "Acting as {{name}} — commits still record you"
+  },
+  "suggest": {
+    "explain": "Why the app filled this in",
+    "confidence": "{{percent}}% sure, from {{count}} past entries"
+  },
+  "split": {
+    "title": "Split",
+    "paidBy": "Paid by {{name}}",
+    "paidByMany": "Paid by {{count}} people",
+    "summary": "{{paid}} · {{how}}",
+    "byBucket": "split by the bucket",
+    "byRule": "split by rule {{rule}}",
+    "custom": "custom split",
+    "change": "Change",
+    "done": "Done",
+    "modes": {
+      "equal": "Equally",
+      "percent": "Percent",
+      "shares": "Shares",
+      "exact": "Exact",
+      "adjust": "Adjust"
+    },
+    "modeHint": {
+      "equal": "Tick who is in. The rest is arithmetic.",
+      "percent": "Must add up to 100.",
+      "shares": "Relative weights: 2 and 1 means two thirds and one third.",
+      "exact": "Must add up to the amount.",
+      "adjust": "Extra for one person; what remains is split equally."
+    },
+    "remaining": "Remaining",
+    "over": "Over by",
+    "percentTotal": "{{total}}% of 100",
+    "paidSection": "Who paid",
+    "onePayer": "One person paid",
+    "severalPayers": "Several people paid",
+    "bucketForAll": "Bucket for every share",
+    "noBucket": "Pick a bucket, or leave it to the rules by choosing one above."
+  },
+  "comments": {
+    "title": "Comments",
+    "empty": "Nothing said yet. Ask about the receipt, explain the split, leave a note for later.",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "sending": "Sending…",
+    "delete": "Delete",
+    "confirmDelete": "Delete this message?",
+    "you": "You",
+    "count_one": "{{count}} comment",
+    "count_other": "{{count}} comments"
+  },
+  "attachments": {
+    "title": "Receipts",
+    "add": "Add a photo",
+    "addHint": "A photo or PDF, up to 8 MB. Kept in the budget repo beside the entry.",
+    "uploading": "Uploading…",
+    "pending": "Will be attached once the entry is saved",
+    "remove": "Remove",
+    "confirmRemove": "Remove this file?",
+    "open": "Open",
+    "count_one": "{{count}} file",
+    "count_other": "{{count}} files",
+    "tooLarge": "That file is over 8 MB.",
+    "unsupported": "Only photos and PDFs can be attached."
   }
 }

@@ -402,7 +402,9 @@ function MonthActions({
 
   return (
     <div className="space-y-3">
-      <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      {/* Wraps rather than scrolls sideways. As a scroll strip, the last button — Move money,
+          the one story 4b is about — sat past the edge of a phone with nothing to say so. */}
+      <div className="flex flex-wrap items-center gap-2">
         <span className="eyebrow shrink-0">{t("month.autoAssign")}</span>
         {STRATEGIES.map(([strategy, label]) => (
           <Button
@@ -773,11 +775,14 @@ function BucketRow({
               inputClassName="numeric w-20"
               onCommit={(next) => onRetarget(next)}
             />
+            {/* The way into group, split and archive. A 14px glyph is not a touch target,
+                so the hit area is padded out to thumb size without moving the icon. */}
             <button
               type="button"
-              className="ms-1 hover:text-brand"
+              className="-my-2 ms-0.5 flex size-8 items-center justify-center rounded-md hover:bg-sunken hover:text-brand"
               onClick={onEdit}
               title={t("month.moreOptions")}
+              aria-label={t("month.moreOptions")}
             >
               <Icon name="sliders" className="size-3.5" />
             </button>

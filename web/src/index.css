@@ -222,10 +222,16 @@ body {
   transform: scaleX(-1);
 }
 
-/* A consistent hit area. 44px is the smallest comfortable touch target. */
-.control {
-  @apply min-h-11 rounded-lg border border-line bg-card px-3 text-sm text-ink;
-  @apply focus:border-brand focus:ring-2 focus:ring-brand/25 focus:outline-none;
+/* A consistent hit area. 44px is the smallest comfortable touch target.
+
+   In the components layer, not unlayered: an unlayered rule outranks every utility, so a
+   caller's `pe-9` or `min-h-0` silently lost to the padding and height set here — which is
+   how the select's chevron ended up drawn on top of its label. */
+@layer components {
+  .control {
+    @apply min-h-11 rounded-lg border border-line bg-card px-3 text-sm text-ink;
+    @apply focus:border-brand focus:ring-2 focus:ring-brand/25 focus:outline-none;
+  }
 }
 
 /* Keyboard focus must always be visible, including on custom controls. */

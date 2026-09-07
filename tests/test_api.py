@@ -17,7 +17,7 @@ from money.api.app import create_app
 from money.api.deps import BudgetContext, _acting_as, budget_context, writable
 from money.api.errors import ApiError
 from money.store.gitrepo import GitRepo
-from money.store.store import Actor, BudgetStore
+from money.store.store import Actor, BudgetStore, new_id
 
 D = Decimal
 
@@ -800,3 +800,161 @@ class TestActingAsSomebodyElse:
     def test_no_header_means_the_signed_in_account(self, tmp_path) -> None:
         store = self.store_with([{"person": "ghost", "name": "Ghost"}], tmp_path)
         assert _acting_as(store, None) is None
+
+
+class TestSearch:
+    def test_every_word_must_match_somewhere_on_the_entry(self, client: TestClient) -> None:
+        post_entry(client, amount="-50.00", payee="קפה גרג", note="with Dana", date="2026-07-14")
+        post_entry(client, amount="-30.00", payee="קפה גרג", date="2026-07-15")
+        post_entry(client, amount="-90.00", payee="Pizza", tags=["takeaway"], date="2026-07-16")
+
+        by_note = client.get("/api/v1/budgets/joint/entries", params={"q": "גרג dana"}).json()
+        assert [e["note"] for e in by_note["entries"]] == ["with Dana"]
+
+        by_tag = client.get("/api/v1/budgets/joint/entries", params={"q": "takeaway"}).json()
+        assert [e["payee"] for e in by_tag["entries"]] == ["Pizza"]
+
+        nothing = client.get("/api/v1/budgets/joint/entries", params={"q": "גרג pizza"}).json()
+        assert nothing["total"] == 0
+
+    def test_kind_narrows_the_ledger(self, client: TestClient) -> None:
+        post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+        post_entry(client, amount="12000.00", payee="Employer", kind="income", date="2026-07-28")
+
+        income = client.get("/api/v1/budgets/joint/entries", params={"kind": "income"}).json()
+        assert [e["payee"] for e in income["entries"]] == ["Employer"]
+
+
+class TestComments:
+    def test_a_thread_is_appended_to_and_attributed(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/comments"
+
+        first = client.post(url, json={"text": "did you keep the receipt?"})
+        assert first.status_code == 200, first.text
+        second = client.post(url, json={"text": "yes, attaching it"})
+
+        thread = second.json()["comments"]
+        assert [c["text"] for c in thread] == ["did you keep the receipt?", "yes, attaching it"]
+        assert {c["author"] for c in thread} == {"yarden"}
+        assert thread[0]["id"] < thread[1]["id"]  # ULIDs keep the order it was said in
+        assert thread[0]["at"].endswith("Z") or "+" in thread[0]["at"]  # absolute, not local
+
+        listed = client.get(url).json()
+        assert listed == second.json()
+
+    def test_a_comment_is_a_commit_the_history_can_name(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        client.post(f"/api/v1/budgets/joint/entries/{entry['id']}/comments", json={"text": "hi"})
+
+        feed = client.get("/api/v1/budgets/joint/history").json()["events"]
+        assert feed[0]["kind"] == "comment"
+        assert feed[0]["entry_id"] == entry["id"]
+
+    def test_only_the_author_can_remove_a_comment(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/comments"
+        comment = client.post(url, json={"text": "oops"}).json()["comments"][0]
+
+        # Something Dana said, written through the store because the client fixture pins
+        # the caller to Yarden. The route's rule is what is under test, not the fixture.
+        from datetime import UTC, datetime
+
+        from money.domain.models import Comment
+
+        context = client.app.dependency_overrides[budget_context]()
+        hers = Comment(id=new_id(), author="dana", at=datetime.now(UTC), text="mine")
+        context.store.add_comment(entry["id"], hers, context.actor)
+
+        not_mine = client.delete(f"{url}/{hers.id}")
+        assert not_mine.status_code == 403
+        assert len(client.get(url).json()["comments"]) == 2
+
+        mine = client.delete(f"{url}/{comment['id']}")
+        assert mine.status_code == 200
+        assert [c["id"] for c in mine.json()["comments"]] == [hers.id]
+
+    def test_the_list_carries_counts_for_badges(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        post_entry(client, amount="-30.00", payee="Quiet", date="2026-07-15")
+        client.post(f"/api/v1/budgets/joint/entries/{entry['id']}/comments", json={"text": "a"})
+        client.post(f"/api/v1/budgets/joint/entries/{entry['id']}/comments", json={"text": "b"})
+
+        listed = client.get("/api/v1/budgets/joint/entries").json()
+        assert listed["extras"] == {entry["id"]: {"comments": 2, "attachments": 0}}
+
+
+class TestAttachments:
+    JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+
+    def test_a_receipt_photo_is_committed_beside_the_entry(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/attachments"
+
+        uploaded = client.post(url, content=self.JPEG, headers={"Content-Type": "image/jpeg"})
+        assert uploaded.status_code == 200, uploaded.text
+        [attachment] = uploaded.json()["attachments"]
+        assert attachment["name"].endswith(".jpg")
+        assert attachment["content_type"] == "image/jpeg"
+        assert attachment["size"] == len(self.JPEG)
+
+        fetched = client.get(f"{url}/{attachment['name']}")
+        assert fetched.status_code == 200
+        assert fetched.content == self.JPEG
+        assert fetched.headers["content-type"] == "image/jpeg"
+        assert "immutable" in fetched.headers["cache-control"]
+
+        feed = client.get("/api/v1/budgets/joint/history").json()["events"]
+        assert feed[0]["kind"] == "attachment"
+
+        listed = client.get("/api/v1/budgets/joint/entries").json()
+        assert listed["extras"][entry["id"]]["attachments"] == 1
+
+    def test_a_generated_client_names_the_type_in_the_query(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/attachments"
+
+        uploaded = client.post(
+            url,
+            content=b"%PDF-1.4 ...",
+            params={"media_type": "application/pdf"},
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        assert uploaded.status_code == 200, uploaded.text
+        assert uploaded.json()["attachments"][0]["name"].endswith(".pdf")
+
+    def test_anything_but_a_receipt_shaped_file_is_refused(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/attachments"
+
+        refused = client.post(url, content=b"#!/bin/sh", headers={"Content-Type": "text/x-sh"})
+        assert refused.status_code == 400
+        assert refused.json()["error"]["code"] == "unsupported_attachment"
+        assert client.get(url).json()["attachments"] == []
+
+    def test_a_removed_attachment_is_gone_from_the_list_and_the_url(
+        self, client: TestClient
+    ) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/attachments"
+        [attachment] = client.post(
+            url, content=self.JPEG, headers={"Content-Type": "image/jpeg"}
+        ).json()["attachments"]
+
+        removed = client.delete(f"{url}/{attachment['name']}")
+        assert removed.status_code == 200
+        assert removed.json()["attachments"] == []
+        assert client.get(f"{url}/{attachment['name']}").status_code == 404
+
+    def test_a_name_cannot_climb_out_of_the_entry_directory(self, client: TestClient) -> None:
+        entry = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"]
+        url = f"/api/v1/budgets/joint/entries/{entry['id']}/attachments"
+
+        # The router never matches a name with a slash in it, so the request falls through
+        # to the SPA — which is fine, as long as the budget file is not what comes back.
+        answered = client.get(f"{url}/..%2Fbudget.yaml")
+        assert "start_month" not in answered.text
+
+        context = client.app.dependency_overrides[budget_context]()
+        assert context.store.attachment(entry["id"], "../budget.yaml") is None
+        assert context.store.attachment(entry["id"], "..") is None

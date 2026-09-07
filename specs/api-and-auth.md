@@ -69,7 +69,7 @@ POST   /budgets                              connect an existing GitHub repo as 
 POST   /budgets/create                       create the repo AND the first budget.yaml
 GET    /budgets/{budget}                     identity, members, currency, data branch
 
-GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee
+GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee, kind; q= searches
 POST   /budgets/{budget}/entries             create; applies rules unless split is given
 GET    /budgets/{budget}/entries/{id}
 PATCH  /budgets/{budget}/entries/{id}
@@ -77,6 +77,13 @@ DELETE /budgets/{budget}/entries/{id}
 GET    /budgets/{budget}/entries/{id}/history   commits touching this entry
 GET    /budgets/{budget}/entries/{id}/note      long-form markdown note
 PUT    /budgets/{budget}/entries/{id}/note      write it; empty text removes the file
+GET    /budgets/{budget}/entries/{id}/comments  the conversation, oldest first
+POST   /budgets/{budget}/entries/{id}/comments  say something; returns the whole thread
+DELETE /budgets/{budget}/entries/{id}/comments/{comment}   only your own
+GET    /budgets/{budget}/entries/{id}/attachments          files beside the entry
+POST   /budgets/{budget}/entries/{id}/attachments          the file is the body; typed by Content-Type
+GET    /budgets/{budget}/entries/{id}/attachments/{name}   the bytes, cached as immutable
+DELETE /budgets/{budget}/entries/{id}/attachments/{name}
 
 GET    /budgets/{budget}/buckets                every bucket, with its split
 PUT    /budgets/{budget}/buckets/order          reposition several buckets in one commit
@@ -129,6 +136,30 @@ GET    /readyz                               liveness plus data-repo reachabilit
 
 `POST /entries` returns the created entry **and** the commit sha that recorded it, so a client
 can link straight to the diff.
+
+`GET /entries` carries `extras`: per entry id, how many comments and attachments hang off it,
+only for entries that have any. Two `ls-files` calls, so a list costs nothing proportional
+to the ledger. `q` is free text: every word must appear somewhere in the payee, note, tags,
+place name or receipt lines. People and amounts are deliberately not searched — a person's
+id is on every entry the rules split with them, and "50" would match every entry in the
+fifties; the `person` filter and the amount columns are the tools for those.
+
+## Comments And Attachments
+
+A comment thread is returned whole on every write, because it is short by nature and a
+client rendering a reply then needs no second round trip — and a reply that crossed with
+yours arrives in the same response. Only the author may delete; a comment is attributed
+speech, and removing somebody else's words from a shared record is not an edit anyone should
+make silently. The author is the acting member, so a placeholder driven through `X-Act-As`
+can hold a conversation.
+
+An attachment upload is the file as the request body, not multipart: there is one file per
+request, and a multipart envelope would add a parser dependency and a field name for
+nothing. The type comes from `Content-Type` when it names one the store accepts, else from
+`?media_type=` — the generated TypeScript client sends the schema's `application/octet-stream`
+and cannot say more, so it names the type itself. Unsupported types are `unsupported_attachment`;
+over the limit is `attachment_too_large` with status 413. Downloads are marked
+`immutable`, because the name is a ULID and the same URL never serves different bytes.
 
 A settlement names its `payer`, defaulting to the caller. The person who is *owed* is usually
 the one holding the phone when the money arrives, and if their partner does not use the app
@@ -227,6 +258,9 @@ against the previous state rather than restating the request:
   same names is reported as reordered or edited, which is otherwise indistinguishable from
   nothing happening.
 - **notes** — the entry's payee, not its ULID.
+- **comments and attachments** — `comment: dana on קפה גרג`, `attachment: add
+  01K….jpg to קפה גרג`. Both carry an `Entry-Id` trailer so the entry's own history lists
+  them.
 
 Subjects carry no bidi control characters. Laying out a mixed-script line is the client's
 job; the repo is meant to read on its own terms, and a commit message full of invisible

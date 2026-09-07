@@ -103,6 +103,40 @@ export type AssignRequest = {
 };
 
 /**
+ * AttachmentList
+ */
+export type AttachmentList = {
+    /**
+     * Entry Id
+     */
+    entry_id: string;
+    /**
+     * Attachments
+     */
+    attachments: Array<AttachmentResponse>;
+};
+
+/**
+ * AttachmentResponse
+ */
+export type AttachmentResponse = {
+    /**
+     * Name
+     *
+     * Path segment under attachments/<entry-id>/
+     */
+    name: string;
+    /**
+     * Size
+     */
+    size: number;
+    /**
+     * Content Type
+     */
+    content_type: string;
+};
+
+/**
  * AuthConfig
  */
 export type AuthConfig = {
@@ -471,6 +505,64 @@ export type CollaboratorResponse = {
 };
 
 /**
+ * Comment
+ *
+ * One message in the conversation under an entry.
+ *
+ * A comment is a *said* thing, not a field of the entry: "did you get the receipt?" is not
+ * a fact about the purchase. So it lives in `comments/<entry-id>.yaml`, appended to rather
+ * than edited, and is attributed to a member rather than to whoever edited the entry last.
+ *
+ * `at` is timezone-aware, unlike an entry's `at`: an entry's time answers "which day was
+ * this", a local judgement, whereas a message time answers "who said what first", which
+ * has to compare across two phones in two time zones.
+ */
+export type Comment = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Author
+     */
+    author: string;
+    /**
+     * At
+     */
+    at: string;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * CommentCreate
+ */
+export type CommentCreate = {
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * CommentList
+ */
+export type CommentList = {
+    /**
+     * Entry Id
+     */
+    entry_id: string;
+    /**
+     * Comments
+     *
+     * Oldest first
+     */
+    comments: Array<Comment>;
+};
+
+/**
  * CommitRef
  */
 export type CommitRef = {
@@ -730,6 +822,22 @@ export type EntryCreate = {
 };
 
 /**
+ * EntryExtras
+ *
+ * What hangs off an entry without being part of it, counted for a badge on a row.
+ */
+export type EntryExtras = {
+    /**
+     * Comments
+     */
+    comments?: number;
+    /**
+     * Attachments
+     */
+    attachments?: number;
+};
+
+/**
  * EntryKind
  */
 export type EntryKind = 'expense' | 'income' | 'transfer' | 'settlement';
@@ -746,6 +854,14 @@ export type EntryList = {
      * Total
      */
     total: number;
+    /**
+     * Extras
+     *
+     * Per entry id, only for entries that have comments or attachments
+     */
+    extras?: {
+        [key: string]: EntryExtras;
+    };
 };
 
 /**
@@ -2886,6 +3002,16 @@ export type ListEntriesData = {
          */
         payee?: string | null;
         /**
+         * Kind
+         */
+        kind?: EntryKind | null;
+        /**
+         * Q
+         *
+         * Free text over payee, note, tags, place and receipt lines. Every word must match somewhere.
+         */
+        q?: string | null;
+        /**
          * Limit
          */
         limit?: number;
@@ -3265,6 +3391,338 @@ export type PutEntryNoteResponses = {
 };
 
 export type PutEntryNoteResponse = PutEntryNoteResponses[keyof PutEntryNoteResponses];
+
+export type ListCommentsData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments';
+};
+
+export type ListCommentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListCommentsError = ListCommentsErrors[keyof ListCommentsErrors];
+
+export type ListCommentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: CommentList;
+};
+
+export type ListCommentsResponse = ListCommentsResponses[keyof ListCommentsResponses];
+
+export type AddCommentData = {
+    body: CommentCreate;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments';
+};
+
+export type AddCommentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddCommentError = AddCommentErrors[keyof AddCommentErrors];
+
+export type AddCommentResponses = {
+    /**
+     * Successful Response
+     */
+    200: CommentList;
+};
+
+export type AddCommentResponse = AddCommentResponses[keyof AddCommentResponses];
+
+export type DeleteCommentData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Comment Id
+         */
+        comment_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/comments/{comment_id}';
+};
+
+export type DeleteCommentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteCommentError = DeleteCommentErrors[keyof DeleteCommentErrors];
+
+export type DeleteCommentResponses = {
+    /**
+     * Successful Response
+     */
+    200: CommentList;
+};
+
+export type DeleteCommentResponse = DeleteCommentResponses[keyof DeleteCommentResponses];
+
+export type ListAttachmentsData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments';
+};
+
+export type ListAttachmentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListAttachmentsError = ListAttachmentsErrors[keyof ListAttachmentsErrors];
+
+export type ListAttachmentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: AttachmentList;
+};
+
+export type ListAttachmentsResponse = ListAttachmentsResponses[keyof ListAttachmentsResponses];
+
+export type AddAttachmentData = {
+    /**
+     * Data
+     */
+    body: Blob | File;
+    headers?: {
+        /**
+         * Content-Type
+         */
+        'content-type'?: string | null;
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: {
+        /**
+         * Media Type
+         *
+         * The file's type when the Content-Type header cannot carry it
+         */
+        media_type?: string | null;
+    };
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments';
+};
+
+export type AddAttachmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddAttachmentError = AddAttachmentErrors[keyof AddAttachmentErrors];
+
+export type AddAttachmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: AttachmentList;
+};
+
+export type AddAttachmentResponse = AddAttachmentResponses[keyof AddAttachmentResponses];
+
+export type DeleteAttachmentData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments/{name}';
+};
+
+export type DeleteAttachmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteAttachmentError = DeleteAttachmentErrors[keyof DeleteAttachmentErrors];
+
+export type DeleteAttachmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: AttachmentList;
+};
+
+export type DeleteAttachmentResponse = DeleteAttachmentResponses[keyof DeleteAttachmentResponses];
+
+export type GetAttachmentData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Name
+         */
+        name: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments/{name}';
+};
+
+export type GetAttachmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetAttachmentError = GetAttachmentErrors[keyof GetAttachmentErrors];
+
+export type GetAttachmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type PreviewSplitData = {
     body: EntryCreate;

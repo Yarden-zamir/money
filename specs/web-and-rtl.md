@@ -33,7 +33,9 @@ The rules that keep it working:
   class: the text engine flips them, and flipping again would point them the wrong way.
 
 Translations live in `src/locales/{he,en}/*.json`. `en` is the source of truth for keys, and a
-missing key falls back to English rather than rendering a raw key.
+missing Hebrew key falls back to English rather than rendering a raw key. A missing *English*
+key has no fallback and renders as the key itself — `entries.receipt` shipped that way — so
+`tests/test_rtl.py` also checks that every literal `t("…")` key in the code exists in `en`.
 
 ## Dependency Pins
 
@@ -71,7 +73,10 @@ Adding an expense is a floating action fixed above the tab bar, because that is 
 open the app to do. Destructive actions are never on a row — delete lives inside a row's
 expanded panel, so it cannot be hit while scrolling.
 
-Controls are at least 44px tall (`.control`, `Button`).
+Controls are at least 44px tall (`.control`, `Button`). `.control` is declared in
+`@layer components`, not unlayered: an unlayered rule outranks every Tailwind utility, so a
+caller's `pe-9` or `min-h-0` lost to it silently, which is how the select's chevron came to
+be drawn over its own label.
 
 Two width rules with reasons:
 
@@ -276,6 +281,41 @@ styled `div` instead; and a map created in a container that has not been laid ou
 itself as zero and draws one grey tile, so it re-measures after the first paint. The map is
 pinned `dir="ltr"` — Leaflet positions tiles and controls in physical coordinates.
 
+## The Split Editor
+
+Five modes — equally, percent, shares, exact, adjust — and one derived amount per person,
+always on screen. Arithmetic is in whole agorot, never floating point, and the remainder goes
+to the largest share exactly as `money.domain.amounts.allocate` does it, so the figures shown
+are the figures saved. The mode hint states the one constraint the mode has, and the one
+line of red says how far off it is in the unit the mode thinks in: percent points for
+percent, money for exact and adjust. A bucket is chosen once for every share; per-line
+buckets are what receipt lines are for.
+
+Under the form, before the editor is opened, a summary line asks the server what the rules
+will do (debounced) and states it: *Paid by Yarden · split by the bucket: Yarden ₪25, Dana
+₪25*. That line is the preview button's replacement — the answer is on screen rather than
+behind a tap.
+
+## Comments
+
+Chat, not a list: own messages at the inline end, others at the start with the member's
+colour on the bubble's start edge. The message text has `dir="auto"` and is rendered as
+plain text, not through `Bidi`: a message is written in whichever script its author thinks
+in, so its base direction comes from its own first strong character, and `dir="auto"` skips
+isolated runs when choosing — wrapping the text in `<bdi>` runs left a Hebrew sentence with
+a number in it laid out left to right. Enter sends; Shift+Enter is the newline. The thread
+polls every four seconds while open, and a sent message is shown optimistically and replaced
+by the server's thread, which is returned whole on every write.
+
+## Attachments
+
+`AttachmentPicker` on the add form holds a file until the entry exists, then uploads it in
+the `createEntry` success handler before closing the dialog. `capture="environment"` opens
+the camera on a phone. The type and size limits are mirrored client-side so a phone finds
+out before the upload; the server's `ATTACHMENT_TYPES` and `ATTACHMENT_MAX_BYTES` are the
+source of truth and the two must be kept in step. Thumbnails are the file itself loaded from
+its URL with the session cookie — not a hand-written fetch — and PDFs show a paperclip.
+
 ## Mixed Scripts
 
 A subject is a template plus a name someone chose, so Hebrew lands mid-sentence among
@@ -321,6 +361,9 @@ Conventions that exist because they drifted once already:
   the inline start, secondary next, and anything destructive pushed to the inline end. Screens
   used to arrange their own buttons and disagreed, so the blue button landed on a different
   side depending where you were.
+- **The header names the budget.** The wordmark is followed by the current budget's name,
+  because with two budgets nothing else on screen said which one this was, and the create
+  form promises the name will be visible.
 - **Every field has a visible label.** Placeholders are not labels: they disappear the moment
   a field is filled, which left the member editor as three anonymous boxes once it had data.
   Placeholders carry examples, not names.
@@ -354,12 +397,14 @@ the API, which has a real decimal type.
   of the month" is a question about the group; and a severity edge marks overspent rows only.
   The summary strip states income, assigned, ready-to-assign and how many envelopes are
   overspent — a single hero number answered none of the last three.
-- **Entries** — ledger with filters, inline split editor showing both dimensions (buckets and
-  people) at once, and a link to the commit that recorded each change.
+- **Entries** — ledger with search and filters, comment and attachment counts on each row,
+  and a detail panel with four tabs: split (with the receipt files), comments, note, history.
+  Rows carry `data-entry` so a screenshot can open one without depending on a label.
 - **Balances** — net position per person and the suggested settle-up, with a one-tap
   settlement. The Splitwise half.
-- **Rules** — edit default splits, with a live preview against a sample entry so the effect is
-  visible before saving.
+- **Rules** — which bucket an entry lands in, first match wins. A rule carries no split: who
+  bears the spending belongs to the bucket (see `funding-and-split.md`), and the screen says
+  so under the bucket field.
 - **Settings** — budgets, API keys, language.
 
 ## Auth In The Browser

@@ -39,7 +39,13 @@ difference between the two, folded from history on every read.
 ```
 
 Rules supply the split by default, so the common case is one line of input. They apply at
-creation time only — editing a rule never rewrites what already happened.
+creation time only — editing a rule never rewrites what already happened. When the split is
+not the default, it is a decision — equally, by percent, by shares, exact, or "plus 60 for
+the wine" — and the amounts follow.
+
+An entry can carry a conversation (`comments/<id>.yaml`, shown as chat) and receipt photos
+(`attachments/<id>/`), both committed to the same repo, so the question "what was this 284
+shekel charge" has an answer six weeks later.
 
 ## Using It
 
@@ -53,6 +59,9 @@ money entry preview -- -284.51 "שופרסל דיל"       # what would the rule
 money month 2026-07
 money balance
 money settle dana --amount 25.00
+
+money entry list --q "wine dana"                  # every word must match somewhere
+money comment add 01K9VYQ2N3X8R4T7B0M6D5C1FA "did you keep the receipt?"
 
 money api /budgets/joint/entries --query month=2026-07   # raw escape hatch
 ```
@@ -111,7 +120,8 @@ Behaviour contracts, kept true as the code changes:
 [API and auth](specs/api-and-auth.md) ·
 [CLI](specs/cli.md) ·
 [Web and RTL](specs/web-and-rtl.md) ·
-[Deployment](specs/deployment.md)
+[Deployment](specs/deployment.md) ·
+[Currency (plan)](specs/currency.md)
 
 ## License
 

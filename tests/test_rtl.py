@@ -183,7 +183,8 @@ def test_both_locales_define_the_same_keys() -> None:
     hebrew = flatten(json.loads((WEB_SRC / "locales/he/common.json").read_text("utf-8")))
 
     assert english - hebrew == set(), f"missing Hebrew translations: {sorted(english - hebrew)}"
-    orphans = sorted(hebrew - english)
+    # Hebrew has plural categories English lacks (`_two`), which are not orphans.
+    orphans = sorted(key for key in hebrew - english if not key.endswith("_two"))
     assert not orphans, f"Hebrew keys with no English source: {orphans}"
 
 
@@ -191,3 +192,34 @@ def test_the_document_starts_in_hebrew() -> None:
     index = (WEB_SRC.parent / "index.html").read_text(encoding="utf-8")
     assert 'lang="he"' in index
     assert 'dir="rtl"' in index
+
+
+def test_every_translation_key_the_code_uses_exists() -> None:
+    """A key with no English string renders as the key itself.
+
+    `entries.receipt` shipped that way: the fallback for a missing Hebrew key is English, but
+    the fallback for a missing English key is the raw key, and nothing failed. Only literal
+    `t("a.b")` calls are checked; keys built with a template are a screen's own business.
+    """
+    import json
+
+    def flatten(data: dict, prefix: str = "") -> set[str]:
+        keys: set[str] = set()
+        for key, value in data.items():
+            path = f"{prefix}{key}"
+            if isinstance(value, dict):
+                keys |= flatten(value, f"{path}.")
+            else:
+                keys.add(path)
+        return keys
+
+    english = flatten(json.loads((WEB_SRC / "locales/en/common.json").read_text("utf-8")))
+    # i18next resolves `t("x.count", {count})` to `x.count_one` / `x.count_other`, so a
+    # plural key is present when its forms are.
+    english |= {key.rsplit("_", 1)[0] for key in english if key.endswith(("_one", "_other"))}
+    used: set[str] = set()
+    for path in app_sources():
+        used |= set(re.findall(r'\bt\(\s*"([A-Za-z0-9_.]+)"', code_of(path)))
+
+    missing = sorted(used - english)
+    assert not missing, f"translation keys used in code but not in en/common.json: {missing}"

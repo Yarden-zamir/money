@@ -213,6 +213,13 @@ class GitRepo:
             return None
         return target.read_text(encoding="utf-8")
 
+    def read_bytes(self, relative: str) -> bytes | None:
+        """Raw contents, for attachments. Text files go through `read`."""
+        target = self.path / relative
+        if not target.exists():
+            return None
+        return target.read_bytes()
+
     def list_files(self, prefix: str) -> list[str]:
         output = self._run("ls-files", "--", prefix)
         return sorted(line for line in output.splitlines() if line)
@@ -240,6 +247,11 @@ class GitRepo:
         target = self.path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
+
+    def write_bytes(self, relative: str, content: bytes) -> None:
+        target = self.path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
 
     def delete(self, relative: str) -> None:
         target = self.path / relative

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -7,8 +7,9 @@ import {
   listBucketsOptions,
   listEntriesOptions,
 } from "@/api/@tanstack/react-query.gen";
-import type { BudgetSummary, Entry } from "@/api/types.gen";
-import { Card, Select } from "@/components/Form";
+import type { BudgetSummary, Entry, EntryExtras } from "@/api/types.gen";
+import { Button, Card, Input, Select } from "@/components/Form";
+import { Icon } from "@/components/Icon";
 import { Money } from "@/components/Money";
 import { ListSkeleton } from "@/components/Skeleton";
 import { ErrorState } from "@/components/States";
@@ -17,17 +18,44 @@ import { EntryDetail } from "./EntryDetail";
 import { useBudget } from "./useBudget";
 
 const RECENT_MONTHS = 12;
+const KINDS = ["expense", "income", "transfer", "settlement"] as const;
 
 export function EntriesScreen() {
   const { t, i18n } = useTranslation();
   const { budget, isPending: budgetPending } = useBudget();
   const [month, setMonth] = useState<string>(currentMonth);
   const [bucket, setBucket] = useState("");
+  const [person, setPerson] = useState("");
+  const [kind, setKind] = useState("");
+  const [search, setSearch] = useState("");
+  // What actually goes to the server: the search box, a few hundred milliseconds after the
+  // last keystroke. Every keystroke is a ledger read otherwise.
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const handle = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  // Typing a search widens the month to "all": somebody searching is looking for something
+  // they cannot place, and the one month on screen is the least likely place for it to be.
+  // Only on the first character, so a month chosen afterwards stays chosen.
+  useEffect(() => {
+    if (search.length === 1) setMonth("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.length === 1]);
+
+  const filtered = Boolean(query || bucket || person || kind || month !== currentMonth());
 
   const entries = useQuery({
     ...listEntriesOptions({
       path: { budget: budget?.slug ?? "" },
-      query: { ...(month ? { month } : {}), ...(bucket ? { bucket } : {}) },
+      query: {
+        ...(month ? { month } : {}),
+        ...(bucket ? { bucket } : {}),
+        ...(person ? { person } : {}),
+        ...(kind ? { kind: kind as (typeof KINDS)[number] } : {}),
+        ...(query ? { q: query } : {}),
+      },
     }),
     enabled: Boolean(budget),
     // Changing month or bucket filters the same list. Emptying the screen between the two
@@ -52,57 +80,136 @@ export function EntriesScreen() {
 
   const total = entries.data.entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
+  const clear = () => {
+    setSearch("");
+    setQuery("");
+    setBucket("");
+    setPerson("");
+    setKind("");
+    setMonth(currentMonth());
+  };
+
   return (
-    <section className="space-y-4">
+    <section
+      className={`space-y-4 transition-opacity ${entries.isPlaceholderData ? "opacity-60" : ""}`}
+      aria-busy={entries.isPlaceholderData}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">{t("entries.title")}</h1>
         <span className="text-sm text-ink-muted">
           <Money amount={total.toFixed(2)} currency={budget.currency} colour={false} />
         </span>
+        {filtered && (
+          <span className="text-xs text-ink-muted">
+            · {t("entries.matches", { count: entries.data.total })}
+          </span>
+        )}
+      </div>
 
-        <div className="ms-auto flex gap-2">
+      {/* Search first, then the narrowing filters. The box is full width on a phone because
+          typing is the filter people reach for; the selects wrap under it. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-0 flex-1 basis-56">
+          <span className="sr-only">{t("entries.search")}</span>
+          <Icon
+            name="search"
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted"
+          />
+          <Input
+            type="search"
+            className="h-10 min-h-0 ps-9"
+            placeholder={t("entries.searchPlaceholder")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
+
+        <Select
+          fullWidth={false}
+          className="h-10 min-h-0 w-auto text-xs"
+          value={month}
+          onChange={(event) => setMonth(event.target.value)}
+          aria-label={t("entries.filterMonth")}
+        >
+          <option value="">{t("entries.filterAll")}</option>
+          {months.map((candidate) => (
+            <option key={candidate} value={candidate}>
+              {formatMonth(candidate, i18n.language)}
+            </option>
+          ))}
+        </Select>
+
+        <Select
+          fullWidth={false}
+          className="h-10 min-h-0 w-auto text-xs"
+          value={bucket}
+          onChange={(event) => setBucket(event.target.value)}
+          aria-label={t("entries.bucket")}
+        >
+          <option value="">{t("entries.allBuckets")}</option>
+          {(buckets.data ?? []).map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </Select>
+
+        {budget.members.length > 1 && (
           <Select
             fullWidth={false}
             className="h-10 min-h-0 w-auto text-xs"
-            value={month}
-            onChange={(event) => setMonth(event.target.value)}
-            aria-label={t("entries.filterMonth")}
+            value={person}
+            onChange={(event) => setPerson(event.target.value)}
+            aria-label={t("entries.filterPerson")}
           >
-            <option value="">{t("entries.filterAll")}</option>
-            {months.map((candidate) => (
-              <option key={candidate} value={candidate}>
-                {formatMonth(candidate, i18n.language)}
+            <option value="">{t("entries.anyone")}</option>
+            {budget.members.map((member) => (
+              <option key={member.person} value={member.person}>
+                {member.name}
               </option>
             ))}
           </Select>
+        )}
 
-          <Select
-            fullWidth={false}
-            className="h-10 min-h-0 w-auto text-xs"
-            value={bucket}
-            onChange={(event) => setBucket(event.target.value)}
-            aria-label={t("entries.bucket")}
-          >
-            <option value="">{t("entries.allBuckets")}</option>
-            {(buckets.data ?? []).map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <Select
+          fullWidth={false}
+          className="h-10 min-h-0 w-auto text-xs"
+          value={kind}
+          onChange={(event) => setKind(event.target.value)}
+          aria-label={t("entries.filterKind")}
+        >
+          <option value="">{t("entries.anyKind")}</option>
+          {KINDS.map((option) => (
+            <option key={option} value={option}>
+              {t(`entries.kinds.${option}`)}
+            </option>
+          ))}
+        </Select>
+
+        {filtered && (
+          <Button variant="ghost" className="min-h-9 px-3 text-xs" onClick={clear}>
+            {t("entries.clearFilters")}
+          </Button>
+        )}
       </div>
 
       {entries.data.entries.length === 0 ? (
-        <Card className="p-6 text-center text-ink-muted">{t("entries.empty")}</Card>
+        <Card className="p-6 text-center text-ink-muted">
+          {filtered ? t("entries.noMatches") : t("entries.empty")}
+        </Card>
       ) : (
         <Card className="divide-y divide-line overflow-hidden">
           {entries.data.entries.map((entry) => (
-            <EntryRow key={entry.id} entry={entry} budget={budget} bucketNames={names} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              budget={budget}
+              bucketNames={names}
+              extras={entries.data.extras?.[entry.id]}
+            />
           ))}
         </Card>
       )}
-
     </section>
   );
 }
@@ -111,10 +218,12 @@ function EntryRow({
   entry,
   budget,
   bucketNames,
+  extras,
 }: {
   entry: Entry;
   budget: BudgetSummary;
   bucketNames: Map<string, string>;
+  extras: EntryExtras | undefined;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -145,6 +254,8 @@ function EntryRow({
         type="button"
         className="flex w-full items-center gap-3 p-3 text-start hover:bg-surface sm:px-4"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        data-entry={entry.id}
       >
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{entry.payee}</div>
@@ -152,6 +263,26 @@ function EntryRow({
             <span className="numeric">{formatDate(entry.date, i18n.language)}</span>
             {buckets.length > 0 && <span>· {buckets.join(", ")}</span>}
             {shared && <span>· {t("entries.shared")}</span>}
+            {/* What hangs off the entry, so a conversation or a receipt is findable from
+                the list rather than only by opening every row. */}
+            {extras?.comments ? (
+              <span
+                className="inline-flex items-center gap-0.5"
+                title={t("comments.count", { count: extras.comments })}
+              >
+                <Icon name="message" className="size-3" />
+                <span className="numeric">{extras.comments}</span>
+              </span>
+            ) : null}
+            {extras?.attachments ? (
+              <span
+                className="inline-flex items-center gap-0.5"
+                title={t("attachments.count", { count: extras.attachments })}
+              >
+                <Icon name="paperclip" className="size-3" />
+                <span className="numeric">{extras.attachments}</span>
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -171,6 +302,7 @@ function EntryRow({
           entry={entry}
           budget={budget}
           bucketNames={bucketNames}
+          extras={extras}
           onDeleted={() => {
             if (window.confirm(t("entries.confirmDelete"))) {
               remove.mutate({ path: { budget: budget.slug, entry_id: entry.id } });

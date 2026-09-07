@@ -54,7 +54,27 @@ These are the yardstick for UI changes: a change that makes any of these longer 
   buckets at all the form says so before anything else, because every other field is then
   wasted typing.
 
-`Split` previews what the rules will do before saving, for the cases where that matters.
+A line under the fields says what will be recorded — *Paid by Yarden · split by the bucket:
+Yarden ₪25, Dana ₪25* — as soon as there is an amount and a payee, so the common case needs
+no preview button. `Change` on that line opens the split editor.
+
+## 1b. It was not an even split
+
+*I paid for dinner; she had the wine.*
+
+**`+` → amount, payee → Change → Adjust → +60 for Dana → Save.** Two more taps than the
+common case, and no arithmetic.
+
+The editor takes the split as a decision, in one of five modes — equally (tick who is in),
+percent, shares (relative weights), exact amounts, or adjust (a fixed extra for someone, the
+rest equal) — and derives the amounts, showing each person's figure live. The remainder is
+allocated the way the backend does it, largest share takes the rounding, so what is shown is
+what is saved and it never fails validation. The first version asked for amounts per person
+and refused anything that did not add up; that is the shape the ledger stores and the wrong
+shape to type at a till. Splitwise offers the same five modes; here they cost no extra
+screen.
+
+Who paid is one select, with *several people paid* a link away.
 
 ## 2. Can we afford to eat out tonight?
 
@@ -85,16 +105,19 @@ who deliberately over-assigned should not have it silently clawed back.
 *End of month. Square up.*
 
 **Balances tab.** It states the answer in words — "You are owed" — above any table, then the
-suggested transfers. The `Settle` button appears **only** on the row where the signed-in
-person is the one who owes: the API records whatever it is asked to, so a button on the other
-row would make it one tap to move a balance the wrong way.
+suggested transfers. `Settle` appears on every transfer the signed-in person is a side of,
+from either side, because the person who is owed is usually the one holding the phone when
+the money arrives — and if their partner does not use the app nobody else could record it.
+The button confirms in words which way the payment goes, and names the payer explicitly in
+the request, so recording it from the receiving side cannot book it backwards.
 
 ## 4b. Cover an overspend
 
 *Eating out is red and it is the 20th.*
 
 **Month tab → `Move money`.** One action moves from one envelope to another and refuses to
-move more than the source holds. Editing two assignment figures instead means doing the
+move more than the source holds. The action strip wraps rather than scrolling sideways, so
+this button is on screen at phone width instead of past its edge. Editing two assignment figures instead means doing the
 arithmetic yourself and leaving the budget briefly wrong between the two saves.
 
 That is **one commit**, not two. It used to write each side separately, which meant the repo
@@ -109,6 +132,34 @@ story exists to avoid, made observable to anyone reading the history.
 it to show each person's share, which bucket it hit, who paid, and which rule produced the
 split. Delete lives inside that expanded panel, not on the row, so it cannot be hit by
 accident while scrolling.
+
+## 5b. Which entry was that?
+
+*Some shop, some time this spring, I think Dana mentioned wine.*
+
+**Entries tab → type in the search box.** Every word has to match somewhere on the entry —
+payee, note, tags, place, receipt lines — and typing widens the month to *all*, because
+someone searching is looking for what they cannot place. Person and kind filters sit beside
+the month and bucket ones. Rows show a comment or paperclip count, so a conversation or a
+receipt is findable from the list rather than by opening every row.
+
+## 5c. Ask about an entry
+
+*"Did you keep the receipt?" — without leaving the ledger.*
+
+**Entries tab → row → Comments → type → Enter.** A chat under the entry: your messages at the
+inline end, everyone else's at the start with their colour, timestamps in the reader's
+locale. The thread polls every few seconds while it is open, so a reply arrives without a
+refresh, and your own message shows at once. Only its author can delete a message.
+
+## 5d. Keep the receipt
+
+*I will not remember what this 284 was.*
+
+**`+` → Add a photo → camera → Save**, or on an existing entry, **row → Add a photo.** The
+photo is committed beside the entry and shows as a thumbnail that opens full size. A photo
+chosen on the add form is uploaded right after the save, because an attachment hangs off an
+entry id and there is none until the commit lands. Nothing is read out of the photo yet.
 
 ## 6. Add a partner to the budget
 

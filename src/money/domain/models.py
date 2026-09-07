@@ -224,6 +224,24 @@ def _by_person_and_bucket(shares: list[Share]) -> dict[tuple[str, str | None], D
     return {key: value for key, value in totals.items() if value != ZERO}
 
 
+class Comment(Base):
+    """One message in the conversation under an entry.
+
+    A comment is a *said* thing, not a field of the entry: "did you get the receipt?" is not
+    a fact about the purchase. So it lives in `comments/<entry-id>.yaml`, appended to rather
+    than edited, and is attributed to a member rather than to whoever edited the entry last.
+
+    `at` is timezone-aware, unlike an entry's `at`: an entry's time answers "which day was
+    this", a local judgement, whereas a message time answers "who said what first", which
+    has to compare across two phones in two time zones.
+    """
+
+    id: str = Field(pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")  # ULID
+    author: PersonId
+    at: datetime
+    text: str = Field(min_length=1, max_length=4000)
+
+
 class Target(Base):
     kind: str = Field(pattern=r"^(monthly|by_date|none)$")
     amount: Decimal | None = None

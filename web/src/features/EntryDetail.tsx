@@ -8,9 +8,11 @@ import {
   putEntryNoteMutation,
   updateEntryMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type { BudgetSummary, Entry } from "@/api/types.gen";
+import type { BudgetSummary, Entry, EntryExtras } from "@/api/types.gen";
 import { Button, Field, FormError, Input } from "@/components/Form";
 import { Money } from "@/components/Money";
+import { Attachments } from "./Attachments";
+import { Comments } from "./Comments";
 
 /**
  * Everything about one entry that does not belong on a scannable row: the full split, the
@@ -23,29 +25,36 @@ export function EntryDetail({
   entry,
   budget,
   bucketNames,
+  extras,
   onDeleted,
 }: {
   entry: Entry;
   budget: BudgetSummary;
   bucketNames: Map<string, string>;
+  extras?: EntryExtras;
   onDeleted: () => void;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"split" | "note" | "history">("split");
+  const [tab, setTab] = useState<"split" | "comments" | "note" | "history">("split");
 
   return (
     <div className="sheet-in border-t border-line bg-surface/60 px-3 py-3 sm:px-4">
-      <div className="mb-3 flex gap-1">
-        {(["split", "note", "history"] as const).map((name) => (
+      <div className="mb-3 flex flex-wrap gap-1">
+        {(["split", "comments", "note", "history"] as const).map((name) => (
           <button
             key={name}
             type="button"
             onClick={() => setTab(name)}
-            className={`rounded-lg px-2.5 py-1 text-xs transition ${
+            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition ${
               tab === name ? "bg-brand-soft font-medium text-brand" : "text-ink-muted"
             }`}
           >
             {t(`entries.tabs.${name}`)}
+            {name === "comments" && extras?.comments ? (
+              <span className="numeric rounded-full bg-line px-1.5 text-[10px]">
+                {extras.comments}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -53,6 +62,7 @@ export function EntryDetail({
       {tab === "split" && (
         <SplitTab entry={entry} budget={budget} bucketNames={bucketNames} onDeleted={onDeleted} />
       )}
+      {tab === "comments" && <Comments entryId={entry.id} budget={budget} />}
       {tab === "note" && <NoteTab entry={entry} budget={budget} />}
       {tab === "history" && <HistoryTab entry={entry} budget={budget} />}
     </div>
@@ -132,6 +142,8 @@ function SplitTab({
       {entry.rule && (
         <div className="text-ink-muted">{t("entries.splitBy", { rule: entry.rule })}</div>
       )}
+
+      <Attachments budget={budget.slug} entryId={entry.id} canWrite={budget.can_write} />
 
       {budget.can_write && (
         <div className="flex gap-2 pt-1">
