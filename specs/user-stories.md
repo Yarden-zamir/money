@@ -54,27 +54,37 @@ These are the yardstick for UI changes: a change that makes any of these longer 
   buckets at all the form says so before anything else, because every other field is then
   wasted typing.
 
-A line under the fields says what will be recorded — *Paid by Yarden · split by the bucket:
-Yarden ₪25, Dana ₪25* — as soon as there is an amount and a payee, so the common case needs
-no preview button. `Change` on that line opens the split editor.
+The split panel is **always on the form**, pre-filled from the bucket's default, so what
+will be recorded is on screen before the save rather than applied out of sight. The common
+case still costs nothing: the default is already selected. A line above it names the rule
+and bucket when no bucket was chosen by hand.
 
 ## 1b. It was not an even split
 
-*I paid for dinner; she had the wine.*
+*I paid for dinner; she had the wine.* — **Adjust → +60 for Dana → Save.**
 
-**`+` → amount, payee → Change → Adjust → +60 for Dana → Save.** Two more taps than the
-common case, and no arithmetic.
+*I ate alone.* — **Just me → Save.** One tap. This is the case that made the panel
+permanent: with the default applied silently, a solo meal in a shared food bucket came out
+split in half and nothing on screen said so.
 
-The editor takes the split as a decision, in one of five modes — equally (tick who is in),
-percent, shares (relative weights), exact amounts, or adjust (a fixed extra for someone, the
-rest equal) — and derives the amounts, showing each person's figure live. The remainder is
-allocated the way the backend does it, largest share takes the rounding, so what is shown is
-what is saved and it never fails validation. The first version asked for amounts per person
-and refused anything that did not add up; that is the shape the ledger stores and the wrong
-shape to type at a till. Splitwise offers the same five modes; here they cost no extra
+*One receipt, and the wine was hers.* — **Receipt lines → By item → untick me on the wine
+→ Save.** Each line is shared equally by whoever is ticked on it, and the entry's shares are
+the per-person sums. The lines are sent with their own splits, so the ledger records which
+line was whose.
+
+Seven modes, then: just me, equally (tick who is in), percent, shares (relative weights),
+exact amounts, adjust (a fixed extra for someone, the rest equal), and by item when there
+are receipt lines. The amounts are derived and shown live; the remainder is allocated the
+way the backend does it, largest share takes the rounding, so what is shown is what is saved
+and it never fails validation. Splitwise offers the same modes; here they cost no extra
 screen.
 
 Who paid is one select, with *several people paid* a link away.
+
+The bucket's default split — the thing the panel opens with — is edited with the **same
+panel** on the bucket's options, minus the money-shaped modes: just me, equally, percent or
+shares, shown as the percentage each works out to. A default and an entry's split are the
+same decision at two different times, and should not need two vocabularies.
 
 ## 2. Can we afford to eat out tonight?
 

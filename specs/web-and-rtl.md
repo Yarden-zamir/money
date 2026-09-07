@@ -283,18 +283,29 @@ pinned `dir="ltr"` — Leaflet positions tiles and controls in physical coordina
 
 ## The Split Editor
 
-Five modes — equally, percent, shares, exact, adjust — and one derived amount per person,
-always on screen. Arithmetic is in whole agorot, never floating point, and the remainder goes
-to the largest share exactly as `money.domain.amounts.allocate` does it, so the figures shown
-are the figures saved. The mode hint states the one constraint the mode has, and the one
-line of red says how far off it is in the unit the mode thinks in: percent points for
-percent, money for exact and adjust. A bucket is chosen once for every share; per-line
-buckets are what receipt lines are for.
+Always on the add form, never behind a button. Seven modes — just me, equally, percent,
+shares, exact, adjust, and by item once there are receipt lines — and one derived amount per
+person, always on screen. Arithmetic is in whole agorot, never floating point, and the
+remainder goes to the largest share exactly as `money.domain.amounts.allocate` does it, so
+the figures shown are the figures saved. The mode hint states the one constraint the mode
+has, and the one line of red says how far off it is in the unit the mode thinks in: percent
+points for percent, money for exact and adjust, a line number for by item.
 
-Under the form, before the editor is opened, a summary line asks the server what the rules
-will do (debounced) and states it: *Paid by Yarden · split by the bucket: Yarden ₪25, Dana
-₪25*. That line is the preview button's replacement — the answer is on screen rather than
-behind a tap.
+The panel **follows the bucket** until the person touches it: choosing a bucket, or a rule
+choosing one server-side (asked for with a debounced preview when no bucket is picked),
+re-seeds the draft from that bucket's default — `draftFromRatio` turns an even split into
+*equally, everyone* and anything else into *percent*. After the first edit it stops
+following, so a mode the person chose is not undone by a payee autocomplete.
+
+The form always sends explicit `shares` and `paid_by`. The server still runs the rules to
+pick the bucket under an explicit split, and records the rule only when it decided a bucket
+some share lacked. *By item* sends each line's shares as well, which the server checks add up
+to the entry's.
+
+`RatioEditor` is the same panel with the ratio modes only — just me, equally, percent,
+shares — and a percentage at the end of each row instead of an amount. It edits a bucket's
+default split in basis points, so the fractions sum to exactly 1 and the server's tolerance
+is never needed.
 
 ## Comments
 

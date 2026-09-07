@@ -357,6 +357,12 @@ for (const [device, viewport] of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `${device}-${language}-month-breakdown.png`), fullPage: true });
     }
 
+    // A bucket's options, where the default split is edited with the same panel.
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: /More options|אפשרויות נוספות/ }).first().click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(OUT, `${device}-${language}-bucket-edit.png`), fullPage: true });
+
     // The unconverted chip on a bucket opens the convert panel.
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
     const chip = page.getByRole("button", { name: /Convert the USD|המרת ה־USD/ }).first();
@@ -390,7 +396,6 @@ for (const [device, viewport] of VIEWPORTS) {
 
     // The split editor, in the mode that needs typing, so the derived amounts show.
     await page.getByPlaceholder("50.00").fill("120");
-    await page.getByRole("button", { name: /Custom split|חלוקה מותאמת/ }).click();
     await page.getByRole("tab", { name: /^(Percent|אחוזים)$/ }).click();
     const percents = page.getByLabel(/Percent|אחוזים/);
     for (const [index, value] of ["40", "30", "20", "10"].entries()) {

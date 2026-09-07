@@ -26,7 +26,9 @@ import { ErrorState } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ForeignChips } from "@/components/Foreign";
+import { actingAs } from "@/lib/actingAs";
 import { ConvertBucket } from "./Convert";
+import { RatioEditor, computeRatio, draftFromRatio, type SplitDraft } from "./SplitEditor";
 import { useBudget } from "./useBudget";
 
 /**
@@ -1025,7 +1027,8 @@ function EditBucket({
   const [name, setName] = useState("");
   const [group, setGroup] = useState("");
   const [target, setTarget] = useState("");
-  const [split, setSplit] = useState<Record<string, string>>({});
+  const me = actingAs() ?? members[0]?.person ?? "";
+  const [draft, setDraft] = useState<SplitDraft>(() => draftFromRatio({}, members, bucketId));
   const [loaded, setLoaded] = useState(false);
 
   if (existing && !loaded) {
@@ -1034,21 +1037,15 @@ function EditBucket({
     setTarget(existing.target?.amount != null ? String(existing.target.amount) : "");
     // An unset split shows as the even one it already behaves as, rather than as blanks that
     // look like nobody bears anything.
-    setSplit(
-      Object.fromEntries(
-        Object.entries(splitFor(existing.split as Record<string, string>, members)).map(
-          ([person, share]) => [person, String(Number(share.toFixed(4)))],
-        ),
-      ),
+    setDraft(
+      draftFromRatio(splitFor(existing.split as Record<string, string>, members), members, bucketId),
     );
     setLoaded(true);
   }
 
-  const shares = members.map((member) => Number(split[member.person] ?? 0) || 0);
-  const total = shares.reduce((sum, value) => sum + value, 0);
-  // The API refuses a split that does not sum to 1, and a partial one is a typo rather than
-  // an instruction to normalise. Saying so while typing beats finding out on save.
-  const balanced = Math.abs(total - 1) < 0.0001;
+  // The same panel the entry form uses, minus the money-shaped modes: a default is a ratio.
+  const ratio = computeRatio(draft, members, me);
+  const balanced = ratio.problem === null;
 
   const save = useMutation({
     ...putBucketMutation(),
@@ -1068,7 +1065,7 @@ function EditBucket({
         target: target ? { kind: "monthly", amount: Number(target).toFixed(2) } : null,
         archived,
         split: Object.fromEntries(
-          Object.entries(split).filter(([, share]) => Number(share) > 0),
+          Object.entries(ratio.ratio).map(([person, share]) => [person, String(share)]),
         ),
       },
     });
@@ -1101,47 +1098,8 @@ function EditBucket({
         {/* Who bears spending here. Independent of who funds it, which is what lets an
             envelope be in the red for one person and in the black for another. */}
         <div className="sm:col-span-3">
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="text-xs font-medium text-ink-muted">{t("month.split")}</span>
-            <span className={`numeric text-xs ${balanced ? "text-ink-muted" : "text-negative"}`}>
-              {total.toFixed(2)} / 1.00
-            </span>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {members.map((member) => (
-              <div key={member.person} className="flex items-center gap-2">
-                <MemberDot person={member.person} members={members} />
-                <span className="min-w-0 flex-1 truncate text-sm">{member.name}</span>
-                <Input
-                  fullWidth={false}
-                  aria-label={`${member.name} ${t("month.split")}`}
-                  className="numeric ltr-field w-20 text-end"
-                  inputMode="decimal"
-                  placeholder="0.5"
-                  value={split[member.person] ?? ""}
-                  onChange={(event) =>
-                    setSplit({ ...split, [member.person]: event.target.value })
-                  }
-                />
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="mt-2 text-xs text-brand hover:underline"
-            onClick={() =>
-              setSplit(
-                Object.fromEntries(
-                  members.map((member) => [
-                    member.person,
-                    String(Number((1 / members.length).toFixed(4))),
-                  ]),
-                ),
-              )
-            }
-          >
-            {t("month.splitEvenly")}
-          </button>
+          <div className="mb-2 text-xs font-medium text-ink-muted">{t("month.split")}</div>
+          <RatioEditor members={members} me={me} draft={draft} onDraftChange={setDraft} />
         </div>
 
         <div className="sm:col-span-3">

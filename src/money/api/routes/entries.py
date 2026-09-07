@@ -66,22 +66,10 @@ def _resolve_shares(
     an audit trail. The split is resolved **now** and stored on the entry — editing a bucket's
     split later must not rewrite who owed whom for months of history.
     """
-    # Lines that carry their own split are the most specific thing the caller said, so they
-    # decide the entry's split rather than being checked against a separately supplied one.
-    if body.items and all(item.shares for item in body.items):
-        return [
-            Share(person=share.person, amount=share.amount, bucket=share.bucket or body.bucket)
-            for item in body.items
-            for share in (item.shares or [])
-        ], None
-
-    if body.shares:
-        shares = [
-            Share(person=s.person, amount=s.amount, bucket=s.bucket or body.bucket)
-            for s in body.shares
-        ]
-        return shares, None
-
+    # The bucket is decided first and independently of the split: a rule categorises, and
+    # it does so whether the caller supplied a split or left it to the bucket. The web form
+    # always sends an explicit split now, so a rule that only ran for implicit ones would
+    # never run at all.
     rule = None
     bucket_id = body.bucket
     if bucket_id is None and kind is EntryKind.EXPENSE:
@@ -93,6 +81,25 @@ def _resolve_shares(
             amount=body.amount,
         )
         bucket_id = rule.bucket if rule else None
+    rule_id = rule.id if rule else None
+
+    # Lines that carry their own split are the most specific thing the caller said, so they
+    # decide the entry's split rather than being checked against a separately supplied one.
+    # The rule is recorded only when it actually decided something: a split that names its
+    # own buckets did not need it, and an audit trail must not claim otherwise.
+    if body.items and all(item.shares for item in body.items):
+        line_shares = [share for item in body.items for share in (item.shares or [])]
+        return [
+            Share(person=share.person, amount=share.amount, bucket=share.bucket or bucket_id)
+            for share in line_shares
+        ], rule_id if any(share.bucket is None for share in line_shares) else None
+
+    if body.shares:
+        shares = [
+            Share(person=s.person, amount=s.amount, bucket=s.bucket or bucket_id)
+            for s in body.shares
+        ]
+        return shares, rule_id if any(s.bucket is None for s in body.shares) else None
 
     bucket = next((b for b in context.store.buckets() if b.id == bucket_id), None)
     if bucket is None:
@@ -108,7 +115,7 @@ def _resolve_shares(
 
     people = [member.person for member in context.store.budget().members]
     shares = shares_from_split(bucket.split_for(people), body.amount, bucket.id, kind)
-    return shares, rule.id if rule else None
+    return shares, rule_id
 
 
 @router.post(
@@ -138,6 +145,8 @@ def create_entry(
 
     paid_by = body.paid_by or {payer: body.amount}
     shares, rule_id = _resolve_shares(context, body, payer, kind)
+    # Whatever bucket the shares landed in is the bucket the receipt lines get too.
+    line_bucket = body.bucket or next((s.bucket for s in shares if s.bucket), None)
 
     # Another currency is converted at the day's rate unless told otherwise; the budget
     # currency takes no choice at all, because there is nothing to decide.
@@ -184,7 +193,7 @@ def create_entry(
                 amount=item.amount,
                 quantity=item.quantity,
                 shares=[
-                    Share(person=s.person, amount=s.amount, bucket=s.bucket or body.bucket)
+                    Share(person=s.person, amount=s.amount, bucket=s.bucket or line_bucket)
                     for s in (item.shares or [])
                 ],
             )

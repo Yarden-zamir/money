@@ -142,6 +142,21 @@ class TestEntries:
         assert entry["rule"] is None
         assert entry["shares"][0]["amount"] == "-80.00"
 
+    def test_a_rule_still_picks_the_bucket_under_an_explicit_split(
+        self, client: TestClient
+    ) -> None:
+        """The form always sends the split it shows. The bucket is a separate decision and
+        the rule must keep making it, or every explicit split would need a bucket typed."""
+        entry = post_entry(
+            client,
+            amount="-100.00",
+            payee="שופרסל דיל",
+            date="2026-07-14",
+            shares=[{"person": "yarden", "amount": "-100.00"}],
+        )["entry"]
+        assert entry["rule"] == "groceries"
+        assert entry["shares"] == [{"person": "yarden", "amount": "-100.00", "bucket": "groceries"}]
+
     def test_a_split_that_does_not_add_up_is_rejected(self, client: TestClient) -> None:
         response = client.post(
             "/api/v1/budgets/joint/entries",

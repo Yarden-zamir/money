@@ -356,14 +356,18 @@
       "percent": "Percent",
       "shares": "Shares",
       "exact": "Exact",
-      "adjust": "Adjust"
+      "adjust": "Adjust",
+      "me": "Just me",
+      "items": "By item"
     },
     "modeHint": {
       "equal": "Tick who is in. The rest is arithmetic.",
       "percent": "Must add up to 100.",
       "shares": "Relative weights: 2 and 1 means two thirds and one third.",
       "exact": "Must add up to the amount.",
-      "adjust": "Extra for one person; what remains is split equally."
+      "adjust": "Extra for one person; what remains is split equally.",
+      "me": "You bear all of it. Nobody else is involved.",
+      "items": "Tick who shared each line. Lines must add up to the amount."
     },
     "remaining": "Remaining",
     "over": "Over by",
@@ -372,7 +376,11 @@
     "onePayer": "One person paid",
     "severalPayers": "Several people paid",
     "bucketForAll": "Bucket for every share",
-    "noBucket": "Pick a bucket, or leave it to the rules by choosing one above."
+    "noBucket": "Pick a bucket, or leave it to the rules by choosing one above.",
+    "bearsAll": "bears all of it",
+    "itemsMustSum": "The receipt lines do not add up to the amount.",
+    "lineNeedsSomeone": "Line {{line}} has nobody ticked.",
+    "ruleHint": "Rule {{rule}} files this under {{bucket}}."
   },
   "comments": {
     "title": "Comments",

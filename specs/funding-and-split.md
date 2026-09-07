@@ -68,7 +68,12 @@ history.
 
 Precedence when an entry is created, most specific first: line-level splits on a receipt, an
 explicit split on the entry, the split of the bucket it lands in, and finally the payer alone
-when there is no bucket to ask.
+when there is no bucket to ask. The bucket itself is decided before any of that, by the
+caller or by a rule, so an explicit split without a bucket still lands where the rule says.
+
+The web form always sends an explicit split: its panel opens pre-filled from the bucket's
+default, so the default is a starting point on screen rather than something applied out of
+sight. The bucket's default is edited with the same panel (see `web-and-rtl.md`).
 
 ## Worked example
 

@@ -21,13 +21,20 @@ import type { PickedPlace } from "./LocationPicker";
 const LocationPicker = lazy(() =>
   import("./LocationPicker").then((m) => ({ default: m.LocationPicker })),
 );
-import { SplitEditor, computeShares, emptyDraft, type PaidRow, type SplitDraft } from "./SplitEditor";
+import {
+  SplitEditor,
+  computeShares,
+  draftFromRatio,
+  emptyDraft,
+  type PaidRow,
+  type SplitDraft,
+} from "./SplitEditor";
 import { AttachmentPicker, acceptableAttachment } from "./Attachments";
 import { useRate } from "./Convert";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
-import { Money } from "@/components/Money";
-import { nameFor } from "@/lib/members";
+import { actingAs } from "@/lib/actingAs";
+import { splitFor } from "@/lib/members";
 
 const KINDS = ["expense", "income", "transfer", "settlement"] as const;
 type Kind = (typeof KINDS)[number];
@@ -72,12 +79,13 @@ export function AddEntry({
   const foreign = currency !== budget.currency;
   const rate = useRate(budget.slug, foreign ? currency : null, date);
 
-  // Off by default: most entries are handled by the bucket's split, and showing the editor
-  // for a coffee would bury the common case. On, it takes the split as a decision — equally,
-  // by percent, by shares — and derives the amounts.
-  const [custom, setCustom] = useState(false);
+  // Always on the form, pre-filled from the bucket's default. The first version hid it and
+  // let the default apply silently, which is how a meal eaten alone came out split in half.
+  // `touched` is whether the person changed it: until then it follows the bucket.
+  const me = actingAs() ?? budget.me ?? budget.members[0]?.person ?? "";
   const [draft, setDraft] = useState<SplitDraft>(() => emptyDraft(budget.members, ""));
-  const [paidBy, setPaidBy] = useState<PaidRow[]>([]);
+  const [touched, setTouched] = useState(false);
+  const [paidBy, setPaidBy] = useState<PaidRow[]>(() => [{ person: me, amount: "" }]);
 
   // Which fields the app filled, so a marker can disappear the moment one is edited: once it
   // is your number, saying the app guessed it would be a lie.
@@ -172,7 +180,8 @@ export function AddEntry({
   };
 
   const lineTotal = items.reduce((total, item) => total + (Number(item.amount) || 0), 0);
-  const computed = computeShares(draft, budget.members, signed(amount));
+  const realLines = items.filter((item) => item.label.trim() && item.amount);
+  const computed = computeShares(draft, budget.members, signed(amount), me, realLines);
 
   const body = () => ({
     amount: signed(amount),
@@ -188,16 +197,23 @@ export function AddEntry({
           },
         }
       : {}),
-    ...(items.filter((item) => item.label.trim() && item.amount).length
+    ...(realLines.length
       ? {
-          items: items
-            .filter((item) => item.label.trim() && item.amount)
-            .map((item) => ({
-              label: item.label.trim(),
-              amount: (
-                (kind === "income" ? 1 : -1) * Math.abs(Number(item.amount))
-              ).toFixed(2),
-            })),
+          items: realLines.map((item, index) => ({
+            label: item.label.trim(),
+            amount: ((kind === "income" ? 1 : -1) * Math.abs(Number(item.amount))).toFixed(2),
+            // By item: each line carries who shared it, and the entry's shares are the
+            // per-person sums, which the server checks agree.
+            ...(draft.mode === "items" && computed.lineShares[index]
+              ? {
+                  shares: computed.lineShares[index].map((row) => ({
+                    person: row.person,
+                    amount: row.amount,
+                    bucket: usesBucket(kind) && effectiveBucket ? effectiveBucket : null,
+                  })),
+                }
+              : {}),
+          })),
         }
       : {}),
     payee,
@@ -209,57 +225,69 @@ export function AddEntry({
           fx: fxMode === "manual" ? { mode: "manual", rate: fxRate } : { mode: fxMode },
         }
       : {}),
-    // Sent even with a custom split: a share whose bucket is blank inherits it server-side,
-    // so choosing a bucket once on the form is enough.
+    // The bucket is a separate decision from the split: the form's, else whatever rule
+    // matches server-side. A share whose bucket is blank inherits it there.
     ...(usesBucket(kind) && bucket ? { bucket } : {}),
     ...(note ? { note } : {}),
-    ...(custom
-      ? {
-          shares: computed.shares.map((row) => ({
-            person: row.person,
-            amount: row.amount,
-            bucket: usesBucket(kind) && row.bucket ? row.bucket : null,
-          })),
-          paid_by: Object.fromEntries(
-            paidBy.filter((row) => row.amount !== "").map((row) => [row.person, row.amount]),
-          ),
-        }
-      : {}),
+    // Always explicit. The panel shows exactly what will be recorded, so what it shows is
+    // what is sent — never a default applied out of sight.
+    shares: computed.shares.map((row) => ({
+      person: row.person,
+      amount: row.amount,
+      bucket: usesBucket(kind) && effectiveBucket ? effectiveBucket : null,
+    })),
+    paid_by: Object.fromEntries(
+      paidBy.filter((row) => row.amount !== "").map((row) => [row.person, row.amount]),
+    ),
   });
 
-  /** Open the editor seeded from the form, so it starts from "everyone, equally, this bucket". */
-  const openCustom = () => {
-    setDraft((current) => ({ ...current, bucket: usesBucket(kind) ? bucket : "" }));
-    setPaidBy([
-      { person: budget.me ?? budget.members[0]?.person ?? "", amount: signed(amount) },
-    ]);
-    setCustom(true);
-  };
-
-  // Keeps the single payer's amount in step with the total while the editor is open.
+  // The single payer's amount follows the total; several payers type their own.
   useEffect(() => {
-    if (!custom || paidBy.length !== 1) return;
+    if (paidBy.length !== 1) return;
     const total = signed(amount);
     setPaidBy((rows) => (rows[0] && rows[0].amount !== total ? [{ ...rows[0], amount: total }] : rows));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount, kind, custom]);
+  }, [amount, kind]);
 
-  // The bucket's split is applied server-side, so the form asks what would happen and shows
-  // it under the fields — the way Splitwise says "paid by you and split equally" under the
-  // amount. Debounced: a keystroke in the payee field must not fire a request each.
+  // With no bucket chosen a rule decides it server-side. The form asks which, so the panel
+  // can pre-fill from *that* bucket's default and the person can see where it will land.
+  // Debounced: a keystroke in the payee field must not fire a request each.
   const preview = useMutation(previewSplitMutation());
   const previewRef = useRef(preview);
   previewRef.current = preview;
-  const previewable = signed(amount) !== "" && payee.trim() !== "" && !custom;
+  const previewable = usesBucket(kind) && !bucket && payee.trim() !== "";
   useEffect(() => {
     if (!previewable) return;
     const handle = setTimeout(
-      () => previewRef.current.mutate({ path: { budget: budget.slug }, body: body() }),
+      () =>
+        previewRef.current.mutate({
+          path: { budget: budget.slug },
+          body: { amount: signed(amount) || "-1.00", payee, kind, tags: [] },
+        }),
       400,
     );
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewable, amount, payee, kind, bucket, budget.slug]);
+  }, [previewable, payee, kind, budget.slug]);
+
+  const ruleBucket = previewable ? (preview.data?.shares[0]?.bucket ?? null) : null;
+  const effectiveBucket = usesBucket(kind) ? bucket || ruleBucket || "" : "";
+
+  // Follow the bucket's default until the person changes the split themselves.
+  useEffect(() => {
+    if (touched) return;
+    const found = (buckets.data ?? []).find((candidate) => candidate.id === effectiveBucket);
+    setDraft(
+      found
+        ? draftFromRatio(
+            splitFor(found.split as Record<string, string>, budget.members),
+            budget.members,
+            found.id,
+          )
+        : emptyDraft(budget.members, effectiveBucket),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveBucket, buckets.data, touched]);
 
   const attach = useMutation(addAttachmentMutation());
 
@@ -286,12 +314,10 @@ export function AddEntry({
   // rule, but if neither can supply one the entry is rejected by the domain — so the form
   // says which of the two is missing instead of letting someone submit into a 422.
   const noBuckets = usesBucket(kind) && buckets.isSuccess && buckets.data.length === 0;
-  const bucketMissing =
-    usesBucket(kind) && !custom && !bucket && rules.isSuccess && rules.data.length === 0;
-  const customBucketMissing = usesBucket(kind) && custom && !bucket && !draft.bucket;
+  const bucketMissing = usesBucket(kind) && !bucket && rules.isSuccess && rules.data.length === 0;
 
   const paidTotal = paidBy.reduce((sum, row) => sum + Math.round((Number(row.amount) || 0) * 100), 0);
-  const paidBalanced = !custom || paidTotal === Math.round(Number(signed(amount)) * 100);
+  const paidBalanced = paidTotal === Math.round(Number(signed(amount)) * 100);
 
   const rateMissing = foreign && fxMode === "manual" && !(Number(fxRate) > 0);
   const noRate = foreign && fxMode === "table" && rate.isSuccess && rate.data.rate === null;
@@ -303,8 +329,8 @@ export function AddEntry({
     !noRate &&
     !noBuckets &&
     !bucketMissing &&
-    !customBucketMissing &&
-    (!custom || (computed.problem === null && paidBalanced));
+    computed.problem === null &&
+    paidBalanced;
 
   const saving = create.isPending || attach.isPending;
 
@@ -459,15 +485,7 @@ export function AddEntry({
           >
             <Select
               value={bucket}
-              onChange={(event) => {
-                setBucket(event.target.value);
-                // The editor's bucket follows the form's unless somebody set it apart.
-                setDraft((current) =>
-                  current.bucket === bucket || current.bucket === ""
-                    ? { ...current, bucket: event.target.value }
-                    : current,
-                );
-              }}
+              onChange={(event) => setBucket(event.target.value)}
             >
               {/* An empty bucket only works when a rule can fill it in. With no rules it is
                   a choice that cannot succeed, so it becomes a prompt rather than a trap —
@@ -493,95 +511,33 @@ export function AddEntry({
         </Field>
       </div>
 
-      {/* One line that says what will be recorded — who paid, who bears it — before the
-          save, with the editor one press away. Story 1 keeps the common case at zero extra
-          taps; this is what makes the uncommon case one tap rather than a separate screen. */}
-      {foreign && signed(amount) !== "" && fxMode !== "none" && (rate.data?.rate || fxRate) && (
+      {/* Where a rule is filing this, when no bucket was chosen: the one thing the panel
+          below cannot show on its own. */}
+      {previewable && preview.data?.rule && ruleBucket && (
         <p className="mt-3 text-xs text-ink-muted">
-          <Money amount={signed(amount)} currency={currency} colour={false} /> →{" "}
-          <Money
-            amount={(
-              Number(signed(amount)) * Number(fxMode === "manual" ? fxRate : rate.data?.rate)
-            ).toFixed(2)}
-            currency={budget.currency}
-            colour={false}
-          />
+          {t("split.ruleHint", {
+            rule: preview.data.rule,
+            bucket: (buckets.data ?? []).find((b) => b.id === ruleBucket)?.name ?? ruleBucket,
+          })}
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
-        {custom ? (
-          <>
-            <span>
-              {t("split.summary", {
-                paid: paidLabel(paidBy, budget, t),
-                how: t("split.custom"),
-              })}
-            </span>
-            <button
-              type="button"
-              className="text-brand underline underline-offset-2"
-              onClick={() => setCustom(false)}
-            >
-              {t("entries.useRules")}
-            </button>
-          </>
-        ) : previewable && preview.data ? (
-          <>
-            <span>
-              {t("split.summary", {
-                paid: t("split.paidBy", {
-                  name: nameFor(budget.me ?? "", budget.members),
-                }),
-                how: preview.data.rule
-                  ? t("split.byRule", { rule: preview.data.rule })
-                  : t("split.byBucket"),
-              })}
-            </span>
-            {preview.data.shares.map((share) => (
-              <span key={`${share.person}-${share.bucket}`} className="numeric">
-                {nameFor(share.person, budget.members)}{" "}
-                <Money amount={String(share.amount)} currency={budget.currency} colour={false} />
-              </span>
-            ))}
-            <button
-              type="button"
-              className="text-brand underline underline-offset-2"
-              onClick={openCustom}
-            >
-              {t("split.change")}
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="text-brand underline underline-offset-2 disabled:opacity-50"
-            disabled={!signed(amount)}
-            onClick={openCustom}
-          >
-            {t("entries.customSplit")}
-          </button>
-        )}
-      </div>
-
-      {custom && (
-        <>
-          <SplitEditor
-            members={budget.members}
-            buckets={buckets.data ?? []}
-            total={signed(amount)}
-            currency={budget.currency}
-            draft={draft}
-            onDraftChange={setDraft}
-            paidBy={paidBy}
-            onPaidByChange={setPaidBy}
-            showBuckets={usesBucket(kind) && !bucket}
-          />
-          {customBucketMissing && (
-            <p className="mt-1 text-xs text-negative">{t("split.noBucket")}</p>
-          )}
-        </>
-      )}
+      <SplitEditor
+        members={budget.members}
+        buckets={buckets.data ?? []}
+        total={signed(amount)}
+        currency={currency}
+        me={me}
+        lines={realLines}
+        draft={draft}
+        onDraftChange={(next) => {
+          setDraft(next);
+          setTouched(true);
+        }}
+        paidBy={paidBy}
+        onPaidByChange={setPaidBy}
+        showBuckets={false}
+      />
 
       {/* Location is opt-in detail, so it sits below the fields rather than among them. The
           map only loads when asked for — it is the one screen with a heavy dependency. */}
@@ -672,16 +628,4 @@ export function AddEntry({
       </div>
     </form>
   );
-}
-
-function paidLabel(
-  paidBy: PaidRow[],
-  budget: BudgetSummary,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
-  const payers = paidBy.filter((row) => row.amount !== "");
-  if (payers.length > 1) return t("split.paidByMany", { count: payers.length });
-  return t("split.paidBy", {
-    name: nameFor(payers[0]?.person ?? budget.me ?? "", budget.members),
-  });
 }
