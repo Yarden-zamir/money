@@ -37,6 +37,7 @@ KINDS = {
     "members:": "members",
     "note:": "note",
     "comment:": "comment",
+    "convert:": "convert",
     "attachment:": "attachment",
     "scheduled:": "scheduled",
     "revert": "undo",

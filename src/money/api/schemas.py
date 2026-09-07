@@ -13,8 +13,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from money.domain.derive import Balance, BucketState, Settlement
-from money.domain.models import Bucket, Comment, Entry, EntryKind, Member, Month
+from money.domain.derive import Balance, BucketState, Foreign, Settlement
+from money.domain.models import Bucket, Comment, Entry, EntryKind, Fx, Member, Month
 
 
 class ShareInput(BaseModel):
@@ -43,6 +43,20 @@ class LineItemInput(BaseModel):
     shares: list[ShareInput] | None = None
 
 
+class FxChoice(BaseModel):
+    """What to do about an entry in another currency. See specs/currency.md, CUR-5."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: str = Field(
+        default="table",
+        pattern=r"^(table|manual|none)$",
+        description="table: the day's rate from the table or the provider; manual: `rate`; "
+        "none: keep it unconverted for now",
+    )
+    rate: Decimal | None = Field(default=None, gt=0, description="Required for manual")
+
+
 class EntryCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -55,6 +69,10 @@ class EntryCreate(BaseModel):
     )
     kind: EntryKind = EntryKind.EXPENSE
     currency: str | None = Field(default=None, description="Defaults to the budget currency")
+    fx: FxChoice | None = Field(
+        default=None,
+        description="Only for another currency. Omitted means convert at the day's rate.",
+    )
 
     paid_by: dict[str, Decimal] | None = Field(
         default=None, description="Defaults to the whole amount from the calling user"
@@ -86,6 +104,43 @@ class EntryUpdate(BaseModel):
     at: DateTimeType | None = None
     note: str | None = None
     tags: list[str] | None = None
+
+
+class ConvertRequest(BaseModel):
+    """Convert one unconverted entry. Defaults to the rate for the day of conversion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rate: Decimal | None = Field(default=None, gt=0, description="Type a rate instead")
+    date: DateType | None = Field(default=None, description="Take another day's rate")
+
+
+class BucketConvertRequest(BaseModel):
+    """Convert every unconverted entry in one currency with a share in a bucket."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    currency: str = Field(pattern=r"^[A-Z]{3}$")
+    rate: Decimal | None = Field(default=None, gt=0)
+    date: DateType | None = None
+
+
+class ConvertResult(BaseModel):
+    converted: list[str] = Field(description="Entry ids that gained a conversion")
+    spanning: list[str] = Field(
+        default_factory=list,
+        description="Converted entries that also have shares in other buckets",
+    )
+    fx: Fx | None = Field(description="The conversion applied; None when nothing needed it")
+    commit: str
+
+
+class RateResponse(BaseModel):
+    currency: str
+    base: str
+    date: DateType
+    rate: Decimal | None = Field(description="None when no provider could answer")
+    source: str = Field(description="table, provider or none")
 
 
 class CommitRef(BaseModel):
@@ -156,6 +211,9 @@ class MonthResponse(BaseModel):
     income: Decimal
     assigned: Decimal
     buckets: list[BucketState]
+    foreign: Foreign = Field(
+        default_factory=dict, description="Income not yet converted, so not yet assignable"
+    )
 
 
 class BucketPosition(BaseModel):
@@ -216,6 +274,12 @@ class SettleRequest(BaseModel):
     )
     date: DateType | None = None
     note: str | None = None
+    currency: str | None = Field(
+        default=None,
+        pattern=r"^[A-Z]{3}$",
+        description="The currency the money changed hands in. A foreign one settles that "
+        "currency's debt and is recorded unconverted.",
+    )
 
 
 class NoteBody(BaseModel):

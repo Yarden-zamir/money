@@ -27,6 +27,7 @@ export function EntriesScreen() {
   const [bucket, setBucket] = useState("");
   const [person, setPerson] = useState("");
   const [kind, setKind] = useState("");
+  const [unconverted, setUnconverted] = useState(false);
   const [search, setSearch] = useState("");
   // What actually goes to the server: the search box, a few hundred milliseconds after the
   // last keystroke. Every keystroke is a ledger read otherwise.
@@ -44,7 +45,9 @@ export function EntriesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.length === 1]);
 
-  const filtered = Boolean(query || bucket || person || kind || month !== currentMonth());
+  const filtered = Boolean(
+    query || bucket || person || kind || unconverted || month !== currentMonth(),
+  );
 
   const entries = useQuery({
     ...listEntriesOptions({
@@ -55,6 +58,7 @@ export function EntriesScreen() {
         ...(person ? { person } : {}),
         ...(kind ? { kind: kind as (typeof KINDS)[number] } : {}),
         ...(query ? { q: query } : {}),
+        ...(unconverted ? { unconverted: true } : {}),
       },
     }),
     enabled: Boolean(budget),
@@ -86,6 +90,7 @@ export function EntriesScreen() {
     setBucket("");
     setPerson("");
     setKind("");
+    setUnconverted(false);
     setMonth(currentMonth());
   };
 
@@ -185,6 +190,16 @@ export function EntriesScreen() {
             </option>
           ))}
         </Select>
+
+        <label className="flex min-h-9 cursor-pointer items-center gap-1.5 text-xs text-ink-muted">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--color-brand)]"
+            checked={unconverted}
+            onChange={(event) => setUnconverted(event.target.checked)}
+          />
+          {t("currency.unconvertedOnly")}
+        </label>
 
         {filtered && (
           <Button variant="ghost" className="min-h-9 px-3 text-xs" onClick={clear}>
@@ -287,7 +302,22 @@ function EntryRow({
         </div>
 
         <div className="text-end">
-          <Money amount={entry.amount} currency={entry.currency} className="text-sm font-semibold" />
+          {/* The budget figure first; the receipt figure and its rate beneath. Unconverted
+              rows show their own currency and say so. */}
+          <Money
+            amount={entry.fx ? entry.fx.amount : entry.amount}
+            currency={entry.fx ? budget.currency : entry.currency}
+            className="text-sm font-semibold"
+          />
+          {entry.fx && (
+            <div className="text-[11px] text-ink-muted">
+              {t("currency.convertedAt", { original: "", rate: entry.fx.rate }).trim()}{" "}
+              <Money amount={entry.amount} currency={entry.currency} colour={false} />
+            </div>
+          )}
+          {!entry.fx && entry.currency !== budget.currency && (
+            <div className="text-[11px] text-ink-muted">{t("currency.unconverted")}</div>
+          )}
           {shared && mine !== 0 && (
             <div className="text-[11px] text-ink-muted">
               {t("entries.yourShare")}{" "}

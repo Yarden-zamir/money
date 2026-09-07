@@ -402,5 +402,31 @@
     "tooLarge": "הקובץ גדול מ־8 MB.",
     "unsupported": "אפשר לצרף רק תמונות ו־PDF.",
     "count_two": "שני קבצים"
+  },
+  "currency": {
+    "label": "מטבע",
+    "unconverted": "לא הומר",
+    "convertThese": "המרת ה־{{currency}} בקטגוריה הזו",
+    "modes": {
+      "table": "המרה לפי שער היום",
+      "manual": "המרה לפי שער שאקליד",
+      "none": "להשאיר ב־{{currency}} בינתיים"
+    },
+    "rate": "שער",
+    "rateHint": "{{base}} עבור 1 {{currency}}",
+    "rateFor": "{{rate}} בתאריך {{date}}",
+    "noRate": "לא נמצא שער ל־{{currency}}. הקלידו אחד, או השאירו ללא המרה.",
+    "lookingUp": "מחפש את השער…",
+    "willRecord": "יירשם {{converted}} ({{original}} בשער {{rate}})",
+    "willKeep": "יירשם ב־{{currency}}, להמרה מאוחר יותר",
+    "convertedAt": "{{original}} בשער {{rate}}",
+    "convert": "המרה",
+    "convertEntry": "המרה ל־{{currency}}",
+    "convertBucket": "המרת ה־{{currency}} ב{{bucket}}",
+    "converting": "ממיר…",
+    "useDayRate": "שימוש בשער של {{date}}",
+    "spanning": "הוזזה גם קטגוריה אחרת: ל־{{count}} תנועות היו חלקים במקום אחר.",
+    "readyForeign": "עדיין לא ניתן לשיוך",
+    "unconvertedOnly": "לא הומרו בלבד"
   }
 }

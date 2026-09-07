@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, addAttachment, addComment, assignToBucket, autoAssign, connectBudget, createApiKey, createBudget, createEntry, deleteApiKey, deleteAttachment, deleteComment, deleteEntry, finishGithubLogin, getAttachment, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listAttachments, listBuckets, listBudgets, listCollaborators, listComments, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AddAttachmentData, AddAttachmentError, AddAttachmentResponse, AddCommentData, AddCommentError, AddCommentResponse, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteAttachmentData, DeleteAttachmentError, DeleteAttachmentResponse, DeleteCommentData, DeleteCommentError, DeleteCommentResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAttachmentData, GetAttachmentError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListAttachmentsData, ListAttachmentsError, ListAttachmentsResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListCommentsData, ListCommentsError, ListCommentsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, addAttachment, addComment, assignToBucket, autoAssign, connectBudget, convertBucket, convertEntry, createApiKey, createBudget, createEntry, deleteApiKey, deleteAttachment, deleteComment, deleteEntry, finishGithubLogin, getAttachment, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listAttachments, listBuckets, listBudgets, listCollaborators, listComments, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, lookupRate, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AddAttachmentData, AddAttachmentError, AddAttachmentResponse, AddCommentData, AddCommentError, AddCommentResponse, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, ConvertBucketData, ConvertBucketError, ConvertBucketResponse, ConvertEntryData, ConvertEntryError, ConvertEntryResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteAttachmentData, DeleteAttachmentError, DeleteAttachmentResponse, DeleteCommentData, DeleteCommentError, DeleteCommentResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAttachmentData, GetAttachmentError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListAttachmentsData, ListAttachmentsError, ListAttachmentsResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListCommentsData, ListCommentsError, ListCommentsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, LookupRateData, LookupRateError, LookupRateResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -533,6 +533,49 @@ export const settleUpMutation = (options?: Partial<Options<SettleUpData>>): UseM
     return mutationOptions;
 };
 
+export const lookupRateQueryKey = (options: Options<LookupRateData>) => createQueryKey('lookupRate', options);
+
+/**
+ * What one unit of a currency is worth in the budget's, on a day
+ *
+ * Read-only: answers from the table, else asks the provider without committing. The
+ * rate is committed only by the conversion that uses it, so the form can show what a
+ * conversion would do without leaving a row nothing depends on.
+ */
+export const lookupRateOptions = (options: Options<LookupRateData>) => queryOptions<LookupRateResponse, LookupRateError, LookupRateResponse, ReturnType<typeof lookupRateQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await lookupRate({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: lookupRateQueryKey(options)
+});
+
+/**
+ * Convert every unconverted entry in one currency with a share in a bucket
+ *
+ * One rate, one commit. An entry whose shares span two buckets converts whole, because an
+ * entry has one `fx`; those are listed so the person knows the other bucket moved too.
+ * See specs/currency.md, CUR-8.
+ */
+export const convertBucketMutation = (options?: Partial<Options<ConvertBucketData>>): UseMutationOptions<ConvertBucketResponse, ConvertBucketError, Options<ConvertBucketData>> => {
+    const mutationOptions: UseMutationOptions<ConvertBucketResponse, ConvertBucketError, Options<ConvertBucketData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await convertBucket({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const listEntriesQueryKey = (options: Options<ListEntriesData>) => createQueryKey('listEntries', options);
 
 /**
@@ -690,6 +733,26 @@ export const putEntryNoteMutation = (options?: Partial<Options<PutEntryNoteData>
     const mutationOptions: UseMutationOptions<PutEntryNoteResponse, PutEntryNoteError, Options<PutEntryNoteData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await putEntryNote({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Convert an unconverted entry into the budget currency
+ *
+ * Adds `fx` at the rate for the day of conversion — that is what "convert it now" means
+ * — or another day's, or one typed. See specs/currency.md, CUR-7.
+ */
+export const convertEntryMutation = (options?: Partial<Options<ConvertEntryData>>): UseMutationOptions<ConvertEntryResponse, ConvertEntryError, Options<ConvertEntryData>> => {
+    const mutationOptions: UseMutationOptions<ConvertEntryResponse, ConvertEntryError, Options<ConvertEntryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await convertEntry({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

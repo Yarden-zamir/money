@@ -121,7 +121,7 @@ Behaviour contracts, kept true as the code changes:
 [CLI](specs/cli.md) ·
 [Web and RTL](specs/web-and-rtl.md) ·
 [Deployment](specs/deployment.md) ·
-[Currency (plan)](specs/currency.md)
+[Currency](specs/currency.md)
 
 ## License
 

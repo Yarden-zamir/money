@@ -133,6 +133,20 @@ it to show each person's share, which bucket it hit, who paid, and which rule pr
 split. Delete lives inside that expanded panel, not on the row, so it cannot be hit by
 accident while scrolling.
 
+## 5a. We were abroad
+
+*Forty dollars for a taxi. I do not know yet what the card will charge.*
+
+**`+` → amount, payee → Currency: USD → Save.** One extra select. The default converts at the
+day's rate and says what will be recorded: *−$42.00 → −₪155.82*. The two alternatives are in
+the same select: type the rate from the card statement, or *keep in USD for now*.
+
+Kept dollars stay dollars. The Transport row shows *−$42.00 unconverted* as a chip under its
+shekel figure, the balances screen shows the dollar debt as its own line with its own
+`Settle`, and nothing is ever added across the two. When the statement arrives, the chip
+opens *Convert the USD in Transport*: one rate, one commit, every dollar entry in the bucket
+at once. One entry at a time is the same panel inside the entry's detail.
+
 ## 5b. Which entry was that?
 
 *Some shop, some time this spring, I think Dana mentioned wine.*

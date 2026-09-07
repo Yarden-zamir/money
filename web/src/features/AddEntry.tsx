@@ -23,6 +23,7 @@ const LocationPicker = lazy(() =>
 );
 import { SplitEditor, computeShares, emptyDraft, type PaidRow, type SplitDraft } from "./SplitEditor";
 import { AttachmentPicker, acceptableAttachment } from "./Attachments";
+import { useRate } from "./Convert";
 import type { BudgetSummary } from "@/api/types.gen";
 import { Button, Field, FormError, Input, Select } from "@/components/Form";
 import { Money } from "@/components/Money";
@@ -30,6 +31,10 @@ import { nameFor } from "@/lib/members";
 
 const KINDS = ["expense", "income", "transfer", "settlement"] as const;
 type Kind = (typeof KINDS)[number];
+
+// Offered up front; anything else is typed. The budget's own currency is added first.
+const CURRENCIES = ["USD", "EUR", "GBP", "ILS"];
+type FxMode = "table" | "manual" | "none";
 
 /** Only an expense books against an envelope; the other kinds move money without one. */
 function usesBucket(kind: Kind): boolean {
@@ -59,6 +64,13 @@ export function AddEntry({
   const [date, setDate] = useState(today);
   const [bucket, setBucket] = useState("");
   const [note, setNote] = useState("");
+  // Another currency is a decision: convert at the day's rate (the default), at a typed
+  // one, or not yet. The budget currency asks nothing. See specs/currency.md, CUR-5.
+  const [currency, setCurrency] = useState(budget.currency);
+  const [fxMode, setFxMode] = useState<FxMode>("table");
+  const [fxRate, setFxRate] = useState("");
+  const foreign = currency !== budget.currency;
+  const rate = useRate(budget.slug, foreign ? currency : null, date);
 
   // Off by default: most entries are handled by the bucket's split, and showing the editor
   // for a coffee would bury the common case. On, it takes the split as a decision — equally,
@@ -191,6 +203,12 @@ export function AddEntry({
     payee,
     date,
     kind,
+    ...(foreign
+      ? {
+          currency,
+          fx: fxMode === "manual" ? { mode: "manual", rate: fxRate } : { mode: fxMode },
+        }
+      : {}),
     // Sent even with a custom split: a share whose bucket is blank inherits it server-side,
     // so choosing a bucket once on the form is enough.
     ...(usesBucket(kind) && bucket ? { bucket } : {}),
@@ -275,9 +293,14 @@ export function AddEntry({
   const paidTotal = paidBy.reduce((sum, row) => sum + Math.round((Number(row.amount) || 0) * 100), 0);
   const paidBalanced = !custom || paidTotal === Math.round(Number(signed(amount)) * 100);
 
+  const rateMissing = foreign && fxMode === "manual" && !(Number(fxRate) > 0);
+  const noRate = foreign && fxMode === "table" && rate.isSuccess && rate.data.rate === null;
+
   const ready =
     signed(amount) !== "" &&
     payee.trim() !== "" &&
+    !rateMissing &&
+    !noRate &&
     !noBuckets &&
     !bucketMissing &&
     !customBucketMissing &&
@@ -382,6 +405,53 @@ export function AddEntry({
           />
         </Field>
 
+        <Field label={t("currency.label")}>
+          <Select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            {[budget.currency, ...CURRENCIES.filter((code) => code !== budget.currency)].map(
+              (code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ),
+            )}
+          </Select>
+        </Field>
+
+        {foreign && (
+          <Field
+            label={t("currency.convert")}
+            hint={
+              fxMode === "none"
+                ? t("currency.willKeep", { currency })
+                : fxMode === "table"
+                  ? rate.isPending
+                    ? t("currency.lookingUp")
+                    : rate.data?.rate
+                      ? t("currency.rateFor", { rate: rate.data.rate, date })
+                      : t("currency.noRate", { currency })
+                  : t("currency.rateHint", { base: budget.currency, currency })
+            }
+          >
+            <Select value={fxMode} onChange={(event) => setFxMode(event.target.value as FxMode)}>
+              <option value="table">{t("currency.modes.table")}</option>
+              <option value="manual">{t("currency.modes.manual")}</option>
+              <option value="none">{t("currency.modes.none", { currency })}</option>
+            </Select>
+          </Field>
+        )}
+
+        {foreign && fxMode === "manual" && (
+          <Field label={t("currency.rate")}>
+            <Input
+              className="numeric ltr-field"
+              inputMode="decimal"
+              placeholder={rate.data?.rate ?? "0.0000"}
+              value={fxRate}
+              onChange={(event) => setFxRate(event.target.value)}
+            />
+          </Field>
+        )}
+
         {usesBucket(kind) && (
           <Field
             label={t("entries.bucket")}
@@ -426,6 +496,19 @@ export function AddEntry({
       {/* One line that says what will be recorded — who paid, who bears it — before the
           save, with the editor one press away. Story 1 keeps the common case at zero extra
           taps; this is what makes the uncommon case one tap rather than a separate screen. */}
+      {foreign && signed(amount) !== "" && fxMode !== "none" && (rate.data?.rate || fxRate) && (
+        <p className="mt-3 text-xs text-ink-muted">
+          <Money amount={signed(amount)} currency={currency} colour={false} /> →{" "}
+          <Money
+            amount={(
+              Number(signed(amount)) * Number(fxMode === "manual" ? fxRate : rate.data?.rate)
+            ).toFixed(2)}
+            currency={budget.currency}
+            colour={false}
+          />
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
         {custom ? (
           <>

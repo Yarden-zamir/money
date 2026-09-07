@@ -124,6 +124,25 @@ def month(
     )
 
 
+@_root.command("rate", help="What one unit of a currency is worth in the budget's, on a day")
+def rate(
+    currency: Annotated[str, typer.Argument(help='')],
+    date: Annotated[str | None, typer.Option("--date", "-d", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    emit(
+        request(
+            "GET",
+            f"/budgets/{resolve_budget(budget)}/rates",
+            query={"currency": currency, "date": date},
+            body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
 @_root.command("redo", help='Re-apply something you undid')
 def redo(
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
@@ -148,11 +167,12 @@ def settle(
     payer: Annotated[str | None, typer.Option("--payer", help='Person id who handed over the money. Defaults to the calling user.')] = None,
     date: Annotated[str | None, typer.Option("--date", help='')] = None,
     note: Annotated[str | None, typer.Option("--note", help='')] = None,
+    currency: Annotated[str | None, typer.Option("--currency", help="The currency the money changed hands in. A foreign one settles that currency's debt and is recorded unconverted.")] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"to": to, "amount": amount, "payer": payer, "date": date, "note": note}
+    body = {"to": to, "amount": amount, "payer": payer, "date": date, "note": note, "currency": currency}
     if raw:
         body.update(json.loads(raw))
     emit(
@@ -262,6 +282,31 @@ def auth_whoami(
             f"/me",
             query={},
             body=None,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@bucket_app.command("convert", help='Convert every unconverted entry in one currency with a share in a bucket')
+def bucket_convert(
+    bucket_id: Annotated[str, typer.Argument(help='')],
+    currency: Annotated[str, typer.Argument(help='')],
+    rate: Annotated[str | None, typer.Option("--rate", help='')] = None,
+    date: Annotated[str | None, typer.Option("--date", help='')] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"currency": currency, "rate": rate, "date": date}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/buckets/{bucket_id}/convert",
+            query={},
+            body=body,
         ),
         as_json=json_out,
         table=None,
@@ -470,6 +515,7 @@ def entry_add(
     at: Annotated[str | None, typer.Option("--at", help='Wall-clock moment it happened. Defaults to now; used for time patterns.')] = None,
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
     currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
+    fx: Annotated[str | None, typer.Option("--fx", help="Only for another currency. Omitted means convert at the day's rate.")] = None,
     bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='Book every share against this bucket, overriding the rule')] = None,
     note: Annotated[str | None, typer.Option("--note", "-n", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
@@ -478,13 +524,37 @@ def entry_add(
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags, "place": place}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "fx": fx, "bucket": bucket, "note": note, "tags": tags, "place": place}
     if raw:
         body.update(json.loads(raw))
     emit(
         request(
             "POST",
             f"/budgets/{resolve_budget(budget)}/entries",
+            query={},
+            body=body,
+        ),
+        as_json=json_out,
+        table=None,
+    )
+
+
+@entry_app.command("convert", help='Convert an unconverted entry into the budget currency')
+def entry_convert(
+    entry_id: Annotated[str, typer.Argument(help='')],
+    rate: Annotated[str | None, typer.Option("--rate", help='Type a rate instead')] = None,
+    date: Annotated[str | None, typer.Option("--date", help="Take another day's rate")] = None,
+    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
+    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
+    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
+) -> None:
+    body = {"rate": rate, "date": date}
+    if raw:
+        body.update(json.loads(raw))
+    emit(
+        request(
+            "POST",
+            f"/budgets/{resolve_budget(budget)}/entries/{entry_id}/convert",
             query={},
             body=body,
         ),
@@ -566,6 +636,7 @@ def entry_list(
     tag: Annotated[str | None, typer.Option("--tag", help='')] = None,
     payee: Annotated[str | None, typer.Option("--payee", help='')] = None,
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
+    unconverted: Annotated[bool, typer.Option("--unconverted", help='Only entries still in a foreign currency')] = False,
     q: Annotated[str | None, typer.Option("--q", help='Free text over payee, note, tags, place and receipt lines. Every word must match somewhere.')] = None,
     limit: Annotated[int | None, typer.Option("--limit", help='')] = None,
     budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
@@ -575,7 +646,7 @@ def entry_list(
         request(
             "GET",
             f"/budgets/{resolve_budget(budget)}/entries",
-            query={"month": month, "person": person, "bucket": bucket, "tag": tag, "payee": payee, "kind": kind, "q": q, "limit": limit},
+            query={"month": month, "person": person, "bucket": bucket, "tag": tag, "payee": payee, "kind": kind, "unconverted": unconverted, "q": q, "limit": limit},
             body=None,
         ),
         as_json=json_out,
@@ -610,6 +681,7 @@ def entry_preview(
     at: Annotated[str | None, typer.Option("--at", help='Wall-clock moment it happened. Defaults to now; used for time patterns.')] = None,
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
     currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
+    fx: Annotated[str | None, typer.Option("--fx", help="Only for another currency. Omitted means convert at the day's rate.")] = None,
     bucket: Annotated[str | None, typer.Option("--bucket", help='Book every share against this bucket, overriding the rule')] = None,
     note: Annotated[str | None, typer.Option("--note", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
@@ -618,7 +690,7 @@ def entry_preview(
     raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
 ) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "bucket": bucket, "note": note, "tags": tags, "place": place}
+    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "fx": fx, "bucket": bucket, "note": note, "tags": tags, "place": place}
     if raw:
         body.update(json.loads(raw))
     emit(

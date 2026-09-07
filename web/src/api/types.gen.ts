@@ -176,6 +176,14 @@ export type Balance = {
      * Net
      */
     net: string;
+    /**
+     * Foreign
+     *
+     * Net position per unconverted currency
+     */
+    foreign?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -291,6 +299,26 @@ export type BucketOutput = {
 };
 
 /**
+ * BucketConvertRequest
+ *
+ * Convert every unconverted entry in one currency with a share in a bucket.
+ */
+export type BucketConvertRequest = {
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Rate
+     */
+    rate?: number | string | null;
+    /**
+     * Date
+     */
+    date?: string | null;
+};
+
+/**
  * BucketPosition
  */
 export type BucketPosition = {
@@ -342,6 +370,14 @@ export type BucketState = {
      * Funders
      */
     funders?: Array<FunderState>;
+    /**
+     * Foreign
+     *
+     * Spent against this bucket in currencies not yet converted, to date
+     */
+    foreign?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -585,6 +621,52 @@ export type CommitRef = {
 };
 
 /**
+ * ConvertRequest
+ *
+ * Convert one unconverted entry. Defaults to the rate for the day of conversion.
+ */
+export type ConvertRequest = {
+    /**
+     * Rate
+     *
+     * Type a rate instead
+     */
+    rate?: number | string | null;
+    /**
+     * Date
+     *
+     * Take another day's rate
+     */
+    date?: string | null;
+};
+
+/**
+ * ConvertResult
+ */
+export type ConvertResult = {
+    /**
+     * Converted
+     *
+     * Entry ids that gained a conversion
+     */
+    converted: Array<string>;
+    /**
+     * Spanning
+     *
+     * Converted entries that also have shares in other buckets
+     */
+    spanning?: Array<string>;
+    /**
+     * The conversion applied; None when nothing needed it
+     */
+    fx: Fx | null;
+    /**
+     * Commit
+     */
+    commit: string;
+};
+
+/**
  * DevicePoll
  */
 export type DevicePoll = {
@@ -749,6 +831,10 @@ export type Entry = {
      */
     items?: Array<LineItem>;
     place?: Place | null;
+    /**
+     * Conversion into the budget currency; absent on a foreign entry means not converted yet
+     */
+    fx?: Fx | null;
 };
 
 /**
@@ -784,6 +870,10 @@ export type EntryCreate = {
      * Defaults to the budget currency
      */
     currency?: string | null;
+    /**
+     * Only for another currency. Omitted means convert at the day's rate.
+     */
+    fx?: FxChoice | null;
     /**
      * Paid By
      *
@@ -961,6 +1051,70 @@ export type FunderState = {
      * Their carried position: funded minus borne
      */
     available: string;
+    /**
+     * Foreign
+     *
+     * What they bore here in currencies not yet converted, carried to date
+     */
+    foreign?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Fx
+ *
+ * How an entry in another currency was converted into the budget's.
+ *
+ * Present means converted; absent on a foreign-currency entry means *not yet* — the entry
+ * then counts in its own currency, as a second column beside the budget figure, until
+ * somebody converts it. See specs/currency.md.
+ *
+ * `amount` is stored rather than recomputed, for the same reason `shares` and `rule` are: a
+ * rate that changes later must not rewrite what an old dinner cost. `at` is the day the rate
+ * belongs to, which is the day of conversion by default, not the day of the purchase.
+ */
+export type Fx = {
+    /**
+     * Rate
+     *
+     * Budget units per one unit of the entry's currency
+     */
+    rate: string;
+    /**
+     * Amount
+     *
+     * The entry's amount × rate, in the budget currency
+     */
+    amount: string;
+    /**
+     * At
+     */
+    at: string;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
+ * FxChoice
+ *
+ * What to do about an entry in another currency. See specs/currency.md, CUR-5.
+ */
+export type FxChoice = {
+    /**
+     * Mode
+     *
+     * table: the day's rate from the table or the provider; manual: `rate`; none: keep it unconverted for now
+     */
+    mode?: string;
+    /**
+     * Rate
+     *
+     * Required for manual
+     */
+    rate?: number | string | null;
 };
 
 /**
@@ -1382,6 +1536,14 @@ export type MonthResponse = {
      * Buckets
      */
     buckets: Array<BucketState>;
+    /**
+     * Foreign
+     *
+     * Income not yet converted, so not yet assignable
+     */
+    foreign?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -1560,6 +1722,36 @@ export type PostRequest = {
      * Defaults to today
      */
     date?: string | null;
+};
+
+/**
+ * RateResponse
+ */
+export type RateResponse = {
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Base
+     */
+    base: string;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Rate
+     *
+     * None when no provider could answer
+     */
+    rate: string | null;
+    /**
+     * Source
+     *
+     * table, provider or none
+     */
+    source: string;
 };
 
 /**
@@ -1750,6 +1942,12 @@ export type ScheduledInput = {
      * Tags
      */
     tags?: Array<string>;
+    /**
+     * Convert
+     *
+     * For a foreign-currency template: convert at the day's rate when posted, or keep the posted entry unconverted
+     */
+    convert?: boolean;
 };
 
 /**
@@ -1824,6 +2022,12 @@ export type ScheduledOutput = {
      * Tags
      */
     tags?: Array<string>;
+    /**
+     * Convert
+     *
+     * For a foreign-currency template: convert at the day's rate when posted, or keep the posted entry unconverted
+     */
+    convert?: boolean;
 };
 
 /**
@@ -1854,12 +2058,18 @@ export type SettleRequest = {
      * Note
      */
     note?: string | null;
+    /**
+     * Currency
+     *
+     * The currency the money changed hands in. A foreign one settles that currency's debt and is recorded unconverted.
+     */
+    currency?: string | null;
 };
 
 /**
  * Settlement
  *
- * One suggested payment that reduces outstanding debt.
+ * One suggested payment that reduces outstanding debt, in one currency.
  */
 export type Settlement = {
     /**
@@ -1874,6 +2084,10 @@ export type Settlement = {
      * Amount
      */
     amount: string;
+    /**
+     * Currency
+     */
+    currency: string;
 };
 
 /**
@@ -2962,6 +3176,99 @@ export type SettleUpResponses = {
 
 export type SettleUpResponse = SettleUpResponses[keyof SettleUpResponses];
 
+export type LookupRateData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query: {
+        /**
+         * Currency
+         */
+        currency: string;
+        /**
+         * Date
+         */
+        date?: string | null;
+    };
+    url: '/api/v1/budgets/{budget}/rates';
+};
+
+export type LookupRateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LookupRateError = LookupRateErrors[keyof LookupRateErrors];
+
+export type LookupRateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RateResponse;
+};
+
+export type LookupRateResponse = LookupRateResponses[keyof LookupRateResponses];
+
+export type ConvertBucketData = {
+    body: BucketConvertRequest;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Bucket Id
+         */
+        bucket_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/buckets/{bucket_id}/convert';
+};
+
+export type ConvertBucketErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ConvertBucketError = ConvertBucketErrors[keyof ConvertBucketErrors];
+
+export type ConvertBucketResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConvertResult;
+};
+
+export type ConvertBucketResponse = ConvertBucketResponses[keyof ConvertBucketResponses];
+
 export type ListEntriesData = {
     body?: never;
     headers?: {
@@ -3005,6 +3312,12 @@ export type ListEntriesData = {
          * Kind
          */
         kind?: EntryKind | null;
+        /**
+         * Unconverted
+         *
+         * Only entries still in a foreign currency
+         */
+        unconverted?: boolean | null;
         /**
          * Q
          *
@@ -3391,6 +3704,50 @@ export type PutEntryNoteResponses = {
 };
 
 export type PutEntryNoteResponse = PutEntryNoteResponses[keyof PutEntryNoteResponses];
+
+export type ConvertEntryData = {
+    body: ConvertRequest;
+    headers?: {
+        /**
+         * X-Act-As
+         */
+        'X-Act-As'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Entry Id
+         */
+        entry_id: string;
+        /**
+         * Budget
+         */
+        budget: string;
+    };
+    query?: never;
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/convert';
+};
+
+export type ConvertEntryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ConvertEntryError = ConvertEntryErrors[keyof ConvertEntryErrors];
+
+export type ConvertEntryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConvertResult;
+};
+
+export type ConvertEntryResponse = ConvertEntryResponses[keyof ConvertEntryResponses];
 
 export type ListCommentsData = {
     body?: never;

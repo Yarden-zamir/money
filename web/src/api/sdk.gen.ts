@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AddAttachmentData, AddAttachmentErrors, AddAttachmentResponses, AddCommentData, AddCommentErrors, AddCommentResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteAttachmentData, DeleteAttachmentErrors, DeleteAttachmentResponses, DeleteCommentData, DeleteCommentErrors, DeleteCommentResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAttachmentData, GetAttachmentErrors, GetAttachmentResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListAttachmentsData, ListAttachmentsErrors, ListAttachmentsResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListCommentsData, ListCommentsErrors, ListCommentsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AddAttachmentData, AddAttachmentErrors, AddAttachmentResponses, AddCommentData, AddCommentErrors, AddCommentResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, ConvertBucketData, ConvertBucketErrors, ConvertBucketResponses, ConvertEntryData, ConvertEntryErrors, ConvertEntryResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteAttachmentData, DeleteAttachmentErrors, DeleteAttachmentResponses, DeleteCommentData, DeleteCommentErrors, DeleteCommentResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAttachmentData, GetAttachmentErrors, GetAttachmentResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListAttachmentsData, ListAttachmentsErrors, ListAttachmentsResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListCommentsData, ListCommentsErrors, ListCommentsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, LookupRateData, LookupRateErrors, LookupRateResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -304,6 +304,31 @@ export const settleUp = <ThrowOnError extends boolean = false>(options: Options<
 });
 
 /**
+ * What one unit of a currency is worth in the budget's, on a day
+ *
+ * Read-only: answers from the table, else asks the provider without committing. The
+ * rate is committed only by the conversion that uses it, so the form can show what a
+ * conversion would do without leaving a row nothing depends on.
+ */
+export const lookupRate = <ThrowOnError extends boolean = false>(options: Options<LookupRateData, ThrowOnError>): RequestResult<LookupRateResponses, LookupRateErrors, ThrowOnError> => (options.client ?? client).get<LookupRateResponses, LookupRateErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/rates', ...options });
+
+/**
+ * Convert every unconverted entry in one currency with a share in a bucket
+ *
+ * One rate, one commit. An entry whose shares span two buckets converts whole, because an
+ * entry has one `fx`; those are listed so the person knows the other bucket moved too.
+ * See specs/currency.md, CUR-8.
+ */
+export const convertBucket = <ThrowOnError extends boolean = false>(options: Options<ConvertBucketData, ThrowOnError>): RequestResult<ConvertBucketResponses, ConvertBucketErrors, ThrowOnError> => (options.client ?? client).post<ConvertBucketResponses, ConvertBucketErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/buckets/{bucket_id}/convert',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List entries
  */
 export const listEntries = <ThrowOnError extends boolean = false>(options: Options<ListEntriesData, ThrowOnError>): RequestResult<ListEntriesResponses, ListEntriesErrors, ThrowOnError> => (options.client ?? client).get<ListEntriesResponses, ListEntriesErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries', ...options });
@@ -371,6 +396,21 @@ export const getEntryNote = <ThrowOnError extends boolean = false>(options: Opti
  */
 export const putEntryNote = <ThrowOnError extends boolean = false>(options: Options<PutEntryNoteData, ThrowOnError>): RequestResult<PutEntryNoteResponses, PutEntryNoteErrors, ThrowOnError> => (options.client ?? client).put<PutEntryNoteResponses, PutEntryNoteErrors, ThrowOnError>({
     url: '/api/v1/budgets/{budget}/entries/{entry_id}/note',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Convert an unconverted entry into the budget currency
+ *
+ * Adds `fx` at the rate for the day of conversion — that is what "convert it now" means
+ * — or another day's, or one typed. See specs/currency.md, CUR-7.
+ */
+export const convertEntry = <ThrowOnError extends boolean = false>(options: Options<ConvertEntryData, ThrowOnError>): RequestResult<ConvertEntryResponses, ConvertEntryErrors, ThrowOnError> => (options.client ?? client).post<ConvertEntryResponses, ConvertEntryErrors, ThrowOnError>({
+    url: '/api/v1/budgets/{budget}/entries/{entry_id}/convert',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -1,21 +1,17 @@
 # Currency
 
-A plan, not a description of shipped behaviour. Nothing below is implemented; each numbered
-requirement is the contract a future change must satisfy, and the sections after them explain
-why the plan has the shape it has.
+Behaviour contracts for entries in a currency other than the budget's. Each numbered
+requirement is implemented and tested (`tests/test_domain.py::TestCurrency`,
+`tests/test_api.py::TestCurrency`, `tests/test_rates.py`); the sections after them explain
+why the design has the shape it has.
 
-## What exists today
+## Before this
 
-- A budget has one `currency` in `budget.yaml`.
-- Every entry carries a `currency` field, defaulted to the budget's. Nothing reads it: every
-  derived figure — balances, bucket activity, ready-to-assign — adds `amount` fields together
-  as though they were all in the budget currency.
-- The web form has no currency field. The CLI accepts `--currency` and the API accepts
-  `currency`, so an entry in a second currency can already be recorded, and it silently
-  corrupts every total.
-
-That last point is the reason this needs a plan rather than a feature flag: the field is a
-trap until the arithmetic honours it.
+A budget had one `currency` and every entry carried one, defaulted to the budget's. Nothing
+read it: every derived figure added `amount` fields together as though they were all in the
+budget currency, so a dollar entry recorded through the CLI silently corrupted every total.
+That trap is closed: a foreign entry either carries a conversion or is tracked in its own
+column, and never leaks into the budget figure.
 
 ## The problem, stated once
 
@@ -45,7 +41,7 @@ converted entries. Unconverted entries never contribute to it.
 recorded. Conversion adds fields; it does not replace them.
 
 **CUR-3. Conversion is a stored block on the entry.** An entry in a foreign currency either
-carries `fx` or does not:
+carries `fx` or does not (`Fx` in `money.domain.models`):
 
 ```yaml
 amount: -120.00          # what the receipt says
@@ -59,14 +55,17 @@ fx:                      # absent = not converted yet
 
 `fx.amount` is stored, not recomputed on read, for the same reason `shares` and `rule` are:
 a rate that changed later must not rewrite what an old dinner cost. `rate` has four decimal
-places; `fx.amount` has two and is what every derivation reads.
+places; `fx.amount` has two and is what every derivation reads. The model refuses an
+`fx.amount` that is not `amount × rate` quantized — a hand edit that changed one and not the
+other is a loud error, on read as well as write. An entry in the budget currency carries no
+`fx`; the API refuses a choice for it (`fx_not_needed`).
 
 **CUR-4. `paid_by` and `shares` stay in the entry's own currency.** They sum to `amount`, as
 they do today, so the entry is self-consistent whether or not it is converted, and converting
-later touches nothing but `fx`. The budget-currency shares are derived on read: `fx.amount`
-is allocated across the shares in their own proportions with `allocate`, so the converted
-parts sum exactly to `fx.amount` and the rounding lands on the largest share. The same holds
-for `paid_by`.
+later touches nothing but `fx`. The budget-currency shares are derived on read
+(`Entry.budget_shares`): each share is scaled by the rate with `amounts.scale`, and the
+rounding drift lands on the largest-magnitude share, so the converted parts sum exactly to
+`fx.amount`. The same holds for `paid_by`.
 
 **CUR-5. Three choices at entry time, converting being the default.**
 
@@ -76,8 +75,12 @@ for `paid_by`.
 | convert at a rate I type | `fx` with `source: manual` | the card statement already says what it cost |
 | do not convert yet | no `fx` | cash bought earlier, a debt that will be repaid in the same currency |
 
-The form asks nothing for a budget-currency entry. Choosing another currency reveals the rate,
-pre-filled from the table, with *keep in EUR for now* beside it.
+On the API this is `fx: {mode: table | manual | none, rate?}` on `POST /entries`; omitted
+means `table`. The form asks nothing for a budget-currency entry. Choosing another currency
+reveals a conversion select with the three choices, the day's rate under it (looked up
+without committing), a rate field for `manual`, and a line stating the converted amount.
+When no rate can be found the default refuses (`no_rate`, 422) rather than guesses, and the
+form disables saving until a rate is typed or *keep for now* is chosen.
 
 **CUR-6. Unconverted money is tracked per currency, in the same places.** Every derived
 figure that has a budget-currency number also has `foreign`, a map of currency to amount for
@@ -91,20 +94,25 @@ foreign: {USD: -5.00}            # spent against this bucket, not yet converted
 
 The same shape on balances (`net` plus `foreign`), on settle-up (one suggested transfer per
 currency), on the month summary (`ready_to_assign` plus `foreign`), and on group subtotals.
-Foreign figures are never added to the budget-currency figure and never to each other.
+Foreign figures are never added to the budget-currency figure and never to each other. A
+currency that nets to zero is omitted. `GET /entries?unconverted=true` lists what is still
+foreign.
 
 **CUR-7. Converting after the fact, per entry.** `POST /entries/{id}/convert` adds `fx` to an
 unconverted entry. The rate defaults to the table's rate for the *conversion* day — that is
 what "convert it now" means — with `date` to take another day's rate and `rate` to type one.
-Converting an entry that already carries `fx` is refused; undo the commit instead. Every
-derived figure moves from `foreign` into the budget-currency column in the same read.
+Converting an entry that already carries `fx` is refused (`already_converted`); undo the
+commit instead. Every derived figure moves from `foreign` into the budget-currency column in
+the same read. The commit subject is `convert: <payee> 10.00 USD → 37.00 ILS at 3.7000` and
+carries the `Entry-Id` trailer, so it appears in the entry's history as kind `convert`.
 
 **CUR-8. Converting after the fact, per bucket.** `POST /buckets/{id}/convert` with a
 `currency` converts every unconverted entry in that currency with a share in the bucket, at
-one rate, in **one commit** — the subject names the bucket, the currency, the rate and the
-count. An entry whose shares span two buckets is converted whole, because an entry has one
-`fx`; the response lists any such entries so the person knows the other bucket moved too.
-Converting a whole budget is this call over each bucket and needs no route of its own.
+one rate, in **one commit** — `convert: 3 USD entries in Transport at 3.5000`. An entry whose
+shares span two buckets is converted whole, because an entry has one `fx`; the response's
+`spanning` lists them so the person knows the other bucket moved too, and the web panel says
+so before closing. Converting a whole budget is this call over each bucket and needs no route
+of its own. The chip on a bucket row is the way in.
 
 **CUR-9. The rate table is committed.** `rates.yaml` at the repo root holds daily rates the
 app fetched, keyed by date and currency:
@@ -116,20 +124,25 @@ app fetched, keyed by date and currency:
 ```
 
 The API fetches a rate only when a conversion needs one the table lacks, and commits the row
-in the same commit as the conversion. A manual rate is written on the entry only, never into
-the table: the table is what the provider said, not what a person chose. It exists so a repo
-is reproducible offline and so two people converting the same day get the same rate.
+in the same commit as the conversion (`rate_row` through `add_entry`, `post_scheduled` and
+`convert_entries`). A manual rate is written on the entry only, never into the table: the
+table is what the provider said, not what a person chose. It exists so a repo is reproducible
+offline and so two people converting the same day get the same rate. `GET /rates?currency=&date=`
+answers from the table, else the provider, and commits nothing — the form shows what a
+conversion would do without leaving a row nothing depends on.
 
 **CUR-10. One provider, replaceable.** The European Central Bank publishes daily reference
-rates with no key and no terms that matter for a household. It is the first provider. The
+rates with no key and no terms that matter for a household. It is the provider
+(`money.api.rates.fetch_rate`), and any pair is a cross through the euro. A weekend or
+holiday takes the last published day before it, which is what the card does too. The
 provider is behind one function returning `Decimal | None`, so a failed fetch degrades to
-"type the rate, or keep it unconverted", never to a guess and never to a blocked save.
+"type the rate, or keep it unconverted", never to a guess and never to a blocked save. The
+parser is tested against a saved feed; the suite never touches the network.
 
 **CUR-11. Changing the budget currency is a migration, not a setting.** Every stored
 assignment and target, and every `fx.amount`, is in the budget currency. Flipping
-`budget.yaml` alone would corrupt all of it, so the field is read-only in the UI and the CLI
-refuses to change it. A future `money budget recurrency` command may rewrite the repo in one
-commit; it is not part of this plan.
+`budget.yaml` alone would corrupt all of it. No route or screen changes it; a future
+`money budget recurrency` command may rewrite the repo in one commit, and is not built.
 
 **CUR-12. Display shows the budget figure first, foreign beside it.** A row shows the
 budget-currency figure in the amount column and the original beneath it: `€120.00 · rate
@@ -139,15 +152,19 @@ its figure — `−$5.00 unconverted` — and the chip is the way into convertin
 month summary's ready-to-assign does the same.
 
 **CUR-13. Settlements are per currency.** Debt is folded in whatever currency it is in
-(CUR-6), so a settle-up suggests one transfer per currency and a settlement entry names the
-currency it was paid in. Repaying dollars with dollars never touches a rate. Repaying a dollar
-debt in shekels is: convert the entries (CUR-7 or CUR-8), then settle in shekels.
+(CUR-6), so a settle-up suggests one transfer per currency and `POST /settle` takes the
+`currency` the money changed hands in. A foreign settlement is recorded **unconverted on
+purpose**: it clears that currency's column, and converting it would move the payment into
+the shekel column while the debt it paid stayed in dollars. Repaying a dollar debt in shekels
+is: convert the entries (CUR-7 or CUR-8), then settle in shekels.
 
 **CUR-14. Income and funding.** Foreign income that is not converted is foreign
-ready-to-assign; it cannot be assigned to an envelope until it is converted, because
-assignments and targets are in the budget currency. Converting an income entry moves it into
-the pool. Scheduled entries carry a currency and, when posted, take the same three choices
-an entry does, with the template remembering which.
+ready-to-assign (`MonthResponse.foreign`), shown as *not yet assignable*; it cannot fund an
+envelope until it is converted, because assignments and targets are in the budget currency.
+Converting an income entry moves it into the pool. A scheduled template carries a currency
+and a `convert` flag: posted with it on, the entry converts at the posting day's rate; off,
+it stays unconverted. There is no manual rate on a template, because the rate belongs to the
+day it is posted.
 
 **CUR-15. Rounding follows `allocate`.** `fx.amount` is quantized to two places with
 `ROUND_HALF_UP`. Converted shares are allocated from it, never rounded individually, so they
@@ -165,22 +182,20 @@ state, rather than "100 shekels" with the dollars filed somewhere else.
 Never adding the two columns is the rule that keeps this honest. The moment a foreign figure
 is folded into the budget figure at an assumed rate, the app is back to guessing.
 
-## Order of work
+## Where it lives
 
-1. Model and validation (CUR-2, CUR-3, CUR-4, CUR-15). Until this lands the API rejects
-   `currency` other than the budget's, so the trap described above closes first.
-2. Derivations: budget-currency figures read through `fx.amount`; unconverted entries
-   accumulate into `foreign` (CUR-1, CUR-6). `test_domain.py` covers a mixed ledger against
-   hand-computed totals, including a bucket that is positive in one currency and negative in
-   another.
-3. The rate table and the ECB provider (CUR-9, CUR-10), fetch mocked in tests.
-4. Conversion routes (CUR-7, CUR-8), each one commit, with history subjects.
-5. The form's three choices and the rows and chips (CUR-5, CUR-12), screenshotted in both
-   languages — a currency symbol is exactly the kind of thing that lands on the wrong side in
-   Hebrew.
-6. Settlement per currency, income and scheduled (CUR-13, CUR-14).
+| concern | code |
+|---|---|
+| the `fx` block, `budget_shares`, `budget_paid_by`, `foreign` | `money.domain.models.Entry` |
+| proportional scaling with exact sums | `money.domain.amounts.scale` |
+| per-currency columns on balances, buckets, months | `money.domain.derive` |
+| rate table, conversion commits | `money.store.store` (`RATES_PATH`, `convert_entries`) |
+| resolving a rate: typed, table, provider | `money.api.fx` |
+| the ECB parser and fetch | `money.api.rates` |
+| routes | `entries.py` (`fx`, `convert`, `unconverted`), `budgets.py` (`rates`, bucket convert, settle currency), `scheduled.py` |
+| the chips and both convert panels | `components/Foreign.tsx`, `features/Convert.tsx` |
 
-## Deliberately not planned
+## Deliberately not built
 
 - **Live revaluation.** An unconverted balance is shown in its own currency, never as an
   estimated budget figure. A converted one does not move when the market does.

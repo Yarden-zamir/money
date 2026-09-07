@@ -13,7 +13,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from money.domain.amounts import ZERO, format_amount, parse_amount
+from money.domain.amounts import ZERO, format_amount, parse_amount, quantize, scale
 from money.domain.recurrence import Recurrence
 
 PersonId = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")]
@@ -97,6 +97,48 @@ class Place(Base):
     provider_id: str | None = Field(default=None, max_length=200)
 
 
+RATE_PLACES = Decimal("0.0001")
+
+
+class Fx(Base):
+    """How an entry in another currency was converted into the budget's.
+
+    Present means converted; absent on a foreign-currency entry means *not yet* — the entry
+    then counts in its own currency, as a second column beside the budget figure, until
+    somebody converts it. See specs/currency.md.
+
+    `amount` is stored rather than recomputed, for the same reason `shares` and `rule` are: a
+    rate that changes later must not rewrite what an old dinner cost. `at` is the day the rate
+    belongs to, which is the day of conversion by default, not the day of the purchase.
+    """
+
+    rate: Decimal = Field(description="Budget units per one unit of the entry's currency")
+    amount: Decimal = Field(description="The entry's amount × rate, in the budget currency")
+    at: date
+    source: str = Field(pattern=r"^(table|manual)$")
+
+    @field_validator("rate", mode="before")
+    @classmethod
+    def _parse_rate(cls, value: object) -> Decimal:
+        parsed = parse_rate(value)
+        if parsed <= 0:
+            raise ValueError("an exchange rate must be positive")
+        return parsed
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def _parse_amount(cls, value: object) -> Decimal:
+        return parse_amount(value)  # type: ignore[arg-type]
+
+
+def parse_rate(value: object) -> Decimal:
+    """A rate has four places, not two: 3.7100 shekels to the dollar is a real quantity and
+    rounding it to 3.71 would move a large conversion by whole shekels."""
+    if isinstance(value, float):
+        raise ValueError(f"rates must not be floats, got {value!r}")
+    return Decimal(str(value)).quantize(RATE_PLACES)
+
+
 class Entry(Base):
     id: str = Field(pattern=r"^[0-9A-HJKMNP-TV-Z]{26}$")  # ULID
     kind: EntryKind = EntryKind.EXPENSE
@@ -129,6 +171,11 @@ class Entry(Base):
         default_factory=list, description="Receipt lines; must sum to the entry amount"
     )
     place: Place | None = None
+    fx: Fx | None = Field(
+        default=None,
+        description="Conversion into the budget currency; absent on a foreign entry means "
+        "not converted yet",
+    )
 
     @field_validator("amount", mode="before")
     @classmethod
@@ -151,6 +198,15 @@ class Entry(Base):
         """
         if self.amount == ZERO:
             raise ValueError(f"entry {self.id}: amount must not be zero")
+
+        # A conversion is reproducible from the amount and the rate alone; a stored figure
+        # that disagrees with them is a hand edit that changed one and not the other.
+        if self.fx is not None and quantize(self.amount * self.fx.rate) != self.fx.amount:
+            raise ValueError(
+                f"entry {self.id}: fx amount is {format_amount(self.fx.amount)}, but "
+                f"{format_amount(self.amount)} × {self.fx.rate} is "
+                f"{format_amount(quantize(self.amount * self.fx.rate))}"
+            )
 
         paid = sum(self.paid_by.values(), start=ZERO)
         if paid != self.amount:
@@ -213,6 +269,53 @@ class Entry(Base):
     @property
     def month(self) -> str:
         return self.date.strftime("%Y-%m")
+
+    # ---- what this entry is worth in the budget currency ----------------------------
+    #
+    # Three states, and every derivation asks these rather than reading `amount` directly:
+    # in the budget currency (worth its amount), converted (worth `fx.amount`), or foreign
+    # and unconverted (worth nothing in the budget currency, and its own amount in its own).
+
+    def converted(self, budget_currency: str) -> bool:
+        return self.currency == budget_currency or self.fx is not None
+
+    def foreign(self, budget_currency: str) -> str | None:
+        """The currency this entry still counts in, when it has not been converted."""
+        return None if self.converted(budget_currency) else self.currency
+
+    def budget_amount(self, budget_currency: str) -> Decimal | None:
+        if self.currency == budget_currency:
+            return self.amount
+        return self.fx.amount if self.fx else None
+
+    def budget_shares(self, budget_currency: str) -> list[Share] | None:
+        """The shares in the budget currency, or None while unconverted.
+
+        Derived, not stored: shares stay in the entry's own currency so that converting later
+        touches only `fx`. Scaled together so they sum exactly to `fx.amount`.
+        """
+        total = self.budget_amount(budget_currency)
+        if total is None:
+            return None
+        if total == self.amount:
+            return list(self.shares)
+        scaled = scale(
+            {str(index): share.amount for index, share in enumerate(self.shares)},
+            self.amount,
+            total,
+        )
+        return [
+            share.model_copy(update={"amount": scaled[str(index)]})
+            for index, share in enumerate(self.shares)
+        ]
+
+    def budget_paid_by(self, budget_currency: str) -> dict[str, Decimal] | None:
+        total = self.budget_amount(budget_currency)
+        if total is None:
+            return None
+        if total == self.amount:
+            return dict(self.paid_by)
+        return scale(self.paid_by, self.amount, total)
 
 
 def _by_person_and_bucket(shares: list[Share]) -> dict[tuple[str, str | None], Decimal]:
@@ -356,6 +459,11 @@ class Scheduled(Base):
     )
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
+    convert: bool = Field(
+        default=True,
+        description="For a foreign-currency template: convert at the day's rate when posted, "
+        "or keep the posted entry unconverted",
+    )
 
     @field_validator("amount", mode="before")
     @classmethod

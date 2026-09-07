@@ -1886,6 +1886,250 @@
         }
       }
     },
+    "/api/v1/budgets/{budget}/rates": {
+      "get": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "What one unit of a currency is worth in the budget's, on a day",
+        "description": "Read-only: answers from the table, else asks the provider without committing. The\nrate is committed only by the conversion that uses it, so the form can show what a\nconversion would do without leaving a row nothing depends on.",
+        "operationId": "lookupRate",
+        "parameters": [
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$",
+              "title": "Currency"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "name": "X-Act-As",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Act-As"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "rate",
+          "args": [
+            "currency"
+          ],
+          "aliases": {
+            "date": "-d"
+          }
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/buckets/{bucket_id}/convert": {
+      "post": {
+        "tags": [
+          "budgets"
+        ],
+        "summary": "Convert every unconverted entry in one currency with a share in a bucket",
+        "description": "One rate, one commit. An entry whose shares span two buckets converts whole, because an\nentry has one `fx`; those are listed so the person knows the other bucket moved too.\nSee specs/currency.md, CUR-8.",
+        "operationId": "convertBucket",
+        "parameters": [
+          {
+            "name": "bucket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Bucket Id"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "X-Act-As",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Act-As"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BucketConvertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvertResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "bucket convert",
+          "args": [
+            "bucket_id",
+            "currency"
+          ]
+        }
+      }
+    },
     "/api/v1/budgets/{budget}/entries": {
       "post": {
         "tags": [
@@ -2110,6 +2354,24 @@
               ],
               "title": "Kind"
             }
+          },
+          {
+            "name": "unconverted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only entries still in a foreign currency",
+              "title": "Unconverted"
+            },
+            "description": "Only entries still in a foreign currency"
           },
           {
             "name": "q",
@@ -2980,6 +3242,122 @@
           "args": [
             "entry_id",
             "text"
+          ]
+        }
+      }
+    },
+    "/api/v1/budgets/{budget}/entries/{entry_id}/convert": {
+      "post": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Convert an unconverted entry into the budget currency",
+        "description": "Adds `fx` at the rate for the day of conversion \u2014 that is what \"convert it now\" means\n\u2014 or another day's, or one typed. See specs/currency.md, CUR-7.",
+        "operationId": "convertEntry",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "budget",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Budget"
+            }
+          },
+          {
+            "name": "X-Act-As",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Act-As"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "money_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Money Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvertResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-cli": {
+          "command": "entry convert",
+          "args": [
+            "entry_id"
           ]
         }
       }
@@ -6239,6 +6617,15 @@
             "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Net"
+          },
+          "foreign": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Foreign",
+            "description": "Net position per unconverted currency"
           }
         },
         "type": "object",
@@ -6416,6 +6803,50 @@
         "title": "Bucket",
         "description": "One shared envelope. Several people fund it; anyone can spend against it.\n\n`split` and funding are deliberately independent. How much you put in this month is a\ncashflow decision; what proportion of this category's spending is *yours* is a fairness\ndecision, and letting the first decide the second means you cannot fund a bucket generously\none month without also taking on more of its cost.\n\nKeeping them apart is what allows an envelope to be in the red for one person and in the\nblack for another: their position is what they funded minus what they bear."
       },
+      "BucketConvertRequest": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currency"
+        ],
+        "title": "BucketConvertRequest",
+        "description": "Convert every unconverted entry in one currency with a share in a bucket."
+      },
       "BucketPosition": {
         "properties": {
           "bucket": {
@@ -6495,6 +6926,15 @@
             },
             "type": "array",
             "title": "Funders"
+          },
+          "foreign": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Foreign",
+            "description": "Spent against this bucket in currencies not yet converted, to date"
           }
         },
         "type": "object",
@@ -6845,6 +7285,86 @@
         ],
         "title": "CommitRef"
       },
+      "ConvertRequest": {
+        "properties": {
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "Type a rate instead"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Take another day's rate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConvertRequest",
+        "description": "Convert one unconverted entry. Defaults to the rate for the day of conversion."
+      },
+      "ConvertResult": {
+        "properties": {
+          "converted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Converted",
+            "description": "Entry ids that gained a conversion"
+          },
+          "spanning": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Spanning",
+            "description": "Converted entries that also have shares in other buckets"
+          },
+          "fx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Fx"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The conversion applied; None when nothing needed it"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "converted",
+          "fx",
+          "commit"
+        ],
+        "title": "ConvertResult"
+      },
       "DevicePoll": {
         "properties": {
           "device_code": {
@@ -7107,6 +7627,17 @@
                 "type": "null"
               }
             ]
+          },
+          "fx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Fx"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Conversion into the budget currency; absent on a foreign entry means not converted yet"
           }
         },
         "additionalProperties": false,
@@ -7184,6 +7715,17 @@
             ],
             "title": "Currency",
             "description": "Defaults to the budget currency"
+          },
+          "fx": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FxChoice"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for another currency. Omitted means convert at the day's rate."
           },
           "paid_by": {
             "anyOf": [
@@ -7532,6 +8074,15 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Available",
             "description": "Their carried position: funded minus borne"
+          },
+          "foreign": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Foreign",
+            "description": "What they bore here in currencies not yet converted, carried to date"
           }
         },
         "type": "object",
@@ -7544,6 +8095,74 @@
         ],
         "title": "FunderState",
         "description": "One person's standing in one shared bucket.\n\n`available` can be negative while another funder's is positive \u2014 that is the point of\nseparating funding from split. It means this person is consuming more of the category than\nthey have put in, which is fixed by funding more or by changing the split, and is a\ndifferent problem from owing somebody cash."
+      },
+      "Fx": {
+        "properties": {
+          "rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate",
+            "description": "Budget units per one unit of the entry's currency"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "description": "The entry's amount \u00d7 rate, in the budget currency"
+          },
+          "at": {
+            "type": "string",
+            "format": "date",
+            "title": "At"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(table|manual)$",
+            "title": "Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rate",
+          "amount",
+          "at",
+          "source"
+        ],
+        "title": "Fx",
+        "description": "How an entry in another currency was converted into the budget's.\n\nPresent means converted; absent on a foreign-currency entry means *not yet* \u2014 the entry\nthen counts in its own currency, as a second column beside the budget figure, until\nsomebody converts it. See specs/currency.md.\n\n`amount` is stored rather than recomputed, for the same reason `shares` and `rule` are: a\nrate that changes later must not rewrite what an old dinner cost. `at` is the day the rate\nbelongs to, which is the day of conversion by default, not the day of the purchase."
+      },
+      "FxChoice": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "pattern": "^(table|manual|none)$",
+            "title": "Mode",
+            "description": "table: the day's rate from the table or the provider; manual: `rate`; none: keep it unconverted for now",
+            "default": "table"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "Required for manual"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FxChoice",
+        "description": "What to do about an entry in another currency. See specs/currency.md, CUR-5."
       },
       "HTTPValidationError": {
         "properties": {
@@ -8249,6 +8868,15 @@
             },
             "type": "array",
             "title": "Buckets"
+          },
+          "foreign": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+            },
+            "type": "object",
+            "title": "Foreign",
+            "description": "Income not yet converted, so not yet assignable"
           }
         },
         "type": "object",
@@ -8555,6 +9183,50 @@
         "additionalProperties": false,
         "type": "object",
         "title": "PostRequest"
+      },
+      "RateResponse": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "base": {
+            "type": "string",
+            "title": "Base"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "None when no provider could answer"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "table, provider or none"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "base",
+          "date",
+          "rate",
+          "source"
+        ],
+        "title": "RateResponse"
       },
       "Recurrence": {
         "properties": {
@@ -8864,6 +9536,12 @@
             },
             "type": "array",
             "title": "Tags"
+          },
+          "convert": {
+            "type": "boolean",
+            "title": "Convert",
+            "description": "For a foreign-currency template: convert at the day's rate when posted, or keep the posted entry unconverted",
+            "default": true
           }
         },
         "additionalProperties": false,
@@ -8997,6 +9675,12 @@
             },
             "type": "array",
             "title": "Tags"
+          },
+          "convert": {
+            "type": "boolean",
+            "title": "Convert",
+            "description": "For a foreign-currency template: convert at the day's rate when posted, or keep the posted entry unconverted",
+            "default": true
           }
         },
         "additionalProperties": false,
@@ -9067,6 +9751,19 @@
               }
             ],
             "title": "Note"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "The currency the money changed hands in. A foreign one settles that currency's debt and is recorded unconverted."
           }
         },
         "additionalProperties": false,
@@ -9091,16 +9788,21 @@
             "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
           }
         },
         "type": "object",
         "required": [
           "payer",
           "payee",
-          "amount"
+          "amount",
+          "currency"
         ],
         "title": "Settlement",
-        "description": "One suggested payment that reduces outstanding debt."
+        "description": "One suggested payment that reduces outstanding debt, in one currency."
       },
       "Share-Input": {
         "properties": {

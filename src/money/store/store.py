@@ -10,11 +10,12 @@ import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
 from money.domain.amounts import ZERO
-from money.domain.models import Bucket, Budget, Comment, Entry, Member, Scheduled, Target
+from money.domain.models import Bucket, Budget, Comment, Entry, Fx, Member, Scheduled, Target
 from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
@@ -60,6 +61,14 @@ def assignments_path(person: str, month: str) -> str:
 
 
 SCHEDULED_PATH = "scheduled.yaml"
+
+# Daily exchange rates the app fetched, keyed by day then currency: budget units per one
+# unit of the foreign currency. Committed so a repo is reproducible offline and two people
+# converting on the same day get the same rate. A rate a person typed never goes here — the
+# table is what the provider said, not what somebody chose.
+RATES_PATH = "rates.yaml"
+
+RateRow = tuple[date, str, Decimal]
 
 
 def _bucket_sort_key(bucket: Bucket) -> tuple[str, int, str]:
@@ -305,6 +314,18 @@ class BudgetStore:
         """
         return self.repo.read(note_path(entry_id))
 
+    def rates(self) -> dict[date, dict[str, Decimal]]:
+        raw = yamlio.load(self.repo.read(RATES_PATH)) or {}
+        return {
+            day if isinstance(day, date) else date.fromisoformat(str(day)): {
+                code: Decimal(str(rate)) for code, rate in (quotes or {}).items()
+            }
+            for day, quotes in raw.items()
+        }
+
+    def rate(self, currency: str, day: date) -> Decimal | None:
+        return self.rates().get(day, {}).get(currency)
+
     def comments(self, entry_id: str) -> list[Comment]:
         """The conversation under one entry, oldest first — the order it was said in."""
         raw = yamlio.load(self.repo.read(comments_path(entry_id))) or []
@@ -382,14 +403,16 @@ class BudgetStore:
 
     # ---- writes ---------------------------------------------------------------------
 
-    def add_entry(self, entry: Entry, actor: Actor) -> str:
+    def add_entry(self, entry: Entry, actor: Actor, rate_row: RateRow | None = None) -> str:
+        """Write one entry. A rate the conversion fetched lands in the same commit."""
+
         def mutate() -> list[str]:
             entries = self.entries_for_month(entry.month)
             if any(existing.id == entry.id for existing in entries):
                 raise DataError(f"entry {entry.id} already exists")
             entries.append(entry)
             self._write_ledger(entry.month, entries)
-            return [ledger_path(entry.month)]
+            return [ledger_path(entry.month), *self._record_rate(rate_row)]
 
         return self._commit(
             mutate,
@@ -584,7 +607,47 @@ class BudgetStore:
             trailers={},
         )
 
-    def post_scheduled(self, entry: Entry, scheduled_id: str, actor: Actor) -> str:
+    def convert_entries(
+        self,
+        conversions: list[tuple[Entry, Fx]],
+        actor: Actor,
+        subject: str,
+        rate_row: RateRow | None = None,
+    ) -> str:
+        """Attach `fx` to several entries in one commit.
+
+        One commit whether it is one entry or a whole bucket's worth: a bucket half converted
+        is a state nobody chose, and the subject says what rate was applied to what.
+        """
+        if not conversions:
+            return self.repo.head_sha()
+        for entry, _ in conversions:
+            if entry.fx is not None:
+                raise DataError(f"entry {entry.id} is already converted; undo that instead")
+
+        def mutate() -> list[str]:
+            by_month: dict[str, dict[str, Fx]] = {}
+            for entry, fx in conversions:
+                by_month.setdefault(entry.month, {})[entry.id] = fx
+            touched: list[str] = []
+            for month, fx_by_id in by_month.items():
+                current = self.entries_for_month(month)
+                self._write_ledger(
+                    month,
+                    [
+                        e.model_copy(update={"fx": fx_by_id[e.id]}) if e.id in fx_by_id else e
+                        for e in current
+                    ],
+                )
+                touched.append(ledger_path(month))
+            return [*touched, *self._record_rate(rate_row)]
+
+        trailers = {"Entry-Id": conversions[0][0].id} if len(conversions) == 1 else {}
+        return self._commit(mutate, actor=actor, subject=subject, trailers=trailers)
+
+    def post_scheduled(
+        self, entry: Entry, scheduled_id: str, actor: Actor, rate_row: RateRow | None = None
+    ) -> str:
         """Create the entry a recurrence is due for, and record that it was posted.
 
         Both in one commit: if the entry landed but the marker did not, the same charge would
@@ -613,7 +676,7 @@ class BudgetStore:
                     [item.model_dump(mode="python", exclude_none=True) for item in updated]
                 ),
             )
-            return [ledger_path(entry.month), SCHEDULED_PATH]
+            return [ledger_path(entry.month), SCHEDULED_PATH, *self._record_rate(rate_row)]
 
         return self._commit(
             mutate,
@@ -871,6 +934,27 @@ class BudgetStore:
                 ]
             ),
         )
+
+    def _record_rate(self, row: RateRow | None) -> list[str]:
+        """Add one fetched rate to the table, if it is not there already. Returns the paths
+        to stage, so a caller can fold it into its own commit."""
+        if row is None:
+            return []
+        day, currency, rate = row
+        table = self.rates()
+        if table.get(day, {}).get(currency) == rate:
+            return []
+        table.setdefault(day, {})[currency] = rate
+        self.repo.write(
+            RATES_PATH,
+            yamlio.dump(
+                {
+                    day.isoformat(): {code: str(value) for code, value in sorted(quotes.items())}
+                    for day, quotes in sorted(table.items())
+                }
+            ),
+        )
+        return [RATES_PATH]
 
     def _write_comments(self, entry_id: str, comments: list[Comment]) -> None:
         """Oldest first, and no file at all once the last comment is gone."""

@@ -399,5 +399,31 @@
     "count_other": "{{count}} files",
     "tooLarge": "That file is over 8 MB.",
     "unsupported": "Only photos and PDFs can be attached."
+  },
+  "currency": {
+    "label": "Currency",
+    "unconverted": "unconverted",
+    "convertThese": "Convert the {{currency}} in this bucket",
+    "modes": {
+      "table": "Convert at the day's rate",
+      "manual": "Convert at a rate I type",
+      "none": "Keep in {{currency}} for now"
+    },
+    "rate": "Rate",
+    "rateHint": "{{base}} per 1 {{currency}}",
+    "rateFor": "{{rate}} on {{date}}",
+    "noRate": "No rate found for {{currency}}. Type one, or keep it unconverted.",
+    "lookingUp": "Looking up the rate…",
+    "willRecord": "Records {{converted}} ({{original}} at {{rate}})",
+    "willKeep": "Recorded in {{currency}}, converted later",
+    "convertedAt": "{{original}} at {{rate}}",
+    "convert": "Convert",
+    "convertEntry": "Convert to {{currency}}",
+    "convertBucket": "Convert the {{currency}} in {{bucket}}",
+    "converting": "Converting…",
+    "useDayRate": "Use the rate for {{date}}",
+    "spanning": "Also moved another bucket: {{count}} entries had shares elsewhere.",
+    "readyForeign": "Not yet assignable",
+    "unconvertedOnly": "Unconverted only"
   }
 }

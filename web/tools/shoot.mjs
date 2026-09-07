@@ -87,6 +87,7 @@ const month = {
         ["dana", "0.5", "300.00", "-456.25", "-156.25"],
       ]) },
     { bucket: "transport", name: "Transport", group: "Essentials", assigned: "500.00", activity: "-231.00", available: "269.00", target: null,
+      foreign: { USD: "-42.00" },
       funders: funders("transport", [
         ["yarden", "0.25", "200.00", "-57.75", "142.25"],
         ["dana", "0.25", "150.00", "-57.75", "92.25"],
@@ -119,10 +120,13 @@ const entries = {
   entries: [
     entry("01K9VYQ2N3X8R4T7B0M6D5C1FA", "2026-07-27", "שופרסל דיל", "-284.51", "groceries"),
     entry("01K9VYQ2N3X8R4T7B0M6D5C1FB", "2026-07-26", "קפה גרג", "-50.00", "eating-out"),
+    { ...entry("01K9VYQ2N3X8R4T7B0M6D5C1FE", "2026-07-26", "Uber", "-42.00", "transport"), currency: "USD" },
+    { ...entry("01K9VYQ2N3X8R4T7B0M6D5C1FF", "2026-07-25", "Amazon", "-30.00", "transport"), currency: "USD",
+      fx: { rate: "3.7100", amount: "-111.30", at: "2026-07-25", source: "table" } },
     entry("01K9VYQ2N3X8R4T7B0M6D5C1FC", "2026-07-25", "Rav Kav", "-231.00", "transport"),
     entry("01K9VYQ2N3X8R4T7B0M6D5C1FD", "2026-07-01", "Rent", "-5200.00", "rent"),
   ],
-  total: 4,
+  total: 6,
   extras: { "01K9VYQ2N3X8R4T7B0M6D5C1FA": { comments: 3, attachments: 1 } },
 };
 
@@ -148,11 +152,16 @@ const attachments = {
 const balances = {
   currency: "ILS",
   balances: [
-    { person: "yarden", net: "1287.26" },
-    { person: "dana", net: "-1287.26" },
+    { person: "yarden", net: "1287.26", foreign: { USD: "21.00" } },
+    { person: "dana", net: "-1287.26", foreign: { USD: "-21.00" } },
   ],
-  settle_up: [{ payer: "dana", payee: "yarden", amount: "1287.26" }],
+  settle_up: [
+    { payer: "dana", payee: "yarden", amount: "1287.26", currency: "ILS" },
+    { payer: "dana", payee: "yarden", amount: "21.00", currency: "USD" },
+  ],
 };
+
+const rate = { currency: "USD", base: "ILS", date: "2026-09-07", rate: "3.7100", source: "provider" };
 
 const rules = [
   { id: "groceries", when: { payee_contains: "שופרסל", tag: null, paid_by: null, min_amount: null }, bucket: "groceries" },
@@ -217,6 +226,7 @@ const historyDetail = {
 };
 
 const ROUTES = [
+  [/\/rates\?/, () => rate],
   [/\/attachments\/[^/]+$/, () => PNG, "image/png"],
   [/\/attachments$/, () => attachments],
   [/\/comments/, () => comments],
@@ -345,6 +355,15 @@ for (const [device, viewport] of VIEWPORTS) {
       await bar.click();
       await page.waitForTimeout(300);
       await page.screenshot({ path: join(OUT, `${device}-${language}-month-breakdown.png`), fullPage: true });
+    }
+
+    // The unconverted chip on a bucket opens the convert panel.
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    const chip = page.getByRole("button", { name: /Convert the USD|המרת ה־USD/ }).first();
+    if (await chip.count()) {
+      await chip.click();
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(OUT, `${device}-${language}-convert.png`), fullPage: true });
     }
 
     // History rows only show what a change did once opened, so the closed list is not the

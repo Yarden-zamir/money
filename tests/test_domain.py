@@ -111,11 +111,11 @@ class TestEntry:
 
 class TestBalances:
     def test_coffee_leaves_dana_owing_yarden(self) -> None:
-        balances = net_positions([entry()], ["yarden", "dana"])
+        balances = net_positions([entry()], ["yarden", "dana"], "ILS")
         net = {b.person: b.net for b in balances}
         assert net == {"yarden": D("25.00"), "dana": D("-25.00")}
 
-        payments = settle_up(balances)
+        payments = settle_up(balances, "ILS")
         assert len(payments) == 1
         assert (payments[0].payer, payments[0].payee) == ("dana", "yarden")
         assert payments[0].amount == D("25.00")
@@ -130,12 +130,12 @@ class TestBalances:
             paid_by={"dana": "-25.00"},
             shares=[{"person": "yarden", "amount": "-25.00"}],
         )
-        balances = net_positions([entry(), settlement], ["yarden", "dana"])
+        balances = net_positions([entry(), settlement], ["yarden", "dana"], "ILS")
         assert all(b.net == D("0.00") for b in balances)
-        assert settle_up(balances) == []
+        assert settle_up(balances, "ILS") == []
 
     def test_members_with_no_activity_still_appear(self) -> None:
-        balances = net_positions([entry()], ["yarden", "dana", "noa"])
+        balances = net_positions([entry()], ["yarden", "dana", "noa"], "ILS")
         assert {b.person for b in balances} == {"yarden", "dana", "noa"}
 
 
@@ -151,6 +151,7 @@ class TestMonthView:
             buckets=buckets,
             assignments={"yarden": assignments},
             people=["yarden"],
+            currency="ILS",
         )
         fun = view.buckets[0]
         assert fun.assigned == D("400.00")  # August only
@@ -174,6 +175,7 @@ class TestMonthView:
             buckets=[Bucket(id="fun-money", name="בילויים")],
             assignments={"yarden": {"2026-07": {"fun-money": D("400.00")}}},
             people=["yarden"],
+            currency="ILS",
         )
         assert view.income == D("5000.00")
         assert view.ready_to_assign == D("4600.00")
@@ -188,6 +190,7 @@ class TestMonthView:
                 buckets=[],
                 assignments={},
                 people=["yarden"],
+                currency="ILS",
             )
 
     def test_months_between_crosses_a_year(self) -> None:
@@ -250,3 +253,111 @@ class TestRules:
             Share(person="yarden", amount=D("-25.00"), bucket="fun-money"),
             Share(person="dana", amount=D("-25.00"), bucket="fun-money"),
         ]
+
+
+class TestCurrency:
+    """A foreign entry is worth its converted amount, or nothing yet — never a guess."""
+
+    def test_a_conversion_must_be_reproducible_from_amount_and_rate(self) -> None:
+        with pytest.raises(ValidationError, match="fx amount is -100.00"):
+            entry(
+                currency="USD",
+                fx={"rate": "3.7100", "amount": "-100.00", "at": "2026-07-14", "source": "table"},
+            )
+
+    def test_converted_shares_sum_exactly_to_the_converted_total(self) -> None:
+        # 3.7 × -50 = -185.00; half each is -92.50, no drift. A rate that rounds badly:
+        e = entry(
+            currency="USD",
+            fx={"rate": "3.3333", "amount": "-166.67", "at": "2026-07-14", "source": "table"},
+        )
+        shares = e.budget_shares("ILS")
+        assert shares is not None
+        assert sum(s.amount for s in shares) == D("-166.67")
+        assert [s.person for s in shares] == ["yarden", "dana"]
+        assert e.budget_paid_by("ILS") == {"yarden": D("-166.67")}
+
+    def test_an_unconverted_entry_counts_in_its_own_column(self) -> None:
+        dollars = entry(id="01K9VYQ2N3X8R4T7B0M6D5C1FB", currency="USD")
+        balances = net_positions([entry(), dollars], ["yarden", "dana"], "ILS")
+        by_person = {b.person: b for b in balances}
+
+        assert by_person["yarden"].net == D("25.00")
+        assert by_person["yarden"].foreign == {"USD": D("25.00")}
+        assert by_person["dana"].foreign == {"USD": D("-25.00")}
+
+        payments = settle_up(balances, "ILS")
+        assert [(p.currency, p.amount) for p in payments] == [
+            ("ILS", D("25.00")),
+            ("USD", D("25.00")),
+        ]
+
+    def test_a_bucket_can_be_positive_in_one_currency_and_negative_in_another(self) -> None:
+        dollars = entry(
+            id="01K9VYQ2N3X8R4T7B0M6D5C1FB",
+            currency="USD",
+            amount="-10.00",
+            paid_by={"yarden": "-10.00"},
+            shares=[
+                {"person": "yarden", "amount": "-5.00", "bucket": "fun-money"},
+                {"person": "dana", "amount": "-5.00", "bucket": "fun-money"},
+            ],
+        )
+        view = month_view(
+            person="yarden",
+            month="2026-07",
+            start_month="2026-07",
+            entries=[dollars],
+            buckets=[Bucket(id="fun-money", name="Fun")],
+            assignments={"yarden": {"2026-07": {"fun-money": D("100.00")}}},
+            people=["yarden", "dana"],
+            currency="ILS",
+        )
+        [fun] = view.buckets
+        assert fun.available == D("100.00")  # the dollars never touch the shekel figure
+        assert fun.activity == D("0.00")
+        assert fun.foreign == {"USD": D("-10.00")}
+        assert {f.person: f.foreign for f in fun.funders} == {
+            "yarden": {"USD": D("-5.00")},
+            "dana": {"USD": D("-5.00")},
+        }
+
+    def test_converted_spending_lands_in_the_shekel_column(self) -> None:
+        dollars = entry(
+            currency="USD",
+            fx={"rate": "3.7000", "amount": "-185.00", "at": "2026-07-14", "source": "table"},
+        )
+        view = month_view(
+            person="yarden",
+            month="2026-07",
+            start_month="2026-07",
+            entries=[dollars],
+            buckets=[Bucket(id="fun-money", name="Fun")],
+            assignments={},
+            people=["yarden", "dana"],
+            currency="ILS",
+        )
+        [fun] = view.buckets
+        assert fun.activity == D("-185.00")
+        assert fun.foreign == {}
+
+    def test_unconverted_income_is_not_ready_to_assign(self) -> None:
+        salary = entry(
+            kind="income",
+            currency="USD",
+            amount="1000.00",
+            paid_by={"yarden": "1000.00"},
+            shares=[{"person": "yarden", "amount": "1000.00"}],
+        )
+        view = month_view(
+            person="yarden",
+            month="2026-07",
+            start_month="2026-07",
+            entries=[salary],
+            buckets=[],
+            assignments={},
+            people=["yarden"],
+            currency="ILS",
+        )
+        assert view.ready_to_assign == D("0.00")
+        assert view.foreign == {"USD": D("1000.00")}

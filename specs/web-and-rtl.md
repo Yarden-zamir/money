@@ -316,6 +316,17 @@ out before the upload; the server's `ATTACHMENT_TYPES` and `ATTACHMENT_MAX_BYTES
 source of truth and the two must be kept in step. Thumbnails are the file itself loaded from
 its URL with the session cookie — not a hand-written fetch — and PDFs show a paperclip.
 
+## Currency
+
+`components/Foreign.tsx` renders whatever is not yet in the budget currency as a dashed chip
+per currency, deliberately not in the amount column: the number beside it is never the sum
+of the two. Where converting is offered, the chip is the button, and it carries an
+`aria-label` because its visible content is an amount. `features/Convert.tsx` holds the two
+panels — one entry, one bucket — both pre-filled from `GET /rates`, which commits nothing.
+An entry row shows the budget figure first and the receipt figure with its rate beneath;
+an unconverted row shows its own currency and says so. Every amount still goes through
+`Money`, so a dollar sign lands on the right side in Hebrew for the same reason a shekel does.
+
 ## Mixed Scripts
 
 A subject is a template plus a name someone chose, so Hebrew lands mid-sentence among

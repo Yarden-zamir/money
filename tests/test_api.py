@@ -7,6 +7,7 @@ bare repo. Everything below it — rules, splits, commits, balances — is the r
 from __future__ import annotations
 
 import subprocess
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -305,7 +306,9 @@ class TestBalancesAndSettling:
             "yarden": "25.00",
             "dana": "-25.00",
         }
-        assert sheet["settle_up"] == [{"payer": "dana", "payee": "yarden", "amount": "25.00"}]
+        assert sheet["settle_up"] == [
+            {"payer": "dana", "payee": "yarden", "amount": "25.00", "currency": "ILS"}
+        ]
 
     def test_settling_clears_the_balance(self, client: TestClient) -> None:
         post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
@@ -958,3 +961,218 @@ class TestAttachments:
         context = client.app.dependency_overrides[budget_context]()
         assert context.store.attachment(entry["id"], "../budget.yaml") is None
         assert context.store.attachment(entry["id"], "..") is None
+
+
+class TestCurrency:
+    """Conversion is a decision: at the day's rate, at a typed rate, or not yet."""
+
+    @pytest.fixture(autouse=True)
+    def provider(self, monkeypatch: pytest.MonkeyPatch) -> dict:
+        """The ECB, answering 3.7 shekels to the dollar and nothing for anything else."""
+        calls: dict = {"count": 0}
+
+        def fake(currency: str, base: str, day) -> Decimal | None:
+            calls["count"] += 1
+            return Decimal("3.7000") if (currency, base) == ("USD", "ILS") else None
+
+        monkeypatch.setattr("money.api.fx.fetch_rate", fake)
+        return calls
+
+    def test_a_foreign_entry_converts_at_the_days_rate_and_commits_it(
+        self, client: TestClient, provider: dict
+    ) -> None:
+        entry = post_entry(
+            client, amount="-50.00", payee="Amazon", currency="USD", date="2026-07-14"
+        )["entry"]
+        assert entry["fx"] == {
+            "rate": "3.7000",
+            "amount": "-185.00",
+            "at": "2026-07-14",
+            "source": "table",
+        }
+        # The rate landed in the table, so the next conversion on that day asks nobody.
+        context = client.app.dependency_overrides[budget_context]()
+        assert "rates.yaml" in context.store.repo.list_files("rates.yaml")
+        assert context.store.rate("USD", date(2026, 7, 14)) == Decimal("3.7000")
+        post_entry(client, amount="-10.00", payee="Amazon", currency="USD", date="2026-07-14")
+        assert provider["count"] == 1
+
+        sheet = client.get("/api/v1/budgets/joint/balances").json()
+        assert {b["person"]: b["net"] for b in sheet["balances"]} == {
+            "yarden": "111.00",  # (185 + 37) / 2
+            "dana": "-111.00",
+        }
+
+    def test_a_typed_rate_stays_on_the_entry_and_out_of_the_table(self, client: TestClient) -> None:
+        entry = post_entry(
+            client,
+            amount="-50.00",
+            payee="Amazon",
+            currency="USD",
+            date="2026-07-14",
+            fx={"mode": "manual", "rate": "3.55"},
+        )["entry"]
+        assert entry["fx"]["source"] == "manual"
+        assert entry["fx"]["amount"] == "-177.50"
+        context = client.app.dependency_overrides[budget_context]()
+        assert context.store.rate("USD", date(2026, 7, 14)) is None
+
+    def test_unconverted_money_is_a_second_column(self, client: TestClient) -> None:
+        post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+        post_entry(
+            client,
+            amount="-10.00",
+            payee="Diner",
+            currency="USD",
+            date="2026-07-15",
+            fx={"mode": "none"},
+        )
+
+        sheet = client.get("/api/v1/budgets/joint/balances").json()
+        by_person = {b["person"]: b for b in sheet["balances"]}
+        assert by_person["yarden"]["net"] == "25.00"
+        assert by_person["yarden"]["foreign"] == {"USD": "5.00"}
+        assert [(p["currency"], p["amount"]) for p in sheet["settle_up"]] == [
+            ("ILS", "25.00"),
+            ("USD", "5.00"),
+        ]
+
+        month = client.get("/api/v1/budgets/joint/months/2026-07").json()
+        fun = next(b for b in month["buckets"] if b["bucket"] == "fun-money")
+        assert fun["activity"] == "-50.00"
+        assert fun["foreign"] == {"USD": "-10.00"}
+
+        listed = client.get("/api/v1/budgets/joint/entries", params={"unconverted": "true"}).json()
+        assert [e["payee"] for e in listed["entries"]] == ["Diner"]
+
+    def test_no_rate_means_refuse_not_guess(self, client: TestClient) -> None:
+        refused = client.post(
+            "/api/v1/budgets/joint/entries",
+            json={"amount": "-50.00", "payee": "Bar", "currency": "GBP", "date": "2026-07-14"},
+        )
+        assert refused.status_code == 422
+        assert refused.json()["error"]["code"] == "no_rate"
+
+        kept = post_entry(
+            client,
+            amount="-50.00",
+            payee="Bar",
+            currency="GBP",
+            date="2026-07-14",
+            fx={"mode": "none"},
+        )["entry"]
+        assert kept["fx"] is None
+
+    def test_the_budget_currency_takes_no_choice(self, client: TestClient) -> None:
+        refused = client.post(
+            "/api/v1/budgets/joint/entries",
+            json={"amount": "-50.00", "payee": "Bar", "fx": {"mode": "none"}},
+        )
+        assert refused.json()["error"]["code"] == "fx_not_needed"
+
+    def test_converting_one_entry_later_uses_the_conversion_day(
+        self, client: TestClient, provider: dict
+    ) -> None:
+        entry = post_entry(
+            client,
+            amount="-10.00",
+            payee="Diner",
+            currency="USD",
+            date="2026-07-15",
+            fx={"mode": "none"},
+        )["entry"]
+        result = client.post(
+            f"/api/v1/budgets/joint/entries/{entry['id']}/convert", json={"date": "2026-07-20"}
+        )
+        assert result.status_code == 200, result.text
+        assert result.json()["fx"]["at"] == "2026-07-20"
+        assert result.json()["fx"]["amount"] == "-37.00"
+
+        sheet = client.get("/api/v1/budgets/joint/balances").json()
+        yarden = next(b for b in sheet["balances"] if b["person"] == "yarden")
+        assert yarden["net"] == "18.50"
+        assert yarden["foreign"] == {}
+
+        again = client.post(f"/api/v1/budgets/joint/entries/{entry['id']}/convert", json={})
+        assert again.json()["error"]["code"] == "already_converted"
+
+        feed = client.get("/api/v1/budgets/joint/history").json()["events"]
+        assert feed[0]["kind"] == "convert"
+        assert feed[0]["entry_id"] == entry["id"]
+
+    def test_converting_a_bucket_is_one_commit_at_one_rate(self, client: TestClient) -> None:
+        for amount in ("-10.00", "-20.00"):
+            post_entry(
+                client,
+                amount=amount,
+                payee="Diner",
+                currency="USD",
+                date="2026-07-15",
+                fx={"mode": "none"},
+            )
+        # One spanning two buckets, and one in shekels that must be left alone.
+        spanning = post_entry(
+            client,
+            amount="-30.00",
+            payee="Mixed",
+            currency="USD",
+            date="2026-07-16",
+            fx={"mode": "none"},
+            shares=[
+                {"person": "yarden", "amount": "-15.00", "bucket": "fun-money"},
+                {"person": "dana", "amount": "-15.00", "bucket": "groceries"},
+            ],
+        )["entry"]
+        post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
+
+        before = len(client.get("/api/v1/budgets/joint/history").json()["events"])
+        result = client.post(
+            "/api/v1/budgets/joint/buckets/fun-money/convert",
+            json={"currency": "USD", "rate": "3.5"},
+        )
+        assert result.status_code == 200, result.text
+        assert len(result.json()["converted"]) == 3
+        assert result.json()["spanning"] == [spanning["id"]]
+        after = client.get("/api/v1/budgets/joint/history").json()["events"]
+        assert len(after) == before + 1
+        assert after[0]["subject"] == "convert: 3 USD entries in בילויים at 3.5000"
+
+        month = client.get("/api/v1/budgets/joint/months/2026-07").json()
+        fun = next(b for b in month["buckets"] if b["bucket"] == "fun-money")
+        assert fun["foreign"] == {}
+        assert fun["activity"] == "-207.50"  # 50 + 3.5 × (10 + 20 + 15, the half in this bucket)
+
+    def test_a_settlement_in_dollars_clears_the_dollar_debt(self, client: TestClient) -> None:
+        post_entry(
+            client,
+            amount="-10.00",
+            payee="Diner",
+            currency="USD",
+            date="2026-07-15",
+            fx={"mode": "none"},
+        )
+        settled = client.post(
+            "/api/v1/budgets/joint/settle",
+            json={"payer": "dana", "to": "yarden", "amount": "5.00", "currency": "USD"},
+        )
+        assert settled.status_code == 200, settled.text
+        assert settled.json()["entry"]["currency"] == "USD"
+        assert settled.json()["entry"]["fx"] is None
+
+        sheet = client.get("/api/v1/budgets/joint/balances").json()
+        assert all(b["foreign"] == {} for b in sheet["balances"])
+        assert sheet["settle_up"] == []
+
+    def test_the_rate_lookup_commits_nothing(self, client: TestClient) -> None:
+        looked = client.get(
+            "/api/v1/budgets/joint/rates", params={"currency": "USD", "date": "2026-07-14"}
+        ).json()
+        assert looked == {
+            "currency": "USD",
+            "base": "ILS",
+            "date": "2026-07-14",
+            "rate": "3.7000",
+            "source": "provider",
+        }
+        context = client.app.dependency_overrides[budget_context]()
+        assert context.store.rate("USD", date(2026, 7, 14)) is None

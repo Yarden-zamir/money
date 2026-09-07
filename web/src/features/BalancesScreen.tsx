@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getBalancesOptions, settleUpMutation } from "@/api/@tanstack/react-query.gen";
 import type { BudgetSummary } from "@/api/types.gen";
+import { ForeignChips } from "@/components/Foreign";
 import { Button, Card, FormError } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -76,7 +77,7 @@ export function BalancesScreen() {
                   })}
                 </span>
                 <span className="ms-auto flex items-center gap-3">
-                  <Money amount={payment.amount} currency={currency} colour={false} />
+                  <Money amount={payment.amount} currency={payment.currency} colour={false} />
                   {budget.can_write && (payment.payer === budget.me || payment.payee === budget.me) && (
                     <SettleButton
                       budget={budget}
@@ -104,7 +105,8 @@ export function BalancesScreen() {
                   {t("common.you")}
                 </span>
               )}
-              <span className="ms-auto">
+              <span className="ms-auto flex flex-wrap items-center justify-end gap-2">
+                <ForeignChips foreign={balance.foreign} />
                 <Money amount={balance.net} currency={currency} />
               </span>
             </div>
@@ -129,7 +131,7 @@ function SettleButton({
   nameOf,
 }: {
   budget: BudgetSummary;
-  payment: { payer: string; payee: string; amount: string };
+  payment: { payer: string; payee: string; amount: string; currency: string };
   nameOf: (person: string) => string;
 }) {
   const { t } = useTranslation();
@@ -157,7 +159,12 @@ function SettleButton({
           // paid, which records the payment backwards when the person owed presses this.
           settle.mutate({
             path: { budget: budget.slug },
-            body: { payer: payment.payer, to: payment.payee, amount: payment.amount },
+            body: {
+              payer: payment.payer,
+              to: payment.payee,
+              amount: payment.amount,
+              currency: payment.currency,
+            },
           });
         }}
       >

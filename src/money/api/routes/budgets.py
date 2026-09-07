@@ -6,7 +6,7 @@ from datetime import date as date_type
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,24 +25,28 @@ from money.api.deps import (
     writable,
 )
 from money.api.errors import ApiError, not_found
+from money.api.fx import conversion, resolve_rate
 from money.api.github import GitHubError, create_repo, repo_access
 from money.api.schemas import (
     AssignRequest,
     AutoAssignRequest,
     BalanceSheet,
+    BucketConvertRequest,
     BudgetConnect,
     BudgetCreate,
     BudgetJoin,
     BudgetSummary,
+    ConvertResult,
     EntryResponse,
     MonthResponse,
     MoveRequest,
+    RateResponse,
     ReorderRequest,
     SettleRequest,
 )
-from money.domain.amounts import ZERO, allocate
+from money.domain.amounts import ZERO, allocate, quantize
 from money.domain.derive import month_view, net_positions, settle_up, shift_month
-from money.domain.models import Bucket, Budget, Entry, EntryKind, Member, Share
+from money.domain.models import Bucket, Budget, Entry, EntryKind, Fx, Member, Share
 from money.domain.starter import starter_buckets
 from money.store.gitrepo import READ_MAX_AGE, GitRepo
 from money.store.store import Actor, BudgetStore, DataError, new_id
@@ -385,6 +389,7 @@ def get_month(
         buckets=context.store.buckets(),
         assignments=context.store.all_assignments(),
         people=[member.person for member in budget.members],
+        currency=budget.currency,
     )
     return MonthResponse(
         person=view.person,
@@ -394,6 +399,7 @@ def get_month(
         income=view.income,
         assigned=view.assigned,
         buckets=view.buckets,
+        foreign=view.foreign,
     )
 
 
@@ -472,6 +478,7 @@ def auto_assign(
                 entries=entries,
                 previous_month=previous,
                 person=who,
+                currency=budget.currency,
             )
         }
 
@@ -547,6 +554,7 @@ def _auto_assign_amounts(
     entries: list[Entry],
     previous_month: str,
     person: str,
+    currency: str,
 ) -> dict[str, Decimal]:
     """What one person should end up having assigned, under a personal strategy.
 
@@ -564,7 +572,7 @@ def _auto_assign_amounts(
                     share.amount
                     for entry in entries
                     if entry.month == previous_month
-                    for share in entry.shares
+                    for share in entry.budget_shares(currency) or []
                     if share.person == person and share.bucket == bucket_id
                 ),
                 start=ZERO,
@@ -708,8 +716,14 @@ def list_buckets(
 )
 def get_balances(context: Annotated[BudgetContext, Depends(budget_context)]) -> BalanceSheet:
     budget = context.store.budget()
-    balances = net_positions(context.store.all_entries(), [m.person for m in budget.members])
-    return BalanceSheet(currency=budget.currency, balances=balances, settle_up=settle_up(balances))
+    balances = net_positions(
+        context.store.all_entries(), [m.person for m in budget.members], budget.currency
+    )
+    return BalanceSheet(
+        currency=budget.currency,
+        balances=balances,
+        settle_up=settle_up(balances, budget.currency),
+    )
 
 
 @router.post(
@@ -746,16 +760,116 @@ def settle(
             "not_a_party", "you can only record a settlement you were part of", status=403
         )
 
+    # A settlement in a foreign currency is recorded unconverted on purpose: it clears that
+    # currency's debt, which is a column of its own, and converting it would move the
+    # payment into the shekel column while the debt it paid stayed in dollars.
     entry = Entry(
         id=new_id(),
         kind=EntryKind.SETTLEMENT,
         date=body.date or date_type.today(),
         payee=f"settle up: {payer} → {body.to}",
         amount=-body.amount,
-        currency=budget.currency,
+        currency=body.currency or budget.currency,
         paid_by={payer: -body.amount},
         shares=[Share(person=body.to, amount=-body.amount, bucket=None)],
         note=body.note,
     )
     sha = context.store.add_entry(entry, context.actor)
     return EntryResponse(entry=entry, commit=sha)
+
+
+@router.get(
+    "/budgets/{budget}/rates",
+    operation_id="lookupRate",
+    response_model=RateResponse,
+    summary="What one unit of a currency is worth in the budget's, on a day",
+    openapi_extra={"x-cli": {"command": "rate", "args": ["currency"], "aliases": {"date": "-d"}}},
+)
+def lookup_rate(
+    context: Annotated[BudgetContext, Depends(budget_context)],
+    currency: Annotated[str, Query(pattern=r"^[A-Z]{3}$")],
+    date: date_type | None = None,
+) -> RateResponse:
+    """Read-only: answers from the table, else asks the provider without committing. The
+    rate is committed only by the conversion that uses it, so the form can show what a
+    conversion would do without leaving a row nothing depends on."""
+    budget = context.store.budget()
+    day = date or date_type.today()
+    if currency == budget.currency:
+        return RateResponse(
+            currency=currency,
+            base=budget.currency,
+            date=day,
+            rate=Decimal("1.0000"),
+            source="table",
+        )
+    rate, source, _ = resolve_rate(context, currency, day)
+    return RateResponse(currency=currency, base=budget.currency, date=day, rate=rate, source=source)
+
+
+@router.post(
+    "/budgets/{budget}/buckets/{bucket_id}/convert",
+    operation_id="convertBucket",
+    response_model=ConvertResult,
+    summary="Convert every unconverted entry in one currency with a share in a bucket",
+    openapi_extra={"x-cli": {"command": "bucket convert", "args": ["bucket_id", "currency"]}},
+)
+def convert_bucket(
+    bucket_id: str,
+    body: BucketConvertRequest,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> ConvertResult:
+    """One rate, one commit. An entry whose shares span two buckets converts whole, because an
+    entry has one `fx`; those are listed so the person knows the other bucket moved too.
+    See specs/currency.md, CUR-8."""
+    budget = context.store.budget()
+    if not any(b.id == bucket_id for b in context.store.buckets()):
+        raise not_found(f"bucket {bucket_id}")
+    if body.currency == budget.currency:
+        raise ApiError("fx_not_needed", f"{body.currency} is the budget currency")
+
+    wanted = [
+        entry
+        for entry in context.store.all_entries()
+        if entry.foreign(budget.currency) == body.currency
+        and any(share.bucket == bucket_id for share in entry.shares)
+    ]
+    if not wanted:
+        return ConvertResult(converted=[], fx=None, commit=context.store.repo.head_sha())
+
+    day = body.date or date_type.today()
+    # One rate for the whole bucket: resolve it once against an amount of 1 and reuse it,
+    # so every entry converts at exactly the same figure.
+    probe, rate_row = conversion(
+        context, currency=body.currency, amount=Decimal("1.00"), day=day, rate=body.rate
+    )
+    conversions = [
+        (
+            entry,
+            Fx(
+                rate=probe.rate,
+                amount=quantize(entry.amount * probe.rate),
+                at=day,
+                source=probe.source,
+            ),
+        )
+        for entry in wanted
+    ]
+    name = next(b.name for b in context.store.buckets() if b.id == bucket_id)
+    sha = context.store.convert_entries(
+        conversions,
+        context.actor,
+        subject=(
+            f"convert: {len(wanted)} {body.currency} "
+            f"{'entry' if len(wanted) == 1 else 'entries'} in {name} at {probe.rate}"
+        ),
+        rate_row=rate_row,
+    )
+    spanning = [
+        entry.id
+        for entry in wanted
+        if any(share.bucket not in (None, bucket_id) for share in entry.shares)
+    ]
+    return ConvertResult(
+        converted=[entry.id for entry in wanted], spanning=spanning, fx=probe, commit=sha
+    )

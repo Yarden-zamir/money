@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query
 
 from money.api.deps import BudgetContext, budget_context, person_for, writable
 from money.api.errors import ApiError, not_found
+from money.api.fx import conversion
 from money.api.schemas import DueEntry, DueList, EntryResponse, PostRequest
 from money.domain.models import Entry, EntryKind, Scheduled, Share
 from money.domain.recurrence import occurrences
@@ -148,19 +149,28 @@ def post_scheduled(
     paid_by = item.paid_by or {payer: item.amount}
     shares = list(item.shares) or _shares_for(context, item, payer)
 
+    currency = item.currency or budget.currency
+    fx = None
+    rate_row = None
+    if currency != budget.currency and item.convert:
+        fx, rate_row = conversion(
+            context, currency=currency, amount=item.amount, day=when, rate=None
+        )
+
     entry = Entry(
         id=new_id(),
         kind=item.kind,
         date=when,
         payee=item.payee,
         amount=item.amount,
-        currency=item.currency or budget.currency,
+        currency=currency,
+        fx=fx,
         paid_by=paid_by,
         shares=shares,
         note=item.note,
         tags=item.tags,
     )
-    sha = context.store.post_scheduled(entry, scheduled_id, context.actor)
+    sha = context.store.post_scheduled(entry, scheduled_id, context.actor, rate_row=rate_row)
     return EntryResponse(entry=entry, commit=sha)
 
 

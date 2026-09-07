@@ -17,17 +17,21 @@ from fastapi import APIRouter, Body, Depends, Header, Query, Response
 
 from money.api.deps import BudgetContext, budget_context, person_for, writable
 from money.api.errors import ApiError, forbidden, not_found
+from money.api.fx import conversion
 from money.api.schemas import (
     AttachmentList,
     AttachmentResponse,
     CommentCreate,
     CommentList,
     CommitRef,
+    ConvertRequest,
+    ConvertResult,
     EntryCreate,
     EntryExtras,
     EntryList,
     EntryResponse,
     EntryUpdate,
+    FxChoice,
     HistoryList,
     NoteBody,
     NoteResponse,
@@ -135,16 +139,39 @@ def create_entry(
     paid_by = body.paid_by or {payer: body.amount}
     shares, rule_id = _resolve_shares(context, body, payer, kind)
 
+    # Another currency is converted at the day's rate unless told otherwise; the budget
+    # currency takes no choice at all, because there is nothing to decide.
+    currency = body.currency or budget.currency
+    when = body.date or date_type.today()
+    fx = None
+    rate_row = None
+    if currency == budget.currency:
+        if body.fx is not None:
+            raise ApiError("fx_not_needed", f"{currency} is the budget currency")
+    else:
+        choice = body.fx or FxChoice()
+        if choice.mode == "manual" and choice.rate is None:
+            raise ApiError("rate_required", "a manual conversion needs a rate")
+        if choice.mode != "none":
+            fx, rate_row = conversion(
+                context,
+                currency=currency,
+                amount=body.amount,
+                day=when,
+                rate=choice.rate if choice.mode == "manual" else None,
+            )
+
     entry = Entry(
         id=new_id(),
         kind=kind,
-        date=body.date or date_type.today(),
+        date=when,
         # Recorded even when the date was back-dated, so a time pattern reads when it
         # actually happened rather than what the accounting date claims.
         at=body.at or datetime_type.now(),
         payee=body.payee,
         amount=body.amount,
-        currency=body.currency or budget.currency,
+        currency=currency,
+        fx=fx,
         paid_by=paid_by,
         shares=shares,
         note=body.note,
@@ -164,7 +191,7 @@ def create_entry(
             for item in (body.items or [])
         ],
     )
-    sha = context.store.add_entry(entry, context.actor)
+    sha = context.store.add_entry(entry, context.actor, rate_row=rate_row)
     return EntryResponse(entry=entry, commit=sha)
 
 
@@ -189,6 +216,9 @@ def list_entries(
     tag: str | None = None,
     payee: str | None = None,
     kind: EntryKind | None = None,
+    unconverted: Annotated[
+        bool | None, Query(description="Only entries still in a foreign currency")
+    ] = None,
     q: Annotated[
         str | None,
         Query(
@@ -209,6 +239,9 @@ def list_entries(
         entries = [e for e in entries if tag in e.tags]
     if kind:
         entries = [e for e in entries if e.kind is kind]
+    if unconverted:
+        budget_currency = context.store.budget().currency
+        entries = [e for e in entries if e.foreign(budget_currency) is not None]
     if payee:
         needle = payee.casefold()
         entries = [e for e in entries if needle in e.payee.casefold()]
@@ -436,6 +469,47 @@ def put_note(
 
     context.store.put_note(entry_id, body.text, context.actor)
     return NoteResponse(entry_id=entry_id, text=body.text)
+
+
+@router.post(
+    "/{entry_id}/convert",
+    operation_id="convertEntry",
+    response_model=ConvertResult,
+    summary="Convert an unconverted entry into the budget currency",
+    openapi_extra={"x-cli": {"command": "entry convert", "args": ["entry_id"]}},
+)
+def convert_entry(
+    entry_id: str,
+    body: ConvertRequest,
+    context: Annotated[BudgetContext, Depends(writable)],
+) -> ConvertResult:
+    """Adds `fx` at the rate for the day of conversion — that is what "convert it now" means
+    — or another day's, or one typed. See specs/currency.md, CUR-7."""
+    found = context.store.find_entry(entry_id)
+    if found is None:
+        raise not_found(f"entry {entry_id}")
+    entry, _ = found
+    budget_currency = context.store.budget().currency
+    if entry.foreign(budget_currency) is None:
+        raise ApiError(
+            "already_converted",
+            f"entry {entry_id} is already in {budget_currency}; undo that commit to change it",
+        )
+
+    day = body.date or date_type.today()
+    fx, rate_row = conversion(
+        context, currency=entry.currency, amount=entry.amount, day=day, rate=body.rate
+    )
+    sha = context.store.convert_entries(
+        [(entry, fx)],
+        context.actor,
+        subject=(
+            f"convert: {entry.payee} {abs(entry.amount):.2f} {entry.currency} "
+            f"→ {abs(fx.amount):.2f} {budget_currency} at {fx.rate}"
+        ),
+        rate_row=rate_row,
+    )
+    return ConvertResult(converted=[entry.id], fx=fx, commit=sha)
 
 
 @router.get(

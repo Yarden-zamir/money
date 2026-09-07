@@ -16,6 +16,7 @@ buckets.yaml                       # shared envelopes, each carrying its split
 people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
 scheduled.yaml                     # recurring entries, optional
+rates.yaml                         # exchange rates the app fetched, by day and currency
 notes/<entry-id>.md                # long-form note for one entry, optional
 comments/<entry-id>.yaml           # the conversation under one entry, optional
 attachments/<entry-id>/<ulid>.jpg  # receipt photos and PDFs, optional
@@ -150,7 +151,10 @@ own `fun-money` envelope, and Dana ends up owing Yarden 25 — derived, never wr
 
 ### Field Rules
 
-- `amount` is negative for outflow, positive for inflow. It is the total of the event.
+- `amount` is negative for outflow, positive for inflow. It is the total of the event, in
+  `currency`. A foreign-currency entry either carries `fx` — rate, converted amount, day and
+  source — or is unconverted and counts in its own currency until somebody converts it. See
+  `currency.md`.
 - `paid_by` values must sum to `amount`. `shares` amounts must sum to `amount`. Both are
   checked on write and on read; a file that violates this is a hard error, not a warning.
 - Money is `Decimal`, serialized as a plain string with 2 decimal places. Never a float.
@@ -183,6 +187,10 @@ single share of `-25.00` to Yarden. It moves both net positions and touches no e
 
 Nothing below is stored. All of it is folded from the ledger on read, which is what the user
 asked for: balances stay consistent with history by construction.
+
+Every figure below is in the budget currency, made of budget-currency entries plus converted
+ones read through `fx.amount`. Unconverted foreign entries never join it: they accumulate
+into a `foreign` map per currency beside each figure, and the two are never added.
 
 - **Net position** of person P = `sum(shares[P].amount) - sum(paid_by[P])` over all entries.
   Positive means the household owes them: they bore less than they paid out. In the coffee

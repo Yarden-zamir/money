@@ -74,5 +74,28 @@ def allocate(total: Decimal, ratios: dict[str, Decimal]) -> dict[str, Decimal]:
     return parts
 
 
+def scale(parts: dict[str, Decimal], total: Decimal, target: Decimal) -> dict[str, Decimal]:
+    """Re-express `parts` (which sum to `total`) so they sum to `target`, keeping proportions.
+
+    This is how a converted entry's shares are derived: each share is scaled by the rate,
+    rounded to the agora, and the rounding drift lands on the largest-magnitude part so the
+    result sums to the converted total exactly. Rounding each share on its own would leave a
+    converted entry an agora short of its own total roughly a third of the time.
+    """
+    if not parts:
+        return {}
+    if total == ZERO:
+        raise AmountError("cannot scale parts that sum to zero")
+
+    target = quantize(target)
+    scaled = {key: quantize(part * target / total) for key, part in parts.items()}
+
+    drift = target - sum(scaled.values(), start=ZERO)
+    if drift != ZERO:
+        largest = max(parts, key=lambda key: abs(parts[key]))
+        scaled[largest] = quantize(scaled[largest] + drift)
+    return scaled
+
+
 def sums_to(parts: list[Decimal], expected: Decimal) -> bool:
     return sum(parts, start=ZERO) == quantize(expected)

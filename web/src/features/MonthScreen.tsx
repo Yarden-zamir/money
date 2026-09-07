@@ -25,6 +25,8 @@ import { Money } from "@/components/Money";
 import { ErrorState } from "@/components/States";
 import { currentMonth, formatMonth, shiftMonth } from "@/lib/format";
 import { InlineEdit } from "@/components/InlineEdit";
+import { ForeignChips } from "@/components/Foreign";
+import { ConvertBucket } from "./Convert";
 import { useBudget } from "./useBudget";
 
 /**
@@ -256,6 +258,14 @@ export function MonthScreen() {
           emphasis
           animate
         />
+        {/* Foreign income that is not converted cannot fund an envelope; it sits beside
+            ready-to-assign rather than inside it, as its own chips. */}
+        {Object.keys(view.foreign ?? {}).length > 0 && (
+          <div className="col-span-2 border-t border-line p-3 sm:col-span-4">
+            <div className="eyebrow">{t("currency.readyForeign")}</div>
+            <ForeignChips foreign={view.foreign} className="mt-1" />
+          </div>
+        )}
         <div className="border-t border-line p-3 sm:border-t-0">
           <div className="eyebrow">{t("month.overspent")}</div>
           <div
@@ -641,6 +651,7 @@ function BucketRow({
   const queryClient = useQueryClient();
   const [armed, setArmed] = useState(false);
   const [breakdown, setBreakdown] = useState(false);
+  const [converting, setConverting] = useState<string | null>(null);
 
   const monthKey = getMonthQueryKey({ path: { budget, month } });
   const assign = useMutation({
@@ -843,6 +854,28 @@ function BucketRow({
           </button>
         )}
       </div>
+
+      {/* Spending in a currency nobody has converted yet: a second column, shown as chips
+          under the row so it can never be mistaken for part of the figure above. */}
+      {Object.keys(bucket.foreign ?? {}).length > 0 && (
+        <div className="mt-1.5">
+          <ForeignChips
+            foreign={bucket.foreign}
+            onConvert={canWrite ? (code) => setConverting(code) : undefined}
+          />
+        </div>
+      )}
+      {converting && (
+        <ConvertBucket
+          budget={budget}
+          base={currency}
+          bucketId={bucket.bucket}
+          bucketName={bucket.name}
+          currency={converting}
+          amount={bucket.foreign?.[converting] ?? "0.00"}
+          onDone={() => setConverting(null)}
+        />
+      )}
 
       {breakdown && (
         <FunderBreakdown funders={bucket.funders ?? []} members={members} currency={currency} />

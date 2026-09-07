@@ -69,8 +69,9 @@ POST   /budgets                              connect an existing GitHub repo as 
 POST   /budgets/create                       create the repo AND the first budget.yaml
 GET    /budgets/{budget}                     identity, members, currency, data branch
 
-GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee, kind; q= searches
-POST   /budgets/{budget}/entries             create; applies rules unless split is given
+GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee, kind, unconverted; q= searches
+POST   /budgets/{budget}/entries             create; applies rules unless split is given; fx= for another currency
+POST   /budgets/{budget}/entries/{id}/convert   add a conversion to an unconverted entry
 GET    /budgets/{budget}/entries/{id}
 PATCH  /budgets/{budget}/entries/{id}
 DELETE /budgets/{budget}/entries/{id}
@@ -88,11 +89,13 @@ DELETE /budgets/{budget}/entries/{id}/attachments/{name}
 GET    /budgets/{budget}/buckets                every bucket, with its split
 PUT    /budgets/{budget}/buckets/order          reposition several buckets in one commit
 PUT    /budgets/{budget}/buckets/{bucket}
+POST   /budgets/{budget}/buckets/{bucket}/convert   convert every unconverted entry in one currency here
+GET    /budgets/{budget}/rates?currency=&date=  what a unit is worth in the budget currency; commits nothing
 GET    /budgets/{budget}/months/{month}         full envelope view: assigned, activity, available
 PUT    /budgets/{budget}/months/{month}/assign  assign money to a bucket
 
 GET    /budgets/{budget}/balances            net positions and the suggested settle-up
-POST   /budgets/{budget}/settle              record a settlement between two people
+POST   /budgets/{budget}/settle              record a settlement between two people, in a currency
 
 GET    /budgets/{budget}/members             who can hold a share
 PUT    /budgets/{budget}/members             replace the member list
@@ -261,6 +264,8 @@ against the previous state rather than restating the request:
 - **comments and attachments** — `comment: dana on קפה גרג`, `attachment: add
   01K….jpg to קפה גרג`. Both carry an `Entry-Id` trailer so the entry's own history lists
   them.
+- **conversions** — `convert: Diner 10.00 USD → 37.00 ILS at 3.7000` for one entry (with
+  `Entry-Id`), `convert: 3 USD entries in Transport at 3.5000` for a bucket.
 
 Subjects carry no bidi control characters. Laying out a mixed-script line is the client's
 job; the repo is meant to read on its own terms, and a commit message full of invisible

@@ -13,6 +13,7 @@ import { Button, Field, FormError, Input } from "@/components/Form";
 import { Money } from "@/components/Money";
 import { Attachments } from "./Attachments";
 import { Comments } from "./Comments";
+import { ConvertEntry } from "./Convert";
 
 /**
  * Everything about one entry that does not belong on a scannable row: the full split, the
@@ -82,6 +83,7 @@ function SplitTab({
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const nameOf = (person: string) =>
     budget.members.find((member) => member.person === person)?.name ?? person;
@@ -141,6 +143,35 @@ function SplitTab({
 
       {entry.rule && (
         <div className="text-ink-muted">{t("entries.splitBy", { rule: entry.rule })}</div>
+      )}
+
+      {entry.fx && (
+        <div className="text-ink-muted">
+          <Money amount={entry.fx.amount} currency={budget.currency} colour={false} />
+          {" · "}
+          {t("currency.convertedAt", { original: "", rate: entry.fx.rate }).trim()}{" "}
+          <Money amount={entry.amount} currency={entry.currency} colour={false} />
+        </div>
+      )}
+      {!entry.fx && entry.currency !== budget.currency && (
+        <div className="flex flex-wrap items-center gap-2 text-ink-muted">
+          <span>{t("currency.unconverted")}</span>
+          {budget.can_write && !converting && (
+            <Button variant="quiet" className="min-h-8 px-2.5 text-xs" onClick={() => setConverting(true)}>
+              {t("currency.convertEntry", { currency: budget.currency })}
+            </Button>
+          )}
+        </div>
+      )}
+      {converting && (
+        <ConvertEntry
+          budget={budget.slug}
+          base={budget.currency}
+          entryId={entry.id}
+          amount={entry.amount}
+          currency={entry.currency}
+          onDone={() => setConverting(false)}
+        />
       )}
 
       <Attachments budget={budget.slug} entryId={entry.id} canWrite={budget.can_write} />
