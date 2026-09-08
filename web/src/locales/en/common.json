@@ -8,7 +8,6 @@
     "entries": "Entries",
     "balances": "Balances",
     "settings": "Settings",
-    "rules": "Rules",
     "scheduled": "Scheduled"
   },
   "auth": {
@@ -76,7 +75,6 @@
     "filterMonth": "Month",
     "filterAll": "All months",
     "viewCommit": "View change",
-    "splitBy": "Split by rule {{rule}}",
     "splitManual": "Split manually",
     "add": "Add entry",
     "kind": "Kind",
@@ -86,7 +84,6 @@
     "save": "Save",
     "delete": "Delete",
     "confirmDelete": "Delete this entry?",
-    "splitPreview": "Preview split",
     "amountHint": "Just the number — the kind decides the sign",
     "kinds": {
       "expense": "Expense",
@@ -98,9 +95,7 @@
     "addPayer": "Add payer",
     "bears": "Split between",
     "addShare": "Add share",
-    "customSplit": "Custom split",
     "splitEven": "Split evenly",
-    "useRules": "Use rules",
     "allBuckets": "All buckets",
     "shared": "Shared",
     "edit": "Edit",
@@ -113,9 +108,8 @@
       "history": "History",
       "comments": "Comments"
     },
-    "byRule": "Decided by a rule",
     "chooseBucket": "Choose a bucket",
-    "bucketRequired": "No rules exist yet, so pick where this belongs.",
+    "bucketRequired": "Pick where this belongs.",
     "noBucketsYet": "You have no buckets yet, so an expense has nowhere to go. Add one on the month screen first.",
     "receipt": "Receipt lines",
     "lineLabel": "What was bought",
@@ -176,7 +170,10 @@
     "you": "You",
     "cancel": "Cancel",
     "save": "Save",
-    "edit": "Edit {{field}}"
+    "edit": "Edit {{field}}",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "saved": "Saved"
   },
   "budgets": {
     "connect": "Connect a budget",
@@ -234,25 +231,6 @@
     "access": "Repo access",
     "pending": "invite pending",
     "notAMember": "not a member"
-  },
-  "rules": {
-    "title": "Rules",
-    "hint": "Which bucket an entry lands in. First match wins, and an empty condition matches everything.",
-    "id": "Name",
-    "payeeContains": "Payee contains",
-    "tag": "Tag",
-    "split": "Split",
-    "add": "Add rule",
-    "save": "Save rules",
-    "none": "No rules yet.",
-    "saved": "Saved",
-    "catchAll": "Catch-all",
-    "moveUp": "Move up",
-    "moveDown": "Move down",
-    "anyPayee": "Any payee",
-    "anyTag": "Any tag",
-    "noBucket": "No bucket",
-    "bucketHint": "Who bears the spending is set on the bucket, not here."
   },
   "scheduled": {
     "due": "Due now",
@@ -318,7 +296,8 @@
     "newEntry": "Add an entry",
     "undo": "Undo your last change",
     "note": "Letter shortcuts pause while you are typing in a field.",
-    "redo": "Redo"
+    "redo": "Redo",
+    "settings": "Settings"
   },
   "place": {
     "set": "Add a location",
@@ -343,13 +322,6 @@
   },
   "split": {
     "title": "Split",
-    "paidBy": "Paid by {{name}}",
-    "paidByMany": "Paid by {{count}} people",
-    "summary": "{{paid}} · {{how}}",
-    "byBucket": "split by the bucket",
-    "byRule": "split by rule {{rule}}",
-    "custom": "custom split",
-    "change": "Change",
     "done": "Done",
     "modes": {
       "equal": "Equally",
@@ -379,8 +351,7 @@
     "noBucket": "Pick a bucket, or leave it to the rules by choosing one above.",
     "bearsAll": "bears all of it",
     "itemsMustSum": "The receipt lines do not add up to the amount.",
-    "lineNeedsSomeone": "Line {{line}} has nobody ticked.",
-    "ruleHint": "Rule {{rule}} files this under {{bucket}}."
+    "lineNeedsSomeone": "Line {{line}} has nobody ticked."
   },
   "comments": {
     "title": "Comments",

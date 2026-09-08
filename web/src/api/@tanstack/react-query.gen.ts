@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptHandoff, addAttachment, addComment, assignToBucket, autoAssign, connectBudget, convertBucket, convertEntry, createApiKey, createBudget, createEntry, deleteApiKey, deleteAttachment, deleteComment, deleteEntry, finishGithubLogin, getAttachment, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listAttachments, listBuckets, listBudgets, listCollaborators, listComments, listDue, listEntries, listGithubRepos, listMembers, listRules, listScheduled, logout, lookupRate, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, previewSplit, putBucket, putEntryNote, putMembers, putRules, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
-import type { AcceptHandoffData, AcceptHandoffError, AddAttachmentData, AddAttachmentError, AddAttachmentResponse, AddCommentData, AddCommentError, AddCommentResponse, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, ConvertBucketData, ConvertBucketError, ConvertBucketResponse, ConvertEntryData, ConvertEntryError, ConvertEntryResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteAttachmentData, DeleteAttachmentError, DeleteAttachmentResponse, DeleteCommentData, DeleteCommentError, DeleteCommentResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAttachmentData, GetAttachmentError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListAttachmentsData, ListAttachmentsError, ListAttachmentsResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListCommentsData, ListCommentsError, ListCommentsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListRulesData, ListRulesError, ListRulesResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, LookupRateData, LookupRateError, LookupRateResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PreviewSplitData, PreviewSplitError, PreviewSplitResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutRulesData, PutRulesError, PutRulesResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
+import { acceptHandoff, addAttachment, addComment, assignToBucket, autoAssign, connectBudget, convertBucket, convertEntry, createApiKey, createBudget, createEntry, deleteApiKey, deleteAttachment, deleteComment, deleteEntry, finishGithubLogin, getAttachment, getAuthConfig, getBalances, getBudget, getEntry, getEntryHistory, getEntryNote, getHistory, getHistoryDetail, getMe, getMonth, inviteCollaborator, joinBudget, listApiKeys, listAttachments, listBuckets, listBudgets, listCollaborators, listComments, listDue, listEntries, listGithubRepos, listMembers, listScheduled, logout, lookupRate, moveMoney, nearbyPlaces, type Options, pollDeviceLogin, postScheduled, putBucket, putEntryNote, putMembers, putScheduled, redoChange, reorderBuckets, searchGithubUsers, searchPlaces, settleUp, startDeviceLogin, startGithubLogin, suggestEntry, suggestPayees, undoChange, updateEntry } from '../sdk.gen';
+import type { AcceptHandoffData, AcceptHandoffError, AddAttachmentData, AddAttachmentError, AddAttachmentResponse, AddCommentData, AddCommentError, AddCommentResponse, AssignToBucketData, AssignToBucketError, AssignToBucketResponse, AutoAssignData, AutoAssignError, AutoAssignResponse, ConnectBudgetData, ConnectBudgetError, ConnectBudgetResponse, ConvertBucketData, ConvertBucketError, ConvertBucketResponse, ConvertEntryData, ConvertEntryError, ConvertEntryResponse, CreateApiKeyData, CreateApiKeyError, CreateApiKeyResponse, CreateBudgetData, CreateBudgetError, CreateBudgetResponse, CreateEntryData, CreateEntryError, CreateEntryResponse, DeleteApiKeyData, DeleteApiKeyError, DeleteApiKeyResponse, DeleteAttachmentData, DeleteAttachmentError, DeleteAttachmentResponse, DeleteCommentData, DeleteCommentError, DeleteCommentResponse, DeleteEntryData, DeleteEntryError, DeleteEntryResponse, FinishGithubLoginData, FinishGithubLoginError, GetAttachmentData, GetAttachmentError, GetAuthConfigData, GetAuthConfigResponse, GetBalancesData, GetBalancesError, GetBalancesResponse, GetBudgetData, GetBudgetError, GetBudgetResponse, GetEntryData, GetEntryError, GetEntryHistoryData, GetEntryHistoryError, GetEntryHistoryResponse, GetEntryNoteData, GetEntryNoteError, GetEntryNoteResponse, GetEntryResponse, GetHistoryData, GetHistoryDetailData, GetHistoryDetailError, GetHistoryDetailResponse, GetHistoryError, GetHistoryResponse, GetMeData, GetMeError, GetMeResponse, GetMonthData, GetMonthError, GetMonthResponse, InviteCollaboratorData, InviteCollaboratorError, InviteCollaboratorResponse, JoinBudgetData, JoinBudgetError, JoinBudgetResponse, ListApiKeysData, ListApiKeysError, ListApiKeysResponse, ListAttachmentsData, ListAttachmentsError, ListAttachmentsResponse, ListBucketsData, ListBucketsError, ListBucketsResponse, ListBudgetsData, ListBudgetsError, ListBudgetsResponse, ListCollaboratorsData, ListCollaboratorsError, ListCollaboratorsResponse, ListCommentsData, ListCommentsError, ListCommentsResponse, ListDueData, ListDueError, ListDueResponse, ListEntriesData, ListEntriesError, ListEntriesResponse, ListGithubReposData, ListGithubReposError, ListGithubReposResponse, ListMembersData, ListMembersError, ListMembersResponse, ListScheduledData, ListScheduledError, ListScheduledResponse, LogoutData, LogoutResponse, LookupRateData, LookupRateError, LookupRateResponse, MoveMoneyData, MoveMoneyError, MoveMoneyResponse, NearbyPlacesData, NearbyPlacesError, NearbyPlacesResponse, PollDeviceLoginData, PollDeviceLoginError, PollDeviceLoginResponse, PostScheduledData, PostScheduledError, PostScheduledResponse, PutBucketData, PutBucketError, PutBucketResponse, PutEntryNoteData, PutEntryNoteError, PutEntryNoteResponse, PutMembersData, PutMembersError, PutMembersResponse, PutScheduledData, PutScheduledError, PutScheduledResponse, RedoChangeData, RedoChangeError, RedoChangeResponse, ReorderBucketsData, ReorderBucketsError, ReorderBucketsResponse, SearchGithubUsersData, SearchGithubUsersError, SearchGithubUsersResponse, SearchPlacesData, SearchPlacesError, SearchPlacesResponse, SettleUpData, SettleUpError, SettleUpResponse, StartDeviceLoginData, StartDeviceLoginResponse, StartGithubLoginData, StartGithubLoginError, SuggestEntryData, SuggestEntryError, SuggestEntryResponse, SuggestPayeesData, SuggestPayeesError, SuggestPayeesResponse, UndoChangeData, UndoChangeError, UndoChangeResponse, UpdateEntryData, UpdateEntryError, UpdateEntryResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -897,64 +897,6 @@ export const getAttachmentOptions = (options: Options<GetAttachmentData>) => que
     },
     queryKey: getAttachmentQueryKey(options)
 });
-
-/**
- * Show how an entry would be split, without saving it
- *
- * Answers "what will this rule do?" before anything is committed.
- */
-export const previewSplitMutation = (options?: Partial<Options<PreviewSplitData>>): UseMutationOptions<PreviewSplitResponse, PreviewSplitError, Options<PreviewSplitData>> => {
-    const mutationOptions: UseMutationOptions<PreviewSplitResponse, PreviewSplitError, Options<PreviewSplitData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await previewSplit({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const listRulesQueryKey = (options: Options<ListRulesData>) => createQueryKey('listRules', options);
-
-/**
- * Default split rules, in match order
- */
-export const listRulesOptions = (options: Options<ListRulesData>) => queryOptions<ListRulesResponse, ListRulesError, ListRulesResponse, ReturnType<typeof listRulesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await listRules({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: listRulesQueryKey(options)
-});
-
-/**
- * Replace the whole rule list
- *
- * Replaces the list wholesale, because order is meaningful: first match wins.
- *
- * Editing one rule in place would leave the caller unable to express a reordering.
- */
-export const putRulesMutation = (options?: Partial<Options<PutRulesData>>): UseMutationOptions<PutRulesResponse, PutRulesError, Options<PutRulesData>> => {
-    const mutationOptions: UseMutationOptions<PutRulesResponse, PutRulesError, Options<PutRulesData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await putRules({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
 
 export const getMeQueryKey = (options?: Options<GetMeData>) => createQueryKey('getMe', options);
 

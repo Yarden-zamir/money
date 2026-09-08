@@ -36,12 +36,9 @@ from money.api.schemas import (
     NoteBody,
     NoteResponse,
     PayeeSuggestion,
-    ShareInput,
-    SplitPreview,
 )
 from money.domain.amounts import ZERO
-from money.domain.models import Comment, Entry, EntryKind, LineItem, Place, Share
-from money.domain.rules import first_match, shares_from_split
+from money.domain.models import Comment, Entry, EntryKind, LineItem, Place, Share, shares_from_split
 from money.store.store import ATTACHMENT_MAX_BYTES, ATTACHMENT_TYPES, DataError, new_id
 
 router = APIRouter(prefix="/budgets/{budget}/entries", tags=["entries"])
@@ -49,73 +46,58 @@ router = APIRouter(prefix="/budgets/{budget}/entries", tags=["entries"])
 
 def _resolve_shares(
     context: BudgetContext, body: EntryCreate, payer: str, kind: EntryKind
-) -> tuple[list[Share], str | None]:
+) -> list[Share]:
     """Work out who bears an entry.
 
     Order of precedence, most specific first:
 
     1. line-level splits on a receipt,
-    2. an explicit split on the entry — the advanced override,
-    3. the split of the bucket it lands in, which is the default and covers almost everything,
-    4. the payer alone, when there is no bucket to ask.
+    2. an explicit split on the entry,
+    3. the split of the bucket it lands in — the default, and what the form pre-fills from,
+    4. the payer alone, for kinds that have no bucket to ask.
 
-    The bucket is whatever the caller named, or whatever a rule matched: a rule categorises,
-    and the category decides who bears it.
-
-    Returns the shares and the id of the rule that chose the bucket, recorded on the entry as
-    an audit trail. The split is resolved **now** and stored on the entry — editing a bucket's
-    split later must not rewrite who owed whom for months of history.
+    An expense has to name its bucket. There is nothing else to decide it: the form's
+    history-based suggestion fills the field, and the person confirms. The split is resolved
+    **now** and stored on the entry — editing a bucket's split later must not rewrite who
+    owed whom for months of history.
     """
-    # The bucket is decided first and independently of the split: a rule categorises, and
-    # it does so whether the caller supplied a split or left it to the bucket. The web form
-    # always sends an explicit split now, so a rule that only ran for implicit ones would
-    # never run at all.
-    rule = None
-    bucket_id = body.bucket
-    if bucket_id is None and kind is EntryKind.EXPENSE:
-        rule = first_match(
-            context.store.rules(),
-            payee=body.payee,
-            tags=body.tags,
-            paid_by=payer,
-            amount=body.amount,
+    # The form's bucket, else whatever the shares themselves name. An expense with neither
+    # has nowhere to go, and that is a 422 like every other "this entry does not add up".
+    bucket_id = (
+        body.bucket
+        or next((s.bucket for s in body.shares or [] if s.bucket), None)
+        or next(
+            (s.bucket for item in body.items or [] for s in item.shares or [] if s.bucket), None
         )
-        bucket_id = rule.bucket if rule else None
-    rule_id = rule.id if rule else None
+    )
+    if kind is EntryKind.EXPENSE and bucket_id is None:
+        raise ApiError("bucket_required", "an expense needs a bucket", status=422)
 
     # Lines that carry their own split are the most specific thing the caller said, so they
     # decide the entry's split rather than being checked against a separately supplied one.
-    # The rule is recorded only when it actually decided something: a split that names its
-    # own buckets did not need it, and an audit trail must not claim otherwise.
     if body.items and all(item.shares for item in body.items):
-        line_shares = [share for item in body.items for share in (item.shares or [])]
         return [
             Share(person=share.person, amount=share.amount, bucket=share.bucket or bucket_id)
-            for share in line_shares
-        ], rule_id if any(share.bucket is None for share in line_shares) else None
+            for item in body.items
+            for share in (item.shares or [])
+        ]
 
     if body.shares:
-        shares = [
+        return [
             Share(person=s.person, amount=s.amount, bucket=s.bucket or bucket_id)
             for s in body.shares
         ]
-        return shares, rule_id if any(s.bucket is None for s in body.shares) else None
 
     bucket = next((b for b in context.store.buckets() if b.id == bucket_id), None)
     if bucket is None:
+        if kind is EntryKind.EXPENSE:
+            raise not_found(f"bucket {bucket_id}")
         # Nothing to ask. The payer bears the whole thing, which is what a single-person
         # budget wants and never silently involves anybody else.
-        return [
-            Share(
-                person=payer,
-                amount=body.amount,
-                bucket=bucket_id if kind is EntryKind.EXPENSE else None,
-            )
-        ], None
+        return [Share(person=payer, amount=body.amount, bucket=None)]
 
     people = [member.person for member in context.store.budget().members]
-    shares = shares_from_split(bucket.split_for(people), body.amount, bucket.id, kind)
-    return shares, rule_id
+    return shares_from_split(bucket.split_for(people), body.amount, bucket.id, kind)
 
 
 @router.post(
@@ -126,7 +108,7 @@ def _resolve_shares(
     openapi_extra={
         "x-cli": {
             "command": "entry add",
-            "summary": "Record an entry",
+            "summary": "Record an entry; an expense needs --bucket",
             "args": ["amount", "payee"],
             "aliases": {"bucket": "-b", "date": "-d", "note": "-n"},
         }
@@ -144,7 +126,7 @@ def create_entry(
         raise ApiError("zero_amount", "an entry must move a non-zero amount")
 
     paid_by = body.paid_by or {payer: body.amount}
-    shares, rule_id = _resolve_shares(context, body, payer, kind)
+    shares = _resolve_shares(context, body, payer, kind)
     # Whatever bucket the shares landed in is the bucket the receipt lines get too.
     line_bucket = body.bucket or next((s.bucket for s in shares if s.bucket), None)
 
@@ -185,7 +167,6 @@ def create_entry(
         shares=shares,
         note=body.note,
         tags=body.tags,
-        rule=rule_id,
         place=Place(**body.place.model_dump()) if body.place else None,
         items=[
             LineItem(
@@ -696,23 +677,3 @@ def delete_attachment(
     except DataError as exc:
         raise not_found(str(exc)) from exc
     return list_attachments(entry_id, context)
-
-
-@router.post(
-    "/preview",
-    operation_id="previewSplit",
-    response_model=SplitPreview,
-    summary="Show how an entry would be split, without saving it",
-    openapi_extra={"x-cli": {"command": "entry preview", "args": ["amount", "payee"]}},
-)
-def preview_split(
-    body: EntryCreate,
-    context: Annotated[BudgetContext, Depends(budget_context)],
-) -> SplitPreview:
-    """Answers "what will this rule do?" before anything is committed."""
-    payer = person_for(context, context.actor.login)
-    shares, rule_id = _resolve_shares(context, body, payer, body.kind)
-    return SplitPreview(
-        rule=rule_id,
-        shares=[ShareInput(person=s.person, amount=s.amount, bucket=s.bucket) for s in shares],
-    )

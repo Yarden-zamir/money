@@ -84,7 +84,8 @@ class TestDescribingAListChange:
 class TestHistoryDetail:
     def test_it_returns_the_patch_and_what_changed(self, client) -> None:
         response = client.post(
-            "/api/v1/budgets/joint/entries", json={"amount": "-52.30", "payee": "Cafe"}
+            "/api/v1/budgets/joint/entries",
+            json={"amount": "-52.30", "payee": "Cafe", "bucket": "fun-money"},
         )
         sha = response.json()["commit"]
 
@@ -106,7 +107,8 @@ class TestHistoryDetail:
         """Offering undo on something already reverted would revert the revert — which is
         redo, wearing the wrong label."""
         response = client.post(
-            "/api/v1/budgets/joint/entries", json={"amount": "-52.30", "payee": "Cafe"}
+            "/api/v1/budgets/joint/entries",
+            json={"amount": "-52.30", "payee": "Cafe", "bucket": "fun-money"},
         )
         sha = response.json()["commit"]
         client.post("/api/v1/budgets/joint/history/undo", params={"sha": sha})
@@ -125,7 +127,10 @@ class TestHistoryDetail:
         They differ by method, so nothing collides today — this pins that, because a GET
         added to either would start resolving as a commit id instead.
         """
-        client.post("/api/v1/budgets/joint/entries", json={"amount": "-1.00", "payee": "x"})
+        client.post(
+            "/api/v1/budgets/joint/entries",
+            json={"amount": "-1.00", "payee": "x", "bucket": "fun-money"},
+        )
 
         # Reaches the undo handler, not the detail handler looking for a commit called "undo".
         assert client.post("/api/v1/budgets/joint/history/undo").status_code == 200

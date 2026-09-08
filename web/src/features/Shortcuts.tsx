@@ -42,6 +42,7 @@ export function Shortcuts({ onQuickAdd }: { onQuickAdd: () => void }) {
     { key: "2", label: t("nav.entries"), run: () => navigate("/entries") },
     { key: "3", label: t("nav.balances"), run: () => navigate("/balances") },
     { key: "4", label: t("nav.scheduled"), run: () => navigate("/scheduled") },
+    { key: "5", label: t("nav.settings"), run: () => navigate("/settings") },
     { key: "?", shift: true, label: t("shortcuts.help"), run: () => setShowing((open) => !open) },
   ];
 

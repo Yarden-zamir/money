@@ -35,13 +35,12 @@ difference between the two, folded from history on every read.
     - person: dana
       amount: -25.00
       bucket: fun-money
-  rule: split-5050
 ```
 
-Rules supply the split by default, so the common case is one line of input. They apply at
-creation time only — editing a rule never rewrites what already happened. When the split is
-not the default, it is a decision — equally, by percent, by shares, exact, or "plus 60 for
-the wine" — and the amounts follow.
+The split comes from the bucket's default and is on the form for every entry, so the common
+case is one line of input and the uncommon one — equally, by percent, by shares, exact,
+"plus 60 for the wine", just me, or by receipt line — is a tap on the same panel. It applies at
+creation time only: editing a bucket's default never rewrites what already happened.
 
 An entry can carry a conversation (`comments/<id>.yaml`, shown as chat) and receipt photos
 (`attachments/<id>/`), both committed to the same repo, so the question "what was this 284
@@ -54,8 +53,7 @@ money auth login                                  # GitHub device flow, like gh
 money budget connect joint Yarden-zamir/budget-joint
 money budget default joint
 
-money entry add -- -50.00 "קפה גרג" -b fun-money
-money entry preview -- -284.51 "שופרסל דיל"       # what would the rules do?
+money entry add -- -50.00 "קפה גרג" -b fun-money      # an expense names its bucket
 money month 2026-07
 money balance
 money settle dana --amount 25.00

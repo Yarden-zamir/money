@@ -32,7 +32,6 @@ from money.api.routes import (
     github_routes,
     history,
     me,
-    rules,
     scheduled,
     suggest_routes,
 )
@@ -88,7 +87,6 @@ def create_app() -> FastAPI:
         auth_routes.router,
         budgets.router,
         entries.router,
-        rules.router,
         me.router,
         github_routes.router,
         github_routes.collaborators,

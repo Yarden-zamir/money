@@ -14,8 +14,7 @@ from pydantic import ValidationError
 
 from money.domain.amounts import AmountError, allocate, parse_amount
 from money.domain.derive import month_view, months_between, net_positions, settle_up
-from money.domain.models import Bucket, Entry, EntryKind, Share
-from money.domain.rules import Rule, first_match, shares_from_split
+from money.domain.models import Bucket, Entry, EntryKind, Share, shares_from_split
 
 D = Decimal
 
@@ -197,40 +196,7 @@ class TestMonthView:
         assert months_between("2026-11", "2027-02") == ["2026-11", "2026-12", "2027-01", "2027-02"]
 
 
-class TestRules:
-    @pytest.fixture
-    def ruleset(self) -> list[Rule]:
-        return [
-            Rule.model_validate({"id": "hobby", "when": {"tag": "hobby"}, "bucket": "games"}),
-            Rule.model_validate(
-                {
-                    "id": "groceries",
-                    "when": {"payee_contains": "שופרסל"},
-                    "bucket": "groceries",
-                }
-            ),
-            Rule.model_validate({"id": "split-5050", "bucket": "fun-money"}),
-        ]
-
-    def test_first_match_wins(self, ruleset: list[Rule]) -> None:
-        matched = first_match(
-            ruleset, payee="שופרסל דיל", tags=[], paid_by="yarden", amount=D("-284.50")
-        )
-        assert matched is not None
-        assert matched.id == "groceries"
-
-    def test_empty_when_is_the_catch_all(self, ruleset: list[Rule]) -> None:
-        matched = first_match(ruleset, payee="קפה", tags=[], paid_by="dana", amount=D("-50.00"))
-        assert matched is not None
-        assert matched.id == "split-5050"
-
-    def test_a_rule_only_names_a_bucket(self, ruleset: list[Rule]) -> None:
-        """Who bears an entry is the bucket's business. A rule that also carried a split had
-        to be kept in step with it, and nothing made them agree."""
-        rule = first_match(ruleset, payee="שופרסל", tags=[], paid_by="yarden", amount=D("-284.51"))
-        assert rule is not None
-        assert rule.bucket == "groceries"
-
+class TestSplit:
     def test_shares_from_a_split_sum_exactly(self) -> None:
         shares = shares_from_split(
             {"yarden": D("0.5"), "dana": D("0.5")}, D("-284.51"), "groceries", EntryKind.EXPENSE

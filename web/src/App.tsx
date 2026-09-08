@@ -16,7 +16,6 @@ import { MonthScreen } from "@/features/MonthScreen";
 import { QuickAdd } from "@/features/QuickAdd";
 import { Shortcuts } from "@/features/Shortcuts";
 import { HistoryScreen } from "@/features/HistoryScreen";
-import { RulesScreen } from "@/features/RulesScreen";
 import { ScheduledScreen } from "@/features/ScheduledScreen";
 import { SettingsScreen } from "@/features/SettingsScreen";
 
@@ -39,7 +38,6 @@ export default function App() {
           <Route path="/entries" element={<EntriesScreen />} />
           <Route path="/balances" element={<BalancesScreen />} />
           <Route path="/scheduled" element={<ScheduledScreen />} />
-          <Route path="/rules" element={<RulesScreen />} />
           <Route path="/history" element={<HistoryScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />

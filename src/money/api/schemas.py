@@ -78,10 +78,10 @@ class EntryCreate(BaseModel):
         default=None, description="Defaults to the whole amount from the calling user"
     )
     shares: list[ShareInput] | None = Field(
-        default=None, description="Explicit split. When omitted, rules decide."
+        default=None, description="Explicit split. When omitted, the bucket's split decides."
     )
     bucket: str | None = Field(
-        default=None, description="Book every share against this bucket, overriding the rule"
+        default=None, description="Where an expense lands. Required for an expense."
     )
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
@@ -380,7 +380,7 @@ class PayeeSuggestion(BaseModel):
 class HistoryEvent(BaseModel):
     sha: str
     subject: str
-    kind: str = Field(description="entry, assignment, bucket, rules, members, note, undo")
+    kind: str = Field(description="entry, assignment, bucket, members, note, comment, undo…")
     author: str
     actor: str | None
     date: str
@@ -493,11 +493,6 @@ class InviteResponse(BaseModel):
     login: str
     invited: bool = Field(description="False when they already had repo access")
     person: str
-
-
-class SplitPreview(BaseModel):
-    rule: str | None
-    shares: list[ShareInput]
 
 
 class UserResponse(BaseModel):

@@ -1,4 +1,4 @@
-"""Budgets, envelopes, balances, and rules."""
+"""Budgets, envelopes, balances, conversions."""
 
 from __future__ import annotations
 

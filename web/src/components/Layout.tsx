@@ -23,7 +23,6 @@ const NAV = [
   { to: "/entries", key: "nav.entries", icon: "list" },
   { to: "/balances", key: "nav.balances", icon: "swap" },
   { to: "/scheduled", key: "nav.scheduled", icon: "repeat" },
-  { to: "/rules", key: "nav.rules", icon: "sliders" },
   { to: "/settings", key: "nav.settings", icon: "gear" },
 ] as const;
 

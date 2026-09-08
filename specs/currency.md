@@ -53,7 +53,7 @@ fx:                      # absent = not converted yet
   source: table | manual
 ```
 
-`fx.amount` is stored, not recomputed on read, for the same reason `shares` and `rule` are:
+`fx.amount` is stored, not recomputed on read, for the same reason `shares` is:
 a rate that changed later must not rewrite what an old dinner cost. `rate` has four decimal
 places; `fx.amount` has two and is what every derivation reads. The model refuses an
 `fx.amount` that is not `amount × rate` quantized — a hand edit that changed one and not the

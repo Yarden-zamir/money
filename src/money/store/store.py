@@ -16,7 +16,6 @@ from typing import Any
 
 from money.domain.amounts import ZERO
 from money.domain.models import Bucket, Budget, Comment, Entry, Fx, Member, Scheduled, Target
-from money.domain.rules import Rule
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
 
@@ -147,7 +146,7 @@ def _describe_assignment(
 
 
 def describe_list_change(before: list[str], after: list[str], noun: str) -> str:
-    """Added and removed names for any list written wholesale (rules, members, recurrences).
+    """Added and removed names for any list written wholesale (members, recurrences).
 
     All three are replaced as a unit, so without a diff the subject can only report a count —
     "rules: update defaults" was literally the same string every time.
@@ -228,10 +227,6 @@ class BudgetStore:
         if raw is None:
             raise DataError("budget.yaml is missing; this repo is not initialized as a budget")
         return Budget.model_validate(raw)
-
-    def rules(self) -> list[Rule]:
-        raw = yamlio.load(self.repo.read("rules.yaml")) or []
-        return [Rule.model_validate(item) for item in raw]
 
     def buckets(self) -> list[Bucket]:
         """Every bucket in the budget, in display order.
@@ -897,23 +892,6 @@ class BudgetStore:
                 "members: "
                 f"{describe_list_change(before, [m.name for m in budget.members], 'member')}"
             ),
-            trailers={},
-        )
-
-    def put_rules(self, rules: list[Rule], actor: Actor) -> str:
-        before = [rule.id for rule in self.rules()]
-
-        def mutate() -> list[str]:
-            self.repo.write(
-                "rules.yaml",
-                yamlio.dump([r.model_dump(mode="python", exclude_none=True) for r in rules]),
-            )
-            return ["rules.yaml"]
-
-        return self._commit(
-            mutate,
-            actor=actor,
-            subject=f"rules: {describe_list_change(before, [r.id for r in rules], 'split rule')}",
             trailers={},
         )
 

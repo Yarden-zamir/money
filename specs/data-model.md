@@ -11,7 +11,6 @@ which budget. Losing the SQLite file loses no budget data.
 
 ```
 budget.yaml                        # budget identity, members, currency
-rules.yaml                         # default split rules
 buckets.yaml                       # shared envelopes, each carrying its split
 people/<person>/assignments/2026-07.yaml
 ledger/2026-07.yaml                # entries, one file per month
@@ -109,7 +108,7 @@ already shows a line per bucket.
 Nothing is committed when nothing changed — an already-funded month, or a drag that ends where
 it started, writes no commit rather than an empty one.
 
-**Nothing in the app writes per item any more.** Rules, members and recurrences were always
+**Nothing in the app writes per item any more.** Members and recurrences were always
 replaced as a whole list; assignments and buckets now are too. What remains one-at-a-time is
 one-at-a-time by intent: an entry is a single event, and a due recurrence is posted only when
 a person confirms that particular charge.
@@ -143,7 +142,6 @@ record. Debt is not stored, it is the difference between the two.
       bucket: fun-money
   note: coffee for both
   tags: [coffee]
-  rule: split-5050
 ```
 
 That entry is the user's worked example: Yarden fronts 50, both people book 25 against their
@@ -168,8 +166,10 @@ own `fun-money` envelope, and Dana ends up owing Yarden 25 — derived, never wr
   `at` is naive local time on purpose: which day a purchase belongs to is a local human
   judgement, and converting through a timezone could land a late-night purchase in the wrong
   budget month.
-- `rule` records which rule produced the split. It is an audit trail, not an instruction —
-  changing a rule never rewrites existing entries.
+- `rule` is historical. Rules — payee-matched defaults — were removed; entries written
+  while they existed keep the id of the rule that filed them, because history is not
+  rewritten. Nothing writes the field any more. The bucket is chosen on the form, with the
+  history-based suggestion filling it in, and the split comes from the bucket's default.
 
 ### Kinds
 
@@ -328,33 +328,6 @@ app makes to a repo, so a repo created by hand gains one.
 The app refuses to write to a repo whose version is **higher** than it understands. Reading
 such a repo might appear to work while silently dropping fields the older code cannot see, and
 the next write would then delete them.
-
-## Rules
-
-Rules supply default splits and buckets when an entry is created. First match wins, which is
-the same resolution order KitSHn uses for `.kitshn.yaml`, so the two configs behave alike.
-
-```yaml
-- id: yarden-hobby
-  when: {tag: hobby}
-  split: {yarden: 1.0}
-  bucket: {yarden: hobbies}
-
-- id: groceries
-  when: {payee_contains: שופרסל}
-  split: {yarden: 0.5, dana: 0.5}
-  bucket: {yarden: groceries, dana: groceries}
-
-- id: split-5050
-  when: {}
-  split: {yarden: 0.5, dana: 0.5}
-```
-
-`when` supports `payee_contains`, `tag`, `paid_by`, and `min_amount`. An empty `when` matches
-everything and is how a catch-all default is written. `split` ratios must sum to 1.
-
-Rules run only at creation time and only when the caller does not supply an explicit split.
-Rounding sends the remaining agorot to the largest share, so splits always sum exactly.
 
 ## Git As The History Layer
 

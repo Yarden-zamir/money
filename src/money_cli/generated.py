@@ -40,8 +40,6 @@ member_app = typer.Typer(no_args_is_help=True, help="member commands")
 
 note_app = typer.Typer(no_args_is_help=True, help="note commands")
 
-rule_app = typer.Typer(no_args_is_help=True, help="rule commands")
-
 scheduled_app = typer.Typer(no_args_is_help=True, help="scheduled commands")
 
 
@@ -507,7 +505,7 @@ def comment_list(
     )
 
 
-@entry_app.command("add", help='Record an entry')
+@entry_app.command("add", help='Record an entry; an expense needs --bucket')
 def entry_add(
     amount: Annotated[str, typer.Argument(help='Negative for money out, positive for money in')],
     payee: Annotated[str, typer.Argument(help='')],
@@ -516,7 +514,7 @@ def entry_add(
     kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
     currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
     fx: Annotated[str | None, typer.Option("--fx", help="Only for another currency. Omitted means convert at the day's rate.")] = None,
-    bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='Book every share against this bucket, overriding the rule')] = None,
+    bucket: Annotated[str | None, typer.Option("--bucket", "-b", help='Where an expense lands. Required for an expense.')] = None,
     note: Annotated[str | None, typer.Option("--note", "-n", help='')] = None,
     tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
     place: Annotated[str | None, typer.Option("--place", help='')] = None,
@@ -667,38 +665,6 @@ def entry_payees(
             f"/budgets/{resolve_budget(budget)}/entries/payees",
             query={"q": q, "limit": limit},
             body=None,
-        ),
-        as_json=json_out,
-        table=None,
-    )
-
-
-@entry_app.command("preview", help='Show how an entry would be split, without saving it')
-def entry_preview(
-    amount: Annotated[str, typer.Argument(help='Negative for money out, positive for money in')],
-    payee: Annotated[str, typer.Argument(help='')],
-    date: Annotated[str | None, typer.Option("--date", help='Defaults to today')] = None,
-    at: Annotated[str | None, typer.Option("--at", help='Wall-clock moment it happened. Defaults to now; used for time patterns.')] = None,
-    kind: Annotated[str | None, typer.Option("--kind", help='')] = None,
-    currency: Annotated[str | None, typer.Option("--currency", help='Defaults to the budget currency')] = None,
-    fx: Annotated[str | None, typer.Option("--fx", help="Only for another currency. Omitted means convert at the day's rate.")] = None,
-    bucket: Annotated[str | None, typer.Option("--bucket", help='Book every share against this bucket, overriding the rule')] = None,
-    note: Annotated[str | None, typer.Option("--note", help='')] = None,
-    tags: Annotated[list[str], typer.Option("--tags", help='')] = [],
-    place: Annotated[str | None, typer.Option("--place", help='')] = None,
-    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
-    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
-) -> None:
-    body = {"amount": amount, "payee": payee, "date": date, "at": at, "kind": kind, "currency": currency, "fx": fx, "bucket": bucket, "note": note, "tags": tags, "place": place}
-    if raw:
-        body.update(json.loads(raw))
-    emit(
-        request(
-            "POST",
-            f"/budgets/{resolve_budget(budget)}/entries/preview",
-            query={},
-            body=body,
         ),
         as_json=json_out,
         table=None,
@@ -903,44 +869,6 @@ def note_show(
     )
 
 
-@rule_app.command("list", help='Default split rules, in match order')
-def rule_list(
-    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
-) -> None:
-    emit(
-        request(
-            "GET",
-            f"/budgets/{resolve_budget(budget)}/rules",
-            query={},
-            body=None,
-        ),
-        as_json=json_out,
-        table=None,
-    )
-
-
-@rule_app.command("set", help='Replace the whole rule list')
-def rule_set(
-    budget: Annotated[str | None, typer.Option("--budget", help="Budget slug")] = None,
-    raw: Annotated[str | None, typer.Option("--raw", help="JSON merged into the body, for fields with no flag")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print raw JSON")] = False,
-) -> None:
-    body = {}
-    if raw:
-        body.update(json.loads(raw))
-    emit(
-        request(
-            "PUT",
-            f"/budgets/{resolve_budget(budget)}/rules",
-            query={},
-            body=body,
-        ),
-        as_json=json_out,
-        table=None,
-    )
-
-
 @scheduled_app.command("due", help='Recurring entries that are due')
 def scheduled_due(
     through: Annotated[str | None, typer.Option("--through", help='')] = None,
@@ -1034,5 +962,4 @@ def register(app: typer.Typer) -> None:
     app.add_typer(key_app, name="key")
     app.add_typer(member_app, name="member")
     app.add_typer(note_app, name="note")
-    app.add_typer(rule_app, name="rule")
     app.add_typer(scheduled_app, name="scheduled")

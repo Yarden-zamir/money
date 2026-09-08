@@ -163,10 +163,6 @@ const balances = {
 
 const rate = { currency: "USD", base: "ILS", date: "2026-09-07", rate: "3.7100", source: "provider" };
 
-const rules = [
-  { id: "groceries", when: { payee_contains: "שופרסל", tag: null, paid_by: null, min_amount: null }, bucket: "groceries" },
-  { id: "everything-else", when: { payee_contains: null, tag: null, paid_by: null, min_amount: null }, bucket: "eating-out" },
-];
 
 const repos = [
   { full_name: "Yarden-zamir/budget-joint", private: true, description: "Household budget data", is_budget: true, connected: true },
@@ -252,7 +248,6 @@ const ROUTES = [
   [/\/budgets\/joint\/buckets/, () => buckets],
   [/\/budgets\/joint\/balances/, () => balances],
   [/\/budgets\/joint\/members/, () => budget.members],
-  [/\/budgets\/joint\/rules/, () => rules],
   [/\/api\/v1\/budgets$/, () => [budget]],
 ];
 
@@ -278,7 +273,6 @@ const SCREENS = [
   ["entries", "/entries"],
   ["balances", "/balances"],
   ["scheduled", "/scheduled"],
-  ["rules", "/rules"],
   ["settings", "/settings"],
   ["history", "/history"],
 ];

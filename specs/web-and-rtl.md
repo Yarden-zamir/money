@@ -291,16 +291,15 @@ the figures shown are the figures saved. The mode hint states the one constraint
 has, and the one line of red says how far off it is in the unit the mode thinks in: percent
 points for percent, money for exact and adjust, a line number for by item.
 
-The panel **follows the bucket** until the person touches it: choosing a bucket, or a rule
-choosing one server-side (asked for with a debounced preview when no bucket is picked),
-re-seeds the draft from that bucket's default — `draftFromRatio` turns an even split into
-*equally, everyone* and anything else into *percent*. After the first edit it stops
-following, so a mode the person chose is not undone by a payee autocomplete.
+The panel **follows the bucket** until the person touches it: choosing a bucket re-seeds
+the draft from that bucket's default — `draftFromRatio` turns an even split into *equally,
+everyone* and anything else into *percent*. After the first edit it stops following, so a
+mode the person chose is not undone by a payee autocomplete. The bucket itself is chosen on
+the form; the payee autocomplete and the suggestion engine fill it from history, and an
+expense cannot be saved without one.
 
-The form always sends explicit `shares` and `paid_by`. The server still runs the rules to
-pick the bucket under an explicit split, and records the rule only when it decided a bucket
-some share lacked. *By item* sends each line's shares as well, which the server checks add up
-to the entry's.
+The form always sends explicit `shares` and `paid_by`. *By item* sends each line's shares as
+well, which the server checks add up to the entry's.
 
 `RatioEditor` is the same panel with the ratio modes only — just me, equally, percent,
 shares — and a percentage at the end of each row instead of an amount. It edits a bucket's
@@ -392,8 +391,6 @@ Conventions that exist because they drifted once already:
 - **Width is opt-in.** `Input`/`Select` are full width unless given `fullWidth={false}`; a
   fixed width without it fights the base utility and the winner depends on stylesheet order.
   `tests/test_rtl.py` fails the build on that combination.
-- **Lists whose order is meaningful say so.** Rules are numbered and moved with explicit
-  controls, because "first match wins" is invisible otherwise.
 - **Destructive actions are separated and coloured**, never adjacent to a routine one, and
   never on a scrollable row where a thumb lands.
 
@@ -424,9 +421,6 @@ the API, which has a real decimal type.
   Rows carry `data-entry` so a screenshot can open one without depending on a label.
 - **Balances** — net position per person and the suggested settle-up, with a one-tap
   settlement. The Splitwise half.
-- **Rules** — which bucket an entry lands in, first match wins. A rule carries no split: who
-  bears the spending belongs to the bucket (see `funding-and-split.md`), and the screen says
-  so under the bucket field.
 - **Settings** — budgets, API keys, language.
 
 ## Auth In The Browser

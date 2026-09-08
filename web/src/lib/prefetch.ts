@@ -6,7 +6,6 @@ import {
   getMonthOptions,
   listBucketsOptions,
   listEntriesOptions,
-  listRulesOptions,
   listScheduledOptions,
 } from "@/api/@tanstack/react-query.gen";
 import { currentMonth } from "@/lib/format";
@@ -50,8 +49,6 @@ export function prefetchRoute(client: QueryClient, path: string, budget: string)
     case "/scheduled":
       void client.prefetchQuery(listScheduledOptions({ path: { budget } }));
       return;
-    case "/rules":
-      void client.prefetchQuery(listRulesOptions({ path: { budget } }));
       return;
     case "/history":
       void client.prefetchQuery(getHistoryOptions({ path: { budget }, query: { limit: 100 } }));

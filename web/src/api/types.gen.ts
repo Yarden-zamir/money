@@ -885,13 +885,13 @@ export type EntryCreate = {
     /**
      * Shares
      *
-     * Explicit split. When omitted, rules decide.
+     * Explicit split. When omitted, the bucket's split decides.
      */
     shares?: Array<ShareInputInput> | null;
     /**
      * Bucket
      *
-     * Book every share against this bucket, overriding the rule
+     * Where an expense lands. Required for an expense.
      */
     bucket?: string | null;
     /**
@@ -1224,7 +1224,7 @@ export type HistoryEvent = {
     /**
      * Kind
      *
-     * entry, assignment, bucket, rules, members, note, undo
+     * entry, assignment, bucket, members, note, comment, undo…
      */
     kind: string;
     /**
@@ -1434,54 +1434,6 @@ export type LineItemInputOutput = {
      * Shares
      */
     shares?: Array<ShareInputOutput> | null;
-};
-
-/**
- * Match
- *
- * An empty match matches everything, which is how a catch-all default is written.
- */
-export type MatchInput = {
-    /**
-     * Payee Contains
-     */
-    payee_contains?: string | null;
-    /**
-     * Tag
-     */
-    tag?: string | null;
-    /**
-     * Paid By
-     */
-    paid_by?: string | null;
-    /**
-     * Min Amount
-     */
-    min_amount?: number | string | null;
-};
-
-/**
- * Match
- *
- * An empty match matches everything, which is how a catch-all default is written.
- */
-export type MatchOutput = {
-    /**
-     * Payee Contains
-     */
-    payee_contains?: string | null;
-    /**
-     * Tag
-     */
-    tag?: string | null;
-    /**
-     * Paid By
-     */
-    paid_by?: string | null;
-    /**
-     * Min Amount
-     */
-    min_amount?: string | null;
 };
 
 /**
@@ -1837,40 +1789,6 @@ export type RepoOption = {
 };
 
 /**
- * Rule
- */
-export type RuleInput = {
-    /**
-     * Id
-     */
-    id: string;
-    when?: MatchInput;
-    /**
-     * Bucket
-     *
-     * Which bucket a matching entry belongs in
-     */
-    bucket: string;
-};
-
-/**
- * Rule
- */
-export type RuleOutput = {
-    /**
-     * Id
-     */
-    id: string;
-    when?: MatchOutput;
-    /**
-     * Bucket
-     *
-     * Which bucket a matching entry belongs in
-     */
-    bucket: string;
-};
-
-/**
  * Scheduled
  *
  * A template plus a recurrence: rent, a salary, a subscription.
@@ -2170,20 +2088,6 @@ export type ShareInputOutput = {
      * Bucket
      */
     bucket?: string | null;
-};
-
-/**
- * SplitPreview
- */
-export type SplitPreview = {
-    /**
-     * Rule
-     */
-    rule: string | null;
-    /**
-     * Shares
-     */
-    shares: Array<ShareInputOutput>;
 };
 
 /**
@@ -4080,133 +3984,6 @@ export type GetAttachmentResponses = {
      */
     200: unknown;
 };
-
-export type PreviewSplitData = {
-    body: EntryCreate;
-    headers?: {
-        /**
-         * X-Act-As
-         */
-        'X-Act-As'?: string | null;
-        /**
-         * Authorization
-         */
-        authorization?: string | null;
-    };
-    path: {
-        /**
-         * Budget
-         */
-        budget: string;
-    };
-    query?: never;
-    url: '/api/v1/budgets/{budget}/entries/preview';
-};
-
-export type PreviewSplitErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PreviewSplitError = PreviewSplitErrors[keyof PreviewSplitErrors];
-
-export type PreviewSplitResponses = {
-    /**
-     * Successful Response
-     */
-    200: SplitPreview;
-};
-
-export type PreviewSplitResponse = PreviewSplitResponses[keyof PreviewSplitResponses];
-
-export type ListRulesData = {
-    body?: never;
-    headers?: {
-        /**
-         * X-Act-As
-         */
-        'X-Act-As'?: string | null;
-        /**
-         * Authorization
-         */
-        authorization?: string | null;
-    };
-    path: {
-        /**
-         * Budget
-         */
-        budget: string;
-    };
-    query?: never;
-    url: '/api/v1/budgets/{budget}/rules';
-};
-
-export type ListRulesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListRulesError = ListRulesErrors[keyof ListRulesErrors];
-
-export type ListRulesResponses = {
-    /**
-     * Response Listrules
-     *
-     * Successful Response
-     */
-    200: Array<RuleOutput>;
-};
-
-export type ListRulesResponse = ListRulesResponses[keyof ListRulesResponses];
-
-export type PutRulesData = {
-    /**
-     * Body
-     */
-    body: Array<RuleInput>;
-    headers?: {
-        /**
-         * X-Act-As
-         */
-        'X-Act-As'?: string | null;
-        /**
-         * Authorization
-         */
-        authorization?: string | null;
-    };
-    path: {
-        /**
-         * Budget
-         */
-        budget: string;
-    };
-    query?: never;
-    url: '/api/v1/budgets/{budget}/rules';
-};
-
-export type PutRulesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PutRulesError = PutRulesErrors[keyof PutRulesErrors];
-
-export type PutRulesResponses = {
-    /**
-     * Response Putrules
-     *
-     * Successful Response
-     */
-    200: Array<RuleOutput>;
-};
-
-export type PutRulesResponse = PutRulesResponses[keyof PutRulesResponses];
 
 export type GetMeData = {
     body?: never;

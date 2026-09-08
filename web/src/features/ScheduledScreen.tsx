@@ -316,7 +316,7 @@ function Templates({ budget }: { budget: BudgetSummary }) {
                 disabled={!dirty || save.isPending}
                 onClick={() => draft && save.mutate({ path: { budget: budget.slug }, body: draft })}
               >
-                {dirty ? t("common.save") : t("rules.saved")}
+                {dirty ? t("common.save") : t("common.saved")}
               </Button>
             }
             secondary={

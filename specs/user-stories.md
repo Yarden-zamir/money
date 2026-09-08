@@ -46,18 +46,16 @@ These are the yardstick for UI changes: a change that makes any of these longer 
   fire in the middle of typing a payee.
 - The amount field takes a magnitude. The kind decides the sign, because typing a leading
   minus for every purchase is a paper cut and forgetting it is silent.
-- The split comes from the rules. Nothing about who owes whom has to be entered.
+- The split comes from the bucket's default and is on screen. Nothing about who owes whom
+  has to be typed.
 - Date defaults to today.
-- Bucket is optional *while a rule can supply one* — an uncategorised entry is better than an
-  abandoned one. With no rules defined, an expense with no bucket cannot be saved at all, so
-  the blank option becomes "Choose a bucket" rather than a choice that silently fails. With no
-  buckets at all the form says so before anything else, because every other field is then
-  wasted typing.
+- Bucket is required for an expense, and usually already filled: the payee autocomplete and
+  the suggestion engine carry the bucket this payee went to last time. With no buckets at all
+  the form says so before anything else, because every other field is then wasted typing.
 
 The split panel is **always on the form**, pre-filled from the bucket's default, so what
 will be recorded is on screen before the save rather than applied out of sight. The common
-case still costs nothing: the default is already selected. A line above it names the rule
-and bucket when no bucket was chosen by hand.
+case still costs nothing: the default is already selected.
 
 ## 1b. It was not an even split
 
@@ -139,8 +137,7 @@ story exists to avoid, made observable to anyone reading the history.
 *The envelope is empty and it is the 20th.*
 
 **Entries tab → bucket filter.** The header shows the filtered total. Tapping a row expands
-it to show each person's share, which bucket it hit, who paid, and which rule produced the
-split. Delete lives inside that expanded panel, not on the row, so it cannot be hit by
+it to show each person's share, which bucket it hit, and who paid. Delete lives inside that expanded panel, not on the row, so it cannot be hit by
 accident while scrolling.
 
 ## 5a. We were abroad

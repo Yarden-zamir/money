@@ -13,7 +13,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from money.domain.amounts import ZERO, format_amount, parse_amount, quantize, scale
+from money.domain.amounts import ZERO, allocate, format_amount, parse_amount, quantize, scale
 from money.domain.recurrence import Recurrence
 
 PersonId = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9-]{0,38}$")]
@@ -166,6 +166,8 @@ class Entry(Base):
     shares: list[Share] = Field(min_length=1)
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
+    # Historical. Rules were removed; entries written while they existed keep the id of the
+    # rule that filed them, because history is not rewritten. Nothing writes this any more.
     rule: str | None = None
     items: list[LineItem] = Field(
         default_factory=list, description="Receipt lines; must sum to the entry amount"
@@ -316,6 +318,30 @@ class Entry(Base):
         if total == self.amount:
             return dict(self.paid_by)
         return scale(self.paid_by, self.amount, total)
+
+
+def shares_from_split(
+    split: dict[str, Decimal], amount: Decimal, bucket: str | None, kind: EntryKind
+) -> list[Share]:
+    """Turn a bucket's split into shares that sum exactly to `amount`.
+
+    `allocate` distributes the remainder rather than rounding each share independently, so
+    three people splitting 10.00 get 3.34/3.33/3.33 and not a total of 9.99.
+
+    Non-expense kinds carry no bucket, so it is dropped for them rather than producing an
+    entry that fails validation.
+    """
+    parts = allocate(amount, split)
+    return [
+        Share(
+            person=person,
+            amount=part,
+            bucket=bucket if kind is EntryKind.EXPENSE else None,
+        )
+        for person, part in parts.items()
+        # A zero share is noise in the ledger; a person with a 0 share simply is not involved.
+        if part != Decimal("0.00")
+    ]
 
 
 def _by_person_and_bucket(shares: list[Share]) -> dict[tuple[str, str | None], Decimal]:
@@ -484,7 +510,7 @@ class Scheduled(Base):
         if self.ends and self.ends < self.starts:
             raise ValueError(f"scheduled {self.id}: ends before it starts")
 
-        # Shares are optional — an empty split means "decide by the rules when posting" — but
+        # Shares are optional — an empty split means "the bucket's split, when posting" — but
         # a split that is present must add up, exactly as it must on an entry.
         if self.shares:
             shared = sum((share.amount for share in self.shares), start=ZERO)

@@ -2230,7 +2230,7 @@
         },
         "x-cli": {
           "command": "entry add",
-          "summary": "Record an entry",
+          "summary": "Record an entry; an expense needs --bucket",
           "args": [
             "amount",
             "payee"
@@ -4151,321 +4151,6 @@
               }
             }
           }
-        }
-      }
-    },
-    "/api/v1/budgets/{budget}/entries/preview": {
-      "post": {
-        "tags": [
-          "entries"
-        ],
-        "summary": "Show how an entry would be split, without saving it",
-        "description": "Answers \"what will this rule do?\" before anything is committed.",
-        "operationId": "previewSplit",
-        "parameters": [
-          {
-            "name": "budget",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Budget"
-            }
-          },
-          {
-            "name": "X-Act-As",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Act-As"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "money_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Money Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntryCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SplitPreview"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-cli": {
-          "command": "entry preview",
-          "args": [
-            "amount",
-            "payee"
-          ]
-        }
-      }
-    },
-    "/api/v1/budgets/{budget}/rules": {
-      "get": {
-        "tags": [
-          "rules"
-        ],
-        "summary": "Default split rules, in match order",
-        "operationId": "listRules",
-        "parameters": [
-          {
-            "name": "budget",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Budget"
-            }
-          },
-          {
-            "name": "X-Act-As",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Act-As"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "money_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Money Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rule-Output"
-                  },
-                  "title": "Response Listrules"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-cli": {
-          "command": "rule list"
-        }
-      },
-      "put": {
-        "tags": [
-          "rules"
-        ],
-        "summary": "Replace the whole rule list",
-        "description": "Replaces the list wholesale, because order is meaningful: first match wins.\n\nEditing one rule in place would leave the caller unable to express a reordering.",
-        "operationId": "putRules",
-        "parameters": [
-          {
-            "name": "budget",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Budget"
-            }
-          },
-          {
-            "name": "X-Act-As",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Act-As"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "money_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Money Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Rule-Input"
-                },
-                "title": "Body"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rule-Output"
-                  },
-                  "title": "Response Putrules"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-cli": {
-          "command": "rule set"
         }
       }
     },
@@ -7763,7 +7448,7 @@
               }
             ],
             "title": "Shares",
-            "description": "Explicit split. When omitted, rules decide."
+            "description": "Explicit split. When omitted, the bucket's split decides."
           },
           "bucket": {
             "anyOf": [
@@ -7775,7 +7460,7 @@
               }
             ],
             "title": "Bucket",
-            "description": "Book every share against this bucket, overriding the rule"
+            "description": "Where an expense lands. Required for an expense."
           },
           "note": {
             "anyOf": [
@@ -8325,7 +8010,7 @@
           "kind": {
             "type": "string",
             "title": "Kind",
-            "description": "entry, assignment, bucket, rules, members, note, undo"
+            "description": "entry, assignment, bucket, members, note, comment, undo\u2026"
           },
           "author": {
             "type": "string",
@@ -8688,117 +8373,6 @@
           "amount"
         ],
         "title": "LineItemInput"
-      },
-      "Match-Input": {
-        "properties": {
-          "payee_contains": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payee Contains"
-          },
-          "tag": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tag"
-          },
-          "paid_by": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paid By"
-          },
-          "min_amount": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min Amount"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "Match",
-        "description": "An empty match matches everything, which is how a catch-all default is written."
-      },
-      "Match-Output": {
-        "properties": {
-          "payee_contains": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payee Contains"
-          },
-          "tag": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tag"
-          },
-          "paid_by": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9-]{0,38}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paid By"
-          },
-          "min_amount": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min Amount"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "Match",
-        "description": "An empty match matches everything, which is how a catch-all default is written."
       },
       "Member": {
         "properties": {
@@ -9353,58 +8927,6 @@
         ],
         "title": "RepoOption"
       },
-      "Rule-Input": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Id"
-          },
-          "when": {
-            "$ref": "#/components/schemas/Match-Input"
-          },
-          "bucket": {
-            "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
-            "title": "Bucket",
-            "description": "Which bucket a matching entry belongs in"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "bucket"
-        ],
-        "title": "Rule"
-      },
-      "Rule-Output": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Id"
-          },
-          "when": {
-            "$ref": "#/components/schemas/Match-Output"
-          },
-          "bucket": {
-            "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9-]{0,38}$",
-            "title": "Bucket",
-            "description": "Which bucket a matching entry belongs in"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "bucket"
-        ],
-        "title": "Rule"
-      },
       "Scheduled-Input": {
         "properties": {
           "id": {
@@ -9947,34 +9469,6 @@
           "amount"
         ],
         "title": "ShareInput"
-      },
-      "SplitPreview": {
-        "properties": {
-          "rule": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rule"
-          },
-          "shares": {
-            "items": {
-              "$ref": "#/components/schemas/ShareInput-Output"
-            },
-            "type": "array",
-            "title": "Shares"
-          }
-        },
-        "type": "object",
-        "required": [
-          "rule",
-          "shares"
-        ],
-        "title": "SplitPreview"
       },
       "SuggestionResponse": {
         "properties": {

@@ -216,7 +216,7 @@ class TestTheFirstExpense:
         )
         assert response.status_code == 422
         message = response.json()["error"]["message"]
-        assert "expense shares need a bucket" in message
+        assert "an expense needs a bucket" in message
         for leak in ("errors.pydantic.dev", "input_value", "type=value_error", "For further"):
             assert leak not in message
 

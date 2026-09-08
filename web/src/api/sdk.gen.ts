@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AddAttachmentData, AddAttachmentErrors, AddAttachmentResponses, AddCommentData, AddCommentErrors, AddCommentResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, ConvertBucketData, ConvertBucketErrors, ConvertBucketResponses, ConvertEntryData, ConvertEntryErrors, ConvertEntryResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteAttachmentData, DeleteAttachmentErrors, DeleteAttachmentResponses, DeleteCommentData, DeleteCommentErrors, DeleteCommentResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAttachmentData, GetAttachmentErrors, GetAttachmentResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListAttachmentsData, ListAttachmentsErrors, ListAttachmentsResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListCommentsData, ListCommentsErrors, ListCommentsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, LookupRateData, LookupRateErrors, LookupRateResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PreviewSplitData, PreviewSplitErrors, PreviewSplitResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutRulesData, PutRulesErrors, PutRulesResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
+import type { AcceptHandoffData, AcceptHandoffErrors, AcceptHandoffResponses, AddAttachmentData, AddAttachmentErrors, AddAttachmentResponses, AddCommentData, AddCommentErrors, AddCommentResponses, AssignToBucketData, AssignToBucketErrors, AssignToBucketResponses, AutoAssignData, AutoAssignErrors, AutoAssignResponses, ConnectBudgetData, ConnectBudgetErrors, ConnectBudgetResponses, ConvertBucketData, ConvertBucketErrors, ConvertBucketResponses, ConvertEntryData, ConvertEntryErrors, ConvertEntryResponses, CreateApiKeyData, CreateApiKeyErrors, CreateApiKeyResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateEntryData, CreateEntryErrors, CreateEntryResponses, DeleteApiKeyData, DeleteApiKeyErrors, DeleteApiKeyResponses, DeleteAttachmentData, DeleteAttachmentErrors, DeleteAttachmentResponses, DeleteCommentData, DeleteCommentErrors, DeleteCommentResponses, DeleteEntryData, DeleteEntryErrors, DeleteEntryResponses, FinishGithubLoginData, FinishGithubLoginErrors, FinishGithubLoginResponses, GetAttachmentData, GetAttachmentErrors, GetAttachmentResponses, GetAuthConfigData, GetAuthConfigResponses, GetBalancesData, GetBalancesErrors, GetBalancesResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetEntryData, GetEntryErrors, GetEntryHistoryData, GetEntryHistoryErrors, GetEntryHistoryResponses, GetEntryNoteData, GetEntryNoteErrors, GetEntryNoteResponses, GetEntryResponses, GetHistoryData, GetHistoryDetailData, GetHistoryDetailErrors, GetHistoryDetailResponses, GetHistoryErrors, GetHistoryResponses, GetMeData, GetMeErrors, GetMeResponses, GetMonthData, GetMonthErrors, GetMonthResponses, InviteCollaboratorData, InviteCollaboratorErrors, InviteCollaboratorResponses, JoinBudgetData, JoinBudgetErrors, JoinBudgetResponses, ListApiKeysData, ListApiKeysErrors, ListApiKeysResponses, ListAttachmentsData, ListAttachmentsErrors, ListAttachmentsResponses, ListBucketsData, ListBucketsErrors, ListBucketsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCollaboratorsData, ListCollaboratorsErrors, ListCollaboratorsResponses, ListCommentsData, ListCommentsErrors, ListCommentsResponses, ListDueData, ListDueErrors, ListDueResponses, ListEntriesData, ListEntriesErrors, ListEntriesResponses, ListGithubReposData, ListGithubReposErrors, ListGithubReposResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListScheduledData, ListScheduledErrors, ListScheduledResponses, LogoutData, LogoutResponses, LookupRateData, LookupRateErrors, LookupRateResponses, MoveMoneyData, MoveMoneyErrors, MoveMoneyResponses, NearbyPlacesData, NearbyPlacesErrors, NearbyPlacesResponses, PollDeviceLoginData, PollDeviceLoginErrors, PollDeviceLoginResponses, PostScheduledData, PostScheduledErrors, PostScheduledResponses, PutBucketData, PutBucketErrors, PutBucketResponses, PutEntryNoteData, PutEntryNoteErrors, PutEntryNoteResponses, PutMembersData, PutMembersErrors, PutMembersResponses, PutScheduledData, PutScheduledErrors, PutScheduledResponses, RedoChangeData, RedoChangeErrors, RedoChangeResponses, ReorderBucketsData, ReorderBucketsErrors, ReorderBucketsResponses, SearchGithubUsersData, SearchGithubUsersErrors, SearchGithubUsersResponses, SearchPlacesData, SearchPlacesErrors, SearchPlacesResponses, SettleUpData, SettleUpErrors, SettleUpResponses, StartDeviceLoginData, StartDeviceLoginResponses, StartGithubLoginData, StartGithubLoginErrors, StartGithubLoginResponses, SuggestEntryData, SuggestEntryErrors, SuggestEntryResponses, SuggestPayeesData, SuggestPayeesErrors, SuggestPayeesResponses, UndoChangeData, UndoChangeErrors, UndoChangeResponses, UpdateEntryData, UpdateEntryErrors, UpdateEntryResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -480,41 +480,6 @@ export const deleteAttachment = <ThrowOnError extends boolean = false>(options: 
  * The file itself
  */
 export const getAttachment = <ThrowOnError extends boolean = false>(options: Options<GetAttachmentData, ThrowOnError>): RequestResult<GetAttachmentResponses, GetAttachmentErrors, ThrowOnError> => (options.client ?? client).get<GetAttachmentResponses, GetAttachmentErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/entries/{entry_id}/attachments/{name}', ...options });
-
-/**
- * Show how an entry would be split, without saving it
- *
- * Answers "what will this rule do?" before anything is committed.
- */
-export const previewSplit = <ThrowOnError extends boolean = false>(options: Options<PreviewSplitData, ThrowOnError>): RequestResult<PreviewSplitResponses, PreviewSplitErrors, ThrowOnError> => (options.client ?? client).post<PreviewSplitResponses, PreviewSplitErrors, ThrowOnError>({
-    url: '/api/v1/budgets/{budget}/entries/preview',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Default split rules, in match order
- */
-export const listRules = <ThrowOnError extends boolean = false>(options: Options<ListRulesData, ThrowOnError>): RequestResult<ListRulesResponses, ListRulesErrors, ThrowOnError> => (options.client ?? client).get<ListRulesResponses, ListRulesErrors, ThrowOnError>({ url: '/api/v1/budgets/{budget}/rules', ...options });
-
-/**
- * Replace the whole rule list
- *
- * Replaces the list wholesale, because order is meaningful: first match wins.
- *
- * Editing one rule in place would leave the caller unable to express a reordering.
- */
-export const putRules = <ThrowOnError extends boolean = false>(options: Options<PutRulesData, ThrowOnError>): RequestResult<PutRulesResponses, PutRulesErrors, ThrowOnError> => (options.client ?? client).put<PutRulesResponses, PutRulesErrors, ThrowOnError>({
-    url: '/api/v1/budgets/{budget}/rules',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
 
 /**
  * Who am I

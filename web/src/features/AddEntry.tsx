@@ -6,8 +6,6 @@ import {
   addAttachmentMutation,
   createEntryMutation,
   listBucketsOptions,
-  listRulesOptions,
-  previewSplitMutation,
 } from "@/api/@tanstack/react-query.gen";
 import { Guessed } from "@/components/Guessed";
 import { Icon } from "@/components/Icon";
@@ -164,13 +162,6 @@ export function AddEntry({
     enabled: Boolean(budget.slug),
   });
 
-  // Rules can supply the bucket an expense is missing, so whether one must be picked here
-  // depends on whether any rule exists at all.
-  const rules = useQuery({
-    ...listRulesOptions({ path: { budget: budget.slug } }),
-    enabled: Boolean(budget.slug),
-  });
-
   // The form takes a magnitude and the kind decides the sign. Asking someone to type a
   // leading minus for every purchase is a paper cut, and getting it wrong is silent.
   const signed = (value: string): string => {
@@ -249,29 +240,7 @@ export function AddEntry({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, kind]);
 
-  // With no bucket chosen a rule decides it server-side. The form asks which, so the panel
-  // can pre-fill from *that* bucket's default and the person can see where it will land.
-  // Debounced: a keystroke in the payee field must not fire a request each.
-  const preview = useMutation(previewSplitMutation());
-  const previewRef = useRef(preview);
-  previewRef.current = preview;
-  const previewable = usesBucket(kind) && !bucket && payee.trim() !== "";
-  useEffect(() => {
-    if (!previewable) return;
-    const handle = setTimeout(
-      () =>
-        previewRef.current.mutate({
-          path: { budget: budget.slug },
-          body: { amount: signed(amount) || "-1.00", payee, kind, tags: [] },
-        }),
-      400,
-    );
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewable, payee, kind, budget.slug]);
-
-  const ruleBucket = previewable ? (preview.data?.shares[0]?.bucket ?? null) : null;
-  const effectiveBucket = usesBucket(kind) ? bucket || ruleBucket || "" : "";
+  const effectiveBucket = usesBucket(kind) ? bucket : "";
 
   // Follow the bucket's default until the person changes the split themselves.
   useEffect(() => {
@@ -314,7 +283,9 @@ export function AddEntry({
   // rule, but if neither can supply one the entry is rejected by the domain — so the form
   // says which of the two is missing instead of letting someone submit into a 422.
   const noBuckets = usesBucket(kind) && buckets.isSuccess && buckets.data.length === 0;
-  const bucketMissing = usesBucket(kind) && !bucket && rules.isSuccess && rules.data.length === 0;
+  // There is nothing else to decide it: the history-based suggestion fills the field, and
+  // the person confirms. An expense with no bucket cannot be saved.
+  const bucketMissing = usesBucket(kind) && !bucket;
 
   const paidTotal = paidBy.reduce((sum, row) => sum + Math.round((Number(row.amount) || 0) * 100), 0);
   const paidBalanced = paidTotal === Math.round(Number(signed(amount)) * 100);
@@ -487,16 +458,11 @@ export function AddEntry({
               value={bucket}
               onChange={(event) => setBucket(event.target.value)}
             >
-              {/* An empty bucket only works when a rule can fill it in. With no rules it is
-                  a choice that cannot succeed, so it becomes a prompt rather than a trap —
-                  still the selected value, so the field never shows a bucket nobody picked. */}
-              {bucketMissing ? (
-                <option value="" disabled>
-                  {t("entries.chooseBucket")}
-                </option>
-              ) : (
-                <option value="">{t("entries.byRule")}</option>
-              )}
+              {/* A prompt rather than a default: the field never shows a bucket nobody
+                  picked, and the suggestion engine fills it from history when it can. */}
+              <option value="" disabled>
+                {t("entries.chooseBucket")}
+              </option>
               {(buckets.data ?? []).map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -510,17 +476,6 @@ export function AddEntry({
           <Input value={note} onChange={(event) => setNote(event.target.value)} />
         </Field>
       </div>
-
-      {/* Where a rule is filing this, when no bucket was chosen: the one thing the panel
-          below cannot show on its own. */}
-      {previewable && preview.data?.rule && ruleBucket && (
-        <p className="mt-3 text-xs text-ink-muted">
-          {t("split.ruleHint", {
-            rule: preview.data.rule,
-            bucket: (buckets.data ?? []).find((b) => b.id === ruleBucket)?.name ?? ruleBucket,
-          })}
-        </p>
-      )}
 
       <SplitEditor
         members={budget.members}
@@ -617,7 +572,7 @@ export function AddEntry({
       {/* Actions last, below whatever was opened above them. They used to sit between the
           fields and the map, receipt and split editors, so on a phone the Save button — and
           the error a failed save produced — were above the fold of the thing being edited. */}
-      <FormError error={create.error ?? attach.error ?? preview.error} />
+      <FormError error={create.error ?? attach.error} />
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button type="submit" disabled={!ready || saving}>
           {attach.isPending ? t("attachments.uploading") : t("entries.save")}

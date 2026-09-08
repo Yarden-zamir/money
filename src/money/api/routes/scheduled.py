@@ -17,9 +17,8 @@ from money.api.deps import BudgetContext, budget_context, person_for, writable
 from money.api.errors import ApiError, not_found
 from money.api.fx import conversion
 from money.api.schemas import DueEntry, DueList, EntryResponse, PostRequest
-from money.domain.models import Entry, EntryKind, Scheduled, Share
+from money.domain.models import Entry, EntryKind, Scheduled, Share, shares_from_split
 from money.domain.recurrence import occurrences
-from money.domain.rules import first_match, shares_from_split
 from money.store.store import new_id
 
 router = APIRouter(prefix="/budgets/{budget}/scheduled", tags=["scheduled"])
@@ -175,29 +174,16 @@ def post_scheduled(
 
 
 def _shares_for(context: BudgetContext, item: Scheduled, payer: str) -> list[Share]:
-    """Fall back to the split rules when a template carries no explicit split.
+    """The bucket's split, when a template carries no explicit split of its own.
 
-    A template without a split stays correct as the rules change, which is what someone wants
-    for "groceries" and not for "rent split 60/40" — so both are expressible.
+    A template without a split stays correct as the bucket's default changes, which is what
+    someone wants for "groceries" and not for "rent split 60/40" — so both are expressible.
+    The model already refuses an expense template with neither a bucket nor a split.
     """
     expense = item.kind is EntryKind.EXPENSE
-
-    # The template's own bucket wins over a rule's: it was chosen for this charge
-    # specifically, while a rule is a default for everything that looks like it.
-    bucket_id = item.bucket
-    if bucket_id is None and expense:
-        rule = first_match(
-            context.store.rules(),
-            payee=item.payee,
-            tags=item.tags,
-            paid_by=payer,
-            amount=item.amount,
-        )
-        bucket_id = rule.bucket if rule else None
-
-    bucket = next((b for b in context.store.buckets() if b.id == bucket_id), None)
+    bucket = next((b for b in context.store.buckets() if b.id == item.bucket), None)
     if bucket is None:
-        return [Share(person=payer, amount=item.amount, bucket=bucket_id if expense else None)]
+        return [Share(person=payer, amount=item.amount, bucket=item.bucket if expense else None)]
 
     people = [member.person for member in context.store.budget().members]
     return shares_from_split(bucket.split_for(people), item.amount, bucket.id, item.kind)

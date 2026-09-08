@@ -748,7 +748,7 @@ function BucketRow({
             <span className="sr-only-controls flex flex-col">
               <button
                 type="button"
-                aria-label={t("rules.moveUp")}
+                aria-label={t("common.moveUp")}
                 onClick={() => onMove(-1)}
                 className="text-[9px] leading-none text-ink-muted hover:text-brand"
               >
@@ -756,7 +756,7 @@ function BucketRow({
               </button>
               <button
                 type="button"
-                aria-label={t("rules.moveDown")}
+                aria-label={t("common.moveDown")}
                 onClick={() => onMove(1)}
                 className="text-[9px] leading-none text-ink-muted hover:text-brand"
               >

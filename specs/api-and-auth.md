@@ -70,7 +70,7 @@ POST   /budgets/create                       create the repo AND the first budge
 GET    /budgets/{budget}                     identity, members, currency, data branch
 
 GET    /budgets/{budget}/entries             filter by month, person, bucket, tag, payee, kind, unconverted; q= searches
-POST   /budgets/{budget}/entries             create; applies rules unless split is given; fx= for another currency
+POST   /budgets/{budget}/entries             create; an expense needs a bucket; fx= for another currency
 POST   /budgets/{budget}/entries/{id}/convert   add a conversion to an unconverted entry
 GET    /budgets/{budget}/entries/{id}
 PATCH  /budgets/{budget}/entries/{id}
@@ -118,10 +118,6 @@ GET    /budgets/{budget}/scheduled           recurring entry templates
 PUT    /budgets/{budget}/scheduled           replace them
 GET    /budgets/{budget}/scheduled/due       what is due, default two weeks out
 POST   /budgets/{budget}/scheduled/{id}/post turn one due date into an entry
-
-GET    /budgets/{budget}/rules
-PUT    /budgets/{budget}/rules
-POST   /budgets/{budget}/rules/preview       what would this entry split into? no write
 
 GET    /me
 GET    /me/keys      POST /me/keys      DELETE /me/keys/{id}
@@ -256,10 +252,10 @@ against the previous state rather than restating the request:
   write.
 - **assignments** — the bucket's *name* and the figure it moved from, both read before the
   write destroys them: `assign: Groceries 0.00 → 2000.00 for 2026-08 (yarden)`.
-- **rules, members and recurring entries** — all replaced as a unit, so the subject names what
-  was added or removed: `rules: 2 split rules (added coffee)`. A same-length list with the
-  same names is reported as reordered or edited, which is otherwise indistinguishable from
-  nothing happening.
+- **members and recurring entries** — replaced as a unit, so the subject names what was added
+  or removed: `members: 3 members (added Noa)`. A same-length list with the same names is
+  reported as reordered or edited, which is otherwise indistinguishable from nothing
+  happening.
 - **notes** — the entry's payee, not its ULID.
 - **comments and attachments** — `comment: dana on קפה גרג`, `attachment: add
   01K….jpg to קפה גרג`. Both carry an `Entry-Id` trailer so the entry's own history lists

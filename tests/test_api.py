@@ -1,7 +1,7 @@
 """API tests against a real git-backed store.
 
 GitHub is the only thing faked here: the budget context is overridden to point at a local
-bare repo. Everything below it — rules, splits, commits, balances — is the real code path.
+bare repo. Everything below it — splits, commits, balances — is the real code path.
 """
 
 from __future__ import annotations
@@ -35,15 +35,6 @@ members:
     github: dana-example
 """
 
-RULES_YAML = """\
-- id: groceries
-  when: {payee_contains: שופרסל}
-  bucket: groceries
-- id: split-5050
-  when: {}
-  bucket: fun-money
-"""
-
 # Buckets are shared and carry the split that decides who bears their spending.
 BUCKETS_YAML = """\
 - id: fun-money
@@ -71,7 +62,6 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     seed = tmp_path / "seed"
     subprocess.run(["git", "clone", str(bare), str(seed)], check=True, capture_output=True)
     (seed / "budget.yaml").write_text(BUDGET_YAML, encoding="utf-8")
-    (seed / "rules.yaml").write_text(RULES_YAML, encoding="utf-8")
     (seed / "buckets.yaml").write_text(BUCKETS_YAML, encoding="utf-8")
     for args in (
         ["config", "user.email", "seed@example.com"],
@@ -102,61 +92,15 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 
 def post_entry(client: TestClient, **body: object) -> dict:
+    """An expense needs a bucket; the tests that do not care about which get fun-money."""
+    if body.get("kind", "expense") == "expense" and "bucket" not in body and "shares" not in body:
+        body["bucket"] = "fun-money"
     response = client.post("/api/v1/budgets/joint/entries", json=body)
     assert response.status_code == 200, response.text
     return response.json()
 
 
 class TestEntries:
-    def test_rules_split_an_entry_and_record_which_rule_did_it(self, client: TestClient) -> None:
-        result = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")
-        entry = result["entry"]
-
-        assert entry["rule"] == "split-5050"
-        assert entry["paid_by"] == {"yarden": "-50.00"}
-        assert [(s["person"], s["amount"], s["bucket"]) for s in entry["shares"]] == [
-            ("yarden", "-25.00", "fun-money"),
-            ("dana", "-25.00", "fun-money"),
-        ]
-        assert len(result["commit"]) == 40  # a real sha, so the client can link to the diff
-
-    def test_a_more_specific_rule_wins(self, client: TestClient) -> None:
-        entry = post_entry(client, amount="-284.51", payee="שופרסל דיל", date="2026-07-15")["entry"]
-
-        assert entry["rule"] == "groceries"
-        assert {s["bucket"] for s in entry["shares"]} == {"groceries"}
-        assert sum(D(s["amount"]) for s in entry["shares"]) == D("-284.51")
-
-    def test_an_explicit_split_overrides_the_rules(self, client: TestClient) -> None:
-        entry = post_entry(
-            client,
-            amount="-100.00",
-            payee="ספרים",
-            date="2026-07-16",
-            shares=[
-                {"person": "yarden", "amount": "-80.00", "bucket": "fun-money"},
-                {"person": "dana", "amount": "-20.00", "bucket": "fun-money"},
-            ],
-        )["entry"]
-
-        assert entry["rule"] is None
-        assert entry["shares"][0]["amount"] == "-80.00"
-
-    def test_a_rule_still_picks_the_bucket_under_an_explicit_split(
-        self, client: TestClient
-    ) -> None:
-        """The form always sends the split it shows. The bucket is a separate decision and
-        the rule must keep making it, or every explicit split would need a bucket typed."""
-        entry = post_entry(
-            client,
-            amount="-100.00",
-            payee="שופרסל דיל",
-            date="2026-07-14",
-            shares=[{"person": "yarden", "amount": "-100.00"}],
-        )["entry"]
-        assert entry["rule"] == "groceries"
-        assert entry["shares"] == [{"person": "yarden", "amount": "-100.00", "bucket": "groceries"}]
-
     def test_a_split_that_does_not_add_up_is_rejected(self, client: TestClient) -> None:
         response = client.post(
             "/api/v1/budgets/joint/entries",
@@ -170,17 +114,6 @@ class TestEntries:
         assert response.json()["error"]["code"] == "invalid_data"
         assert "shares sum to -80.00" in response.json()["error"]["message"]
 
-    def test_preview_does_not_write_anything(self, client: TestClient) -> None:
-        response = client.post(
-            "/api/v1/budgets/joint/entries/preview",
-            json={"amount": "-50.00", "payee": "קפה גרג"},
-        )
-        assert response.status_code == 200
-        assert response.json()["rule"] == "split-5050"
-
-        listing = client.get("/api/v1/budgets/joint/entries")
-        assert listing.json()["total"] == 0
-
     def test_entry_history_comes_from_git(self, client: TestClient) -> None:
         entry_id = post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14")["entry"][
             "id"
@@ -193,7 +126,9 @@ class TestEntries:
 
     def test_filters_narrow_the_ledger(self, client: TestClient) -> None:
         post_entry(client, amount="-50.00", payee="קפה גרג", date="2026-07-14", tags=["coffee"])
-        post_entry(client, amount="-284.51", payee="שופרסל דיל", date="2026-08-02")
+        post_entry(
+            client, amount="-284.51", payee="שופרסל דיל", date="2026-08-02", bucket="groceries"
+        )
 
         assert client.get("/api/v1/budgets/joint/entries?month=2026-07").json()["total"] == 1
         assert client.get("/api/v1/budgets/joint/entries?bucket=groceries").json()["total"] == 1
@@ -222,6 +157,7 @@ class TestReceipts:
             json={
                 "amount": "-120.00",
                 "payee": "שופרסל דיל",
+                "bucket": "groceries",
                 "items": [{"label": "חלב", "amount": "-20.00"}],
             },
         )
@@ -1063,7 +999,13 @@ class TestCurrency:
     def test_no_rate_means_refuse_not_guess(self, client: TestClient) -> None:
         refused = client.post(
             "/api/v1/budgets/joint/entries",
-            json={"amount": "-50.00", "payee": "Bar", "currency": "GBP", "date": "2026-07-14"},
+            json={
+                "amount": "-50.00",
+                "payee": "Bar",
+                "bucket": "fun-money",
+                "currency": "GBP",
+                "date": "2026-07-14",
+            },
         )
         assert refused.status_code == 422
         assert refused.json()["error"]["code"] == "no_rate"
@@ -1081,7 +1023,12 @@ class TestCurrency:
     def test_the_budget_currency_takes_no_choice(self, client: TestClient) -> None:
         refused = client.post(
             "/api/v1/budgets/joint/entries",
-            json={"amount": "-50.00", "payee": "Bar", "fx": {"mode": "none"}},
+            json={
+                "amount": "-50.00",
+                "payee": "Bar",
+                "bucket": "fun-money",
+                "fx": {"mode": "none"},
+            },
         )
         assert refused.json()["error"]["code"] == "fx_not_needed"
 

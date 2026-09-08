@@ -2,7 +2,8 @@
 
 How much you put into a bucket and how much of its spending you bear are two different
 decisions. The app used to conflate them: buckets were per-person lists, and the split came
-from a rules file keyed by payee.
+from a rules file keyed by payee. Rules are gone entirely now: the bucket is chosen on the
+form, and the bucket owns the split.
 
 - **Funding** — "how much am I putting into this envelope this month". A cashflow decision,
   per person, per bucket, per month.
@@ -35,15 +36,10 @@ attributing their spending to everyone else. A *partial* split is refused rather
 normalised: shares summing to 0.9 are a typo, and scaling them to 1 would attribute money in
 proportions nobody chose.
 
-Rules stop being about people, which is the simplification that falls out of this. A rule
-carried `split` and a per-person `bucket` map; with one shared bucket that owns its split, a
-rule is pure categorisation:
-
-```yaml
-- id: groceries
-  when: {payee_contains: שופרסל}
-  bucket: food                          # which envelope. the envelope decides who bears it.
-```
+There is no rules file. A rule was a payee-matched default that applied out of sight, and
+it is exactly the kind of decision that should be on screen: the split panel opens on every
+entry pre-filled from the bucket, and the bucket field is filled from history by the
+suggestion engine rather than by a match list somebody maintains.
 
 ## Derivation
 
@@ -62,14 +58,14 @@ Three recorded quantities, two derived comparisons. Nothing new is stored.
 - **Debt**, per person: `Σ borne − Σ paid`. Unchanged.
 
 `shares` is produced from the bucket's split **when the entry is created, and then stored**.
-It is an audit trail, not an instruction — the same treatment `rule` already gets. Reading the
+It is an audit trail, not an instruction. Reading the
 split live would mean that editing a bucket silently rewrites who owed whom across months of
 history.
 
 Precedence when an entry is created, most specific first: line-level splits on a receipt, an
 explicit split on the entry, the split of the bucket it lands in, and finally the payer alone
-when there is no bucket to ask. The bucket itself is decided before any of that, by the
-caller or by a rule, so an explicit split without a bucket still lands where the rule says.
+for kinds that have no bucket. An expense must name its bucket, on the entry or on its
+shares; there is nothing else to decide it.
 
 The web form always sends an explicit split: its panel opens pre-filled from the bucket's
 default, so the default is a starting point on screen rather than something applied out of

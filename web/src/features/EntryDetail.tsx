@@ -141,10 +141,6 @@ function SplitTab({
         </div>
       )}
 
-      {entry.rule && (
-        <div className="text-ink-muted">{t("entries.splitBy", { rule: entry.rule })}</div>
-      )}
-
       {entry.fx && (
         <div className="text-ink-muted">
           <Money amount={entry.fx.amount} currency={budget.currency} colour={false} />
