@@ -20,7 +20,7 @@ notes/<entry-id>.md                # long-form note for one entry, optional
 comments/<entry-id>.yaml           # the conversation under one entry, optional
 attachments/<entry-id>/<ulid>.jpg  # receipt photos and PDFs, optional
 README.md                          # generated; explains this layout to a human
-.money/schema-version              # integer, currently 1
+.money/schema-version              # integer, currently 2
 ```
 
 Person ids are lowercase slugs (`yarden`, `dana`), not GitHub logins. `budget.yaml` maps
@@ -166,10 +166,10 @@ own `fun-money` envelope, and Dana ends up owing Yarden 25 — derived, never wr
   `at` is naive local time on purpose: which day a purchase belongs to is a local human
   judgement, and converting through a timezone could land a late-night purchase in the wrong
   budget month.
-- `rule` is historical. Rules — payee-matched defaults — were removed; entries written
-  while they existed keep the id of the rule that filed them, because history is not
-  rewritten. Nothing writes the field any more. The bucket is chosen on the form, with the
-  history-based suggestion filling it in, and the split comes from the bucket's default.
+- There is no `rule` field. Rules — payee-matched defaults — were removed in schema 2, and
+  a repo written under schema 1 is rewritten rather than tolerated. The bucket is chosen on
+  the form, with the history-based suggestion filling it in, and the split comes from the
+  bucket's default.
 
 ### Kinds
 
@@ -322,7 +322,8 @@ server this app runs on is a receipt you lose when the app goes.
 
 ## Schema Version
 
-`.money/schema-version` holds an integer, currently `1`. It is written on the first change the
+`.money/schema-version` holds an integer, currently `2`. Version 2 is the removal of rules:
+no `rules.yaml`, no `rule` field on an entry. It is written on the first change the
 app makes to a repo, so a repo created by hand gains one.
 
 The app refuses to write to a repo whose version is **higher** than it understands. Reading

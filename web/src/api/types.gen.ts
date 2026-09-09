@@ -821,10 +821,6 @@ export type Entry = {
      */
     tags?: Array<string>;
     /**
-     * Rule
-     */
-    rule?: string | null;
-    /**
      * Items
      *
      * Receipt lines; must sum to the entry amount

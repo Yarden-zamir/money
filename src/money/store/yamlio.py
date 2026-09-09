@@ -37,7 +37,10 @@ class Dumper(yaml.SafeDumper):
 
 
 def _represent_decimal(dumper: yaml.Dumper, value: Decimal) -> yaml.Node:
-    return dumper.represent_scalar(FLOAT_TAG, f"{value:.2f}")
+    # `f` formatting, not `.2f`: every Decimal here is already quantized to the places it
+    # means — two for an amount, four for an exchange rate — and forcing two rounded a
+    # rate of 3.4991 to 3.50 on the way into the ledger.
+    return dumper.represent_scalar(FLOAT_TAG, f"{value:f}")
 
 
 def _represent_str_enum(dumper: yaml.Dumper, value: StrEnum) -> yaml.Node:

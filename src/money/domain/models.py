@@ -166,9 +166,6 @@ class Entry(Base):
     shares: list[Share] = Field(min_length=1)
     note: str | None = None
     tags: list[str] = Field(default_factory=list)
-    # Historical. Rules were removed; entries written while they existed keep the id of the
-    # rule that filed them, because history is not rewritten. Nothing writes this any more.
-    rule: str | None = None
     items: list[LineItem] = Field(
         default_factory=list, description="Receipt lines; must sum to the entry amount"
     )

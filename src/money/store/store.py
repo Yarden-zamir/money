@@ -19,7 +19,7 @@ from money.domain.models import Bucket, Budget, Comment, Entry, Fx, Member, Sche
 from money.store import yamlio
 from money.store.gitrepo import Commit, GitRepo, PushRejected, write_lock
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 

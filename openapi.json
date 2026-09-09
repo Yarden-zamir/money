@@ -7284,17 +7284,6 @@
             "type": "array",
             "title": "Tags"
           },
-          "rule": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rule"
-          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/LineItem"

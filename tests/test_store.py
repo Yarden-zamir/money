@@ -284,7 +284,7 @@ class TestFullRoundTrip:
         """
         from money.api.schemas import EntryCreate
 
-        derived = {"id", "rule"}
+        derived = {"id"}
         missing = set(Entry.model_fields) - set(EntryCreate.model_fields) - derived
         assert not missing, f"entry fields no request can set: {sorted(missing)}"
 
@@ -342,7 +342,7 @@ class TestSchemaVersion:
     def test_the_marker_is_written_on_first_change(self, store: BudgetStore) -> None:
         assert store.repo.read(".money/schema-version") is None
         store.add_entry(coffee(), ACTOR)
-        assert store.repo.read(".money/schema-version") == "1\n"
+        assert store.repo.read(".money/schema-version") == "2\n"
 
     def test_data_from_a_newer_app_is_refused(self, store: BudgetStore) -> None:
         """Reading it might look fine while dropping fields this version cannot see, and the
@@ -464,3 +464,15 @@ class TestFetchWindow:
         store.put_bucket(Bucket(id="food", name="Food"), ACTOR)
 
         assert {bucket.id for bucket in store.buckets()} == {"fun", "food"}
+
+
+def test_a_decimal_keeps_its_own_precision_through_yaml() -> None:
+    """A rate has four places and an amount two. Forcing every Decimal to two places on the
+    way out rounded a stored rate of 3.4991 to 3.50 — the entry still validated, because the
+    validator recomputed against the rounded rate, and the real rate was simply lost."""
+    from money.store import yamlio
+
+    text = yamlio.dump({"rate": Decimal("3.4991"), "amount": Decimal("-17.50")})
+    assert "3.4991" in text
+    assert "-17.50" in text
+    assert yamlio.load(text) == {"rate": Decimal("3.4991"), "amount": Decimal("-17.50")}
