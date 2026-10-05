@@ -1,5 +1,7 @@
 # money
 
+[![kitshn](https://kitshn.yarden-zamir.com/b/Yarden-zamir/money.svg)](https://money.yarden-zamir.com)
+
 Budgeting and shared expenses for one person or a household. Envelope budgeting like YNAB,
 shared-expense balances like Splitwise, from the same records.
 
