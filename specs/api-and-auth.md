@@ -22,12 +22,12 @@ a code, the user approves in a browser, and the CLI exchanges it for an API key 
 
 ### Signing In To A PR Preview
 
-A GitHub OAuth app has exactly one callback URL, so a preview at `pr.42.money.yarden-zamir.com`
+A GitHub OAuth app has exactly one callback URL, so a preview at `pr-42.money.yarden-zamir.com`
 cannot run its own flow. Production runs it and hands the result back:
 
 ```
 pr-42  GET /auth/config           -> login_url points at production, carrying return_host
-prod   GET /auth/github/start?return_host=pr.42.money.yarden-zamir.com
+prod   GET /auth/github/start?return_host=pr-42.money.yarden-zamir.com
 prod   GET /auth/github/callback  -> mints a handoff ticket instead of a session
 pr-42  GET /auth/handoff?ticket=  -> validates, creates the user, sets its own cookie
 ```
@@ -37,7 +37,7 @@ with the shared `SESSION_SECRET`, valid for 60 seconds, single-use via a nonce t
 records, and pinned to one hostname that the preview re-checks against its own. The token
 inside is encrypted with `TOKEN_ENCRYPTION_KEY` rather than carried in the clear.
 
-`return_host` is checked against `pr.<digits>.<production host>`, built from parts rather
+`return_host` is checked against `pr-<digits>.<production host>`, built from parts rather
 than pattern-matched. It decides where a ticket is delivered, so a generous check here would
 be an open redirect that leaks a credential. `tests/test_preview_auth.py` pins that down.
 
