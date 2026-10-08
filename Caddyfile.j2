@@ -1,10 +1,6 @@
-{# Production serves the apex host; every PR preview gets its own subdomain, or Caddy would
-   reject two site blocks claiming the same name. Preview hostnames need a wildcard
-   *.money.yarden-zamir.com DNS record pointing at the VPS. #}
-{% if environment == "prod" -%}
-money.yarden-zamir.com
-{%- else -%}
-pr.{{ environment.removeprefix("pr-") }}.money.yarden-zamir.com
-{%- endif %} {
+{# host() keeps money.yarden-zamir.com for prod and gives pr-<number>.money.yarden-zamir.com
+   to each PR preview, so the sites never collide and all previews share one wildcard
+   certificate. Preview hostnames need a *.money.yarden-zamir.com DNS record. #}
+{{ host("money.yarden-zamir.com") }} {
     reverse_proxy unix//{{ paths.default_socket }}
 }

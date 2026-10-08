@@ -2,7 +2,7 @@
 
 Deployed with [KitSHn](https://github.com/Yarden-zamir/kitshn) onto the VPS. `main` goes to
 `prod` at `money.yarden-zamir.com`; every pull request gets a preview at
-`pr.<number>.money.yarden-zamir.com`.
+`pr-<number>.money.yarden-zamir.com`.
 
 ```yaml
 # .kitshn.yaml
