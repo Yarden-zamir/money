@@ -1,8 +1,9 @@
 # Deployment
 
-Deployed with [KitSHn](https://github.com/Yarden-zamir/kitshn) onto the VPS. `main` goes to
-`prod` at `money.yarden-zamir.com`; every pull request gets a preview at
-`pr-<number>.money.yarden-zamir.com`.
+Deployed with [kitshn 2](https://github.com/Yarden-zamir/kitshn) onto the VPS (`kitshn.config.ts`).
+`main` goes to `prod` at `money.yarden-zamir.com`; every pull request gets a preview at
+`money-pr-<number>.yarden-zamir.com`. Both start in the Everyone circle, because the app has its
+own GitHub login. `.kitshn.yaml` and `Caddyfile.j2` below are the KitSHn 1 setup, kept for the rollback.
 
 ```yaml
 # .kitshn.yaml

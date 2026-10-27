@@ -22,12 +22,12 @@ a code, the user approves in a browser, and the CLI exchanges it for an API key 
 
 ### Signing In To A PR Preview
 
-A GitHub OAuth app has exactly one callback URL, so a preview at `pr-42.money.yarden-zamir.com`
+A GitHub OAuth app has exactly one callback URL, so a preview at `money-pr-42.yarden-zamir.com`
 cannot run its own flow. Production runs it and hands the result back:
 
 ```
 pr-42  GET /auth/config           -> login_url points at production, carrying return_host
-prod   GET /auth/github/start?return_host=pr-42.money.yarden-zamir.com
+prod   GET /auth/github/start?return_host=money-pr-42.yarden-zamir.com
 prod   GET /auth/github/callback  -> mints a handoff ticket instead of a session
 pr-42  GET /auth/handoff?ticket=  -> validates, creates the user, sets its own cookie
 ```

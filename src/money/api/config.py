@@ -50,8 +50,9 @@ class Settings(BaseSettings):
     def public_host(self) -> str:
         """Hostname of the production deployment, taken from BASE_URL.
 
-        Previews are always `pr-<number>.<this host>`, which is what makes the sign-in
-        handoff checkable rather than an open redirect.
+        Previews are always `<first label>-pr-<number>.<rest of this host>` (kitshn 2 keeps
+        previews one level deep, K-901), which is what makes the sign-in handoff checkable
+        rather than an open redirect.
         """
         return self.base_url.removeprefix("https://").removeprefix("http://").split("/")[0]
 
@@ -60,20 +61,23 @@ class Settings(BaseSettings):
         """This deployment's own hostname. Production and previews differ."""
         if self.is_production or self.kitshn_environment == "local":
             return self.public_host
-        return f"{self.kitshn_environment}.{self.public_host}"
+        app, _, zone = self.public_host.partition(".")
+        return f"{app}-{self.kitshn_environment}.{zone}"
 
     def is_valid_preview_host(self, host: str) -> bool:
         """Is `host` a preview of *this* deployment?
 
         Deliberately strict, and built from parts rather than a pattern match: this value
         decides where a sign-in ticket gets sent, so anything but an exact
-        `pr-<digits>.<public host>` must be refused.
+        `<app>-pr-<digits>.<zone>` of the public host must be refused.
         """
+        app, _, zone = self.public_host.partition(".")
         label, dot, rest = host.partition(".")
-        number = label.removeprefix("pr-")
-        if not dot or not label.startswith("pr-") or not (number.isascii() and number.isdigit()):
+        prefix = f"{app}-pr-"
+        number = label.removeprefix(prefix)
+        if not dot or not label.startswith(prefix) or not (number.isascii() and number.isdigit()):
             return False
-        return rest == self.public_host
+        return rest == zone
 
     @property
     def data_branch(self) -> str:
