@@ -2,6 +2,8 @@ on:
   push:
   pull_request:
     types: [opened, synchronize, reopened, closed]
+  # kitshn 2 agent keys start a build of one branch (K-718).
+  workflow_dispatch:
 
 permissions:
   contents: read
