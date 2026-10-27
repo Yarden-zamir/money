@@ -43,7 +43,7 @@ before doing so, or Caddy will reject the duplicate site definition.
 
 - Services: `app`, and `cache` (Redis with no persistence). `${KITSHN_DATA_DIR}/state` is mounted at `/data`. It holds only caches of GitHub state, so losing it costs a re-clone and a sign-in, not budget history.
 - Environments: `prod` from a push to `main`, and an ephemeral `pr-<number>` for each pull request.
-- Hostnames: `money.yarden-zamir.com` for prod, `pr-<number>.money.yarden-zamir.com` for previews.
+- Hostnames: `money.yarden-zamir.com` for prod, `money-pr-<number>.yarden-zamir.com` for previews.
 - Required params: `KITSHN_GITHUB_CLIENT_ID`, `KITSHN_GITHUB_CLIENT_SECRET`, `KITSHN_SESSION_SECRET`, `KITSHN_TOKEN_ENCRYPTION_KEY`, `KITSHN_BASE_URL`.
 - Optional params: `KITSHN_DEFAULT_DATA_REPO`, `KITSHN_GOOGLE_CLOUD_API_KEY`.
 
