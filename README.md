@@ -107,8 +107,8 @@ Writes are pushed with the acting user's own GitHub token, so GitHub enforces pe
 
 ## Deployment
 
-[KitSHn](https://github.com/Yarden-zamir/kitshn) onto the VPS: `main` to
-`money.yarden-zamir.com`, every pull request to `money-pr-<number>.yarden-zamir.com`. A
+[kitshn 2](https://kit.yarden-zamir.com) runs it as a Compose app on a machine with the label `docker`
+(`kitshn.config.ts`): `main` to `money.yarden-zamir.com`, every pull request to `money-pr-<number>.yarden-zamir.com`. A
 preview reads the real data repo on a branch named after its environment, created from `main`
 on first use, so it never writes to production data.
 
