@@ -3,24 +3,11 @@
 Deployed with [kitshn 2](https://github.com/Yarden-zamir/kitshn) onto the VPS (`kitshn.config.ts`).
 `main` goes to `prod` at `money.yarden-zamir.com`; every pull request gets a preview at
 `money-pr-<number>.yarden-zamir.com`. Both start in the Everyone circle, because the app has its
-own GitHub login. `.kitshn.yaml` and `Caddyfile.j2` below are the KitSHn 1 setup, kept for the rollback.
-
-```yaml
-# .kitshn.yaml
-deploy:
-  - on: push
-    branch: main
-    name: prod
-
-  - on: pull_request
-    name: pr-{pr}
-    ephemeral: true
-```
+own GitHub login.
 
 ## Ingress
 
-Caddy on the host cannot resolve Compose service names, so the app is reached over a Unix
-socket. Uvicorn binds `${KITSHN_DEFAULT_SOCKET}` directly — the app speaks the socket itself,
+kitshn's tunnel reaches the app over a Unix socket. Uvicorn binds `${KITSHN_DEFAULT_SOCKET}` directly — the app speaks the socket itself,
 so there is no `socat` sidecar to keep alive.
 
 The frontend is built at image build time and served by the same FastAPI process as static
@@ -44,7 +31,6 @@ are visible to everyone with repo access.
 ## Params
 
 GitHub secrets and variables named `KITSHN_<NAME>` arrive in the container as `<NAME>`.
-`KITSHN_VPS_HOST` and `KITSHN_SSH_KEY` are KitSHn's own and are never forwarded.
 
 | Param | Kind | Purpose |
 |---|---|---|
