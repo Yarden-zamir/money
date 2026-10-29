@@ -1,6 +1,0 @@
-{# host() keeps money.yarden-zamir.com for prod and gives pr-<number>.money.yarden-zamir.com
-   to each PR preview, so the sites never collide and all previews share one wildcard
-   certificate. Preview hostnames need a *.money.yarden-zamir.com DNS record. #}
-{{ host("money.yarden-zamir.com") }} {
-    reverse_proxy unix//{{ paths.default_socket }}
-}
