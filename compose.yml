@@ -7,9 +7,6 @@ services:
       KITSHN_DEPLOYMENT: ${KITSHN_DEPLOYMENT}
       KITSHN_SOCKET_DIR: ${KITSHN_SOCKET_DIR}
       KITSHN_DEFAULT_SOCKET: ${KITSHN_DEFAULT_SOCKET}
-      # K-1908: the app sends kitshn notifications with these; each deploy gives a new token.
-      KITSHN_NOTIFY_URL: ${KITSHN_NOTIFY_URL:-}
-      KITSHN_NOTIFY_TOKEN: ${KITSHN_NOTIFY_TOKEN:-}
 
       # Container path, mounted from the KitSHn host data directory below.
       DATA_DIR: /data

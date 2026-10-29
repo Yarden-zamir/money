@@ -74,6 +74,7 @@ normal and correct.
 container that is serving cached reads. `/readyz` additionally checks that the data repo is
 reachable and the branch resolves; that is the one to watch after a deploy.
 
-kitshn also passes `KITSHN_NOTIFY_URL` and `KITSHN_NOTIFY_TOKEN` to the app container. With them the app can send a
-kitshn notification (`POST $KITSHN_NOTIFY_URL` with `Authorization: Bearer $KITSHN_NOTIFY_TOKEN`). Each deploy gives a
-new token. The app code does not send notifications yet.
+kitshn gives `KITSHN_NOTIFY_URL` and `KITSHN_NOTIFY_TOKEN` to every service by itself (kitshn K-1908), so
+`compose.yml` has no lines for them. With them the app can send a kitshn notification (`POST $KITSHN_NOTIFY_URL` with
+`Authorization: Bearer $KITSHN_NOTIFY_TOKEN`). Each deploy gives a new token. The app code does not send notifications
+yet.
